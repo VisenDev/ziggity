@@ -1,6 +1,10 @@
 const std = @import("std");
 const state = @import("state.zig");
 const cwd = @import("cwd.zig");
+const entity = @import("entity.zig");
+const c = @cImport({
+    @cInclude("stdlib.h");
+});
 
 const Arena = std.heap.ArenaAllocator;
 const page_allocator = std.heap.page_allocator;
@@ -23,22 +27,31 @@ pub fn main() !void {
     ray.SetTargetFPS(60);
 
     var game = try state.createGameState(allocator);
+    const texture = game.texture_state.get("default");
 
-    _ = try game.entity_state.newEntity(&game.texture_state);
-    _ = try game.entity_state.newEntity(&game.texture_state);
-    _ = try game.entity_state.newEntity(&game.texture_state);
-    _ = try game.entity_state.newEntity(&game.texture_state);
-    _ = try game.entity_state.newEntity(&game.texture_state);
-    _ = try game.entity_state.newEntity(&game.texture_state);
+    for (0..10) |_| {
+        try game.entity_state.spawn(.{
+            .position = entity.PositionComponent{
+                .pos = .{
+                    .x = 1,
+                    .y = 1,
+                },
+            },
+            .renderer = entity.RenderComponent{
+                .texture = texture,
+            },
+        });
+    }
 
     while (!ray.WindowShouldClose()) {
         try game.entity_state.update(1.0);
 
         ray.BeginDrawing();
-        defer ray.EndDrawing();
 
         ray.ClearBackground(ray.RAYWHITE);
         ray.DrawText("Hello, World!", 190, 200, 20, ray.LIGHTGRAY);
         try game.entity_state.render(5.0);
+
+        ray.EndDrawing();
     }
 }

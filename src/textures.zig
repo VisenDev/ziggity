@@ -6,6 +6,13 @@ const json = std.json;
 
 pub const TextureState = struct {
     textures: std.hash_map.StringHashMap(ray.Texture2D),
+    default: ray.Texture2D,
+    pub fn get(self: *@This(), key: []const u8) ray.Texture2D {
+        if (self.textures.get(key)) |texture| {
+            return texture;
+        }
+        return self.default;
+    }
 };
 
 const Records = struct {
@@ -30,11 +37,13 @@ pub fn createTextureState(a: std.mem.Allocator) !TextureState {
 
     const parsed_data = try json.parseFromSlice(Records, local, string, .{});
     //defer parsed_data.deinit();
-
     const data = parsed_data.value;
 
-    var map = std.hash_map.StringHashMap(ray.Texture2D).init(a);
-    var state = TextureState{ .textures = map };
+    var default_found = false;
+    var state = TextureState{
+        .textures = std.hash_map.StringHashMap(ray.Texture2D).init(a),
+        .default = undefined,
+    };
 
     for (data.textures) |val| {
         //try stdout.print("{s} {s} {} {} {} {}\n", .{ val.name, val.path, val.x, val.y, val.width, val.height });
@@ -47,13 +56,21 @@ pub fn createTextureState(a: std.mem.Allocator) !TextureState {
             return error.invalid_json_data;
         }
 
-        //this line causing segfault
         const texture = ray.LoadTextureFromImage(image);
         if (!ray.IsTextureReady(texture)) {
             return error.invalid_json_data;
         }
 
+        if (std.mem.eql(u8, val.name, "default")) {
+            state.default = texture;
+            default_found = true;
+            continue;
+        }
         try state.textures.put(val.name, texture);
+    }
+
+    if (default_found == false) {
+        return error.no_default_texture_provided;
     }
     return state;
 }

@@ -1,16 +1,19 @@
 const std = @import("std");
 
 pub fn SparseSet(comptime T: type, comptime max_capacity: usize) type {
+    const Entry = struct {
+        val: T,
+        id: usize,
+    };
+
     return struct {
-        dense: std.ArrayList(T),
-        dense_to_sparse: [max_capacity]?usize,
+        dense: std.ArrayList(Entry),
         sparse: [max_capacity]?usize,
         capacity: usize,
 
         pub fn init(a: std.mem.Allocator) @This() {
             return @This(){
-                .dense = std.ArrayList(T).init(a),
-                .dense_to_sparse = [_]?usize{null} ** max_capacity,
+                .dense = std.ArrayList(Entry).init(a),
                 .sparse = [_]?usize{null} ** max_capacity,
                 .capacity = max_capacity,
             };
@@ -28,16 +31,17 @@ pub fn SparseSet(comptime T: type, comptime max_capacity: usize) type {
                 return error.index_not_empty;
             }
             const index_in_dense = self.dense.items.len;
-            try self.dense.append(val);
+            try self.dense.append(.{
+                .val = val,
+                .id = index,
+            });
             self.sparse[index] = index_in_dense;
-            self.dense_to_sparse[index_in_dense] = index;
         }
 
         pub fn delete(self: *@This(), sparse_index_to_delete: usize) !void {
             if (sparse_index_to_delete < 0 or sparse_index_to_delete > self.capacity) {
                 return error.index_out_of_bounds;
-            }
-            if (try self.indexEmpty(sparse_index_to_delete)) {
+            } else if (try self.indexEmpty(sparse_index_to_delete)) {
                 return;
             }
 
@@ -47,14 +51,10 @@ pub fn SparseSet(comptime T: type, comptime max_capacity: usize) type {
 
             //set the now empty location to the top of the dense array
             const dense_top_value = self.dense.pop();
+            self.dense.items[dense_empty_location] = dense_top_value;
 
-            if (sparse_index_to_delete != self.dense_to_sparse[dense_empty_location]) {
-                self.dense.items[dense_empty_location] = dense_top_value;
-                self.dense_to_sparse[dense_empty_location] = null;
-
-                //update the sparse index that used to point to the dense array top
-                self.sparse[self.dense_to_sparse[dense_empty_location].?] = dense_empty_location;
-            }
+            //update the sparse index that used to point to the dense array top
+            self.sparse[self.dense_to_sparse[dense_empty_location].?] = dense_empty_location;
         }
 
         pub fn indexEmpty(self: *@This(), index: usize) !bool {
@@ -64,7 +64,7 @@ pub fn SparseSet(comptime T: type, comptime max_capacity: usize) type {
             return self.sparse[index] == null;
         }
 
-        pub fn get(self: *@This(), sparse_index: usize) ?T {
+        pub fn get(self: *@This(), sparse_index: usize) ?Entry {
             const dense_index = self.sparse[sparse_index];
             if (dense_index == null) {
                 return null;
@@ -73,23 +73,12 @@ pub fn SparseSet(comptime T: type, comptime max_capacity: usize) type {
             }
         }
 
-        pub fn len(self: *@This()) usize {
-            return self.dense.items.len;
-        }
-
-        pub fn slice(self: *@This()) []T {
+        pub fn slice(self: *@This()) []Entry {
             return self.dense.items;
         }
 
-        pub fn sliceIDs(self: *@This()) []?usize {
-            return self.dense_to_sparse[0..self.len()];
-        }
-
-        pub fn iterate(self: *@This()) struct { values: []T, ids: []usize } {
-            return .{
-                .value = self.slice(),
-                .ids = self.sliceIDs(),
-            };
+        pub fn len(self: *@This()) usize {
+            return self.dense.items.len;
         }
     };
 }

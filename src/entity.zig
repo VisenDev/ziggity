@@ -44,23 +44,11 @@ pub fn EntityState(comptime max_capacity: usize) type {
             self.render_system.deinit();
         }
 
-        pub fn newEntity(self: *@This(), texture_state: *tex.TextureState) !usize {
+        pub fn newEntity(self: *@This()) !usize {
             if (self.ids.items.len > max_capacity) {
                 return error.array_at_capacity;
             }
             const id = self.available_ids.pop();
-
-            //TODO REMOVE INITIALIZATION
-            try self.position_system.insert(id, PositionComponent{});
-            const texture = texture_state.textures.get("default");
-            if (texture == null) {
-                return error.texture_state_invalid;
-            } else {
-                try self.render_system.insert(
-                    id,
-                    RenderComponent{ .texture = texture.? },
-                );
-            }
             return id;
         }
 
@@ -74,16 +62,31 @@ pub fn EntityState(comptime max_capacity: usize) type {
             try self.render_system.delete(id);
         }
 
+        const Spawner = struct {
+            position: ?PositionComponent = null,
+            renderer: ?RenderComponent = null,
+        };
+
+        pub fn spawn(self: *@This(), spawned: Spawner) !void {
+            const id = try self.newEntity();
+            if (spawned.position) |pos| {
+                try self.position_system.insert(id, pos);
+            }
+            if (spawned.renderer) |renderer| {
+                try self.render_system.insert(id, renderer);
+            }
+        }
+
         pub fn update(self: *@This(), dt: f32) !void {
-            for (self.position_system.dense.items) |*val| {
-                val.update(dt);
+            for (self.position_system.slice()) |*item| {
+                item.val.update(dt);
             }
         }
 
         pub fn render(self: *@This(), scale: f32) !void {
-            for (self.render_system.slice(), self.render_system.sliceIndexes()) |*val, i| {
-            //for(self.render_system.iterate()) |item| {
-                try item.value.render(self.position_system.get(i.?).?.pos, scale);
+            for (self.render_system.slice()) |item| {
+                const position = self.position_system.get(item.id).?.val.pos;
+                try item.val.render(position, scale);
             }
         }
     };
@@ -126,7 +129,7 @@ const HealthComponent = struct {
     }
 };
 
-const PositionComponent = struct {
+pub const PositionComponent = struct {
     pos: Vector2 = Vector2{ .x = 0, .y = 0 },
     vel: Vector2 = Vector2{ .x = 0.1, .y = 0.1 },
     acc: Vector2 = Vector2{ .x = 0, .y = 0 },
@@ -168,7 +171,7 @@ const PassiveAIComponent = struct {
 //    pub fn update() void {}
 //};
 
-const RenderComponent = struct {
+pub const RenderComponent = struct {
     texture: ray.Texture2D,
     pub fn render(self: @This(), pos: Vector2, scale: f32) !void {
         ray.DrawTextureEx(self.texture, pos, 0, scale, ray.WHITE);
