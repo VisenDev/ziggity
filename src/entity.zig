@@ -1,10 +1,11 @@
 const std = @import("std");
 const Sparse = @import("sparse_set.zig").SparseSet;
+const tex = @import("textures.zig");
+const ray = @cImport({
+    @cInclude("raylib.h");
+});
 
-const Vector2 = struct {
-    x: f64 = 0,
-    y: f64 = 0,
-};
+const Vector2 = ray.Vector2;
 
 fn AvailableInitializer(comptime capacity: usize) [capacity]usize {
     var array: [capacity]usize = undefined;
@@ -20,12 +21,7 @@ pub fn EntityState(comptime max_capacity: usize) type {
         ids: std.ArrayList(usize),
         available_ids: std.ArrayList(usize),
 
-        health_system: Sparse(HealthComponent, max_capacity),
         position_system: Sparse(PositionComponent, max_capacity),
-        collision_system: Sparse(CollisionComponent, max_capacity),
-        hostile_ai_system: Sparse(HostileAIComponent, max_capacity),
-        passive_ai_system: Sparse(PassiveAIComponent, max_capacity),
-
         render_system: Sparse(RenderComponent, max_capacity),
 
         pub fn init(a: std.mem.Allocator) !@This() {
@@ -35,11 +31,7 @@ pub fn EntityState(comptime max_capacity: usize) type {
             return @This(){
                 .ids = std.ArrayList(usize).init(a),
                 .available_ids = available,
-                .health_system = Sparse(HealthComponent, max_capacity).init(a),
                 .position_system = Sparse(PositionComponent, max_capacity).init(a),
-                .collision_system = Sparse(CollisionComponent, max_capacity).init(a),
-                .hostile_ai_system = Sparse(HostileAIComponent, max_capacity).init(a),
-                .passive_ai_system = Sparse(PassiveAIComponent, max_capacity).init(a),
                 .render_system = Sparse(RenderComponent, max_capacity).init(a),
             };
         }
@@ -48,19 +40,27 @@ pub fn EntityState(comptime max_capacity: usize) type {
             self.ids.deinit();
             self.available_ids.deinit();
 
-            self.health_system.deinit();
             self.position_system.deinit();
-            self.collision_system.deinit();
-            self.hostile_ai_system.deinit();
-            self.passive_ai_system.deinit();
             self.render_system.deinit();
         }
 
-        pub fn newEntity(self: *@This()) !usize {
+        pub fn newEntity(self: *@This(), texture_state: *tex.TextureState) !usize {
             if (self.ids.items.len > max_capacity) {
                 return error.array_at_capacity;
             }
             const id = self.available_ids.pop();
+
+            //TODO REMOVE INITIALIZATION
+            try self.position_system.insert(id, PositionComponent{});
+            const texture = texture_state.textures.get("default");
+            if (texture == null) {
+                return error.texture_state_invalid;
+            } else {
+                try self.render_system.insert(
+                    id,
+                    RenderComponent{ .texture = texture.? },
+                );
+            }
             return id;
         }
 
@@ -70,23 +70,20 @@ pub fn EntityState(comptime max_capacity: usize) type {
             }
 
             try self.available_ids.append(id);
-            try self.health_system.delete(id);
             try self.position_system.delete(id);
-            try self.collision_system.delete(id);
-            try self.hostile_ai_system.delete(id);
-            try self.passive_ai_system.delete(id);
             try self.render_system.delete(id);
         }
 
-        pub fn update(self: *@This(), dt: f64) !void {
-            for (self.position_system.iterate()) |val| {
+        pub fn update(self: *@This(), dt: f32) !void {
+            for (self.position_system.dense.items) |*val| {
                 val.update(dt);
             }
         }
 
-        pub fn render(self: *@This(), scale: f64) !void {
-            for (self.render_system.iterate()) |val| {
-                val.render(scale);
+        pub fn render(self: *@This(), scale: f32) !void {
+            for (self.render_system.slice(), self.render_system.sliceIndexes()) |*val, i| {
+            //for(self.render_system.iterate()) |item| {
+                try item.value.render(self.position_system.get(i.?).?.pos, scale);
             }
         }
     };
@@ -106,18 +103,14 @@ test "state" {
     _ = try state.newEntity();
 
     const e = try state.newEntity();
-    try state.health_system.insert(e, HealthComponent{});
     try state.position_system.insert(e, PositionComponent{});
 
     for (0..10) |_| {
         const id = try state.newEntity();
-        try state.health_system.insert(id, HealthComponent{ .hp = 10 });
         try state.position_system.insert(id, PositionComponent{});
     }
 
-    for (state.health_system.iterate()) |val| {
-        std.debug.print("{}\n", .{val});
-    }
+    try state.update(1.0);
 }
 
 const HealthComponent = struct {
@@ -125,7 +118,7 @@ const HealthComponent = struct {
     max_hp: f64 = 0,
     is_dead: bool = false,
 
-    pub fn takeDamage(self: *@This(), damage: f64) void {
+    pub fn takeDamage(self: *@This(), damage: f32) void {
         self.*.hp -= damage;
         if (self.*.hp <= 0) {
             self.*.is_dead = true;
@@ -134,13 +127,12 @@ const HealthComponent = struct {
 };
 
 const PositionComponent = struct {
-    pos: Vector2,
-    vel: Vector2,
-    acc: Vector2,
-    friction: f64 = 0.75,
+    pos: Vector2 = Vector2{ .x = 0, .y = 0 },
+    vel: Vector2 = Vector2{ .x = 0.1, .y = 0.1 },
+    acc: Vector2 = Vector2{ .x = 0, .y = 0 },
+    friction: f32 = 0.75,
 
-    pub fn update(self: *@This(), id: usize, dt: f64) void {
-        _ = id;
+    pub fn update(self: *@This(), dt: f32) void {
         self.pos.x += self.vel.x * dt;
         self.pos.y += self.vel.y * dt;
 
@@ -177,8 +169,8 @@ const PassiveAIComponent = struct {
 //};
 
 const RenderComponent = struct {
-    texture_id: u64 = 0,
-    pub fn render(scale: f64) !void {
-        _ = scale;
+    texture: ray.Texture2D,
+    pub fn render(self: @This(), pos: Vector2, scale: f32) !void {
+        ray.DrawTextureEx(self.texture, pos, 0, scale, ray.WHITE);
     }
 };

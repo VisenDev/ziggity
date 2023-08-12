@@ -22,14 +22,23 @@ pub fn main() !void {
     defer ray.CloseWindow();
     ray.SetTargetFPS(60);
 
-    var G = try state.createGameState(allocator);
-    _ = G;
+    var game = try state.createGameState(allocator);
+
+    _ = try game.entity_state.newEntity(&game.texture_state);
+    _ = try game.entity_state.newEntity(&game.texture_state);
+    _ = try game.entity_state.newEntity(&game.texture_state);
+    _ = try game.entity_state.newEntity(&game.texture_state);
+    _ = try game.entity_state.newEntity(&game.texture_state);
+    _ = try game.entity_state.newEntity(&game.texture_state);
 
     while (!ray.WindowShouldClose()) {
+        try game.entity_state.update(1.0);
+
         ray.BeginDrawing();
         defer ray.EndDrawing();
 
         ray.ClearBackground(ray.RAYWHITE);
         ray.DrawText("Hello, World!", 190, 200, 20, ray.LIGHTGRAY);
+        try game.entity_state.render(5.0);
     }
 }

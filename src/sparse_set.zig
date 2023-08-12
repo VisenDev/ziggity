@@ -64,8 +64,32 @@ pub fn SparseSet(comptime T: type, comptime max_capacity: usize) type {
             return self.sparse[index] == null;
         }
 
-        pub fn iterate(self: *@This()) []T {
+        pub fn get(self: *@This(), sparse_index: usize) ?T {
+            const dense_index = self.sparse[sparse_index];
+            if (dense_index == null) {
+                return null;
+            } else {
+                return self.dense.items[dense_index.?];
+            }
+        }
+
+        pub fn len(self: *@This()) usize {
+            return self.dense.items.len;
+        }
+
+        pub fn slice(self: *@This()) []T {
             return self.dense.items;
+        }
+
+        pub fn sliceIDs(self: *@This()) []?usize {
+            return self.dense_to_sparse[0..self.len()];
+        }
+
+        pub fn iterate(self: *@This()) struct { values: []T, ids: []usize } {
+            return .{
+                .value = self.slice(),
+                .ids = self.sliceIDs(),
+            };
         }
     };
 }

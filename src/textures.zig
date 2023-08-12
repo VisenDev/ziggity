@@ -29,7 +29,7 @@ pub fn createTextureState(a: std.mem.Allocator) !TextureState {
     defer local.free(string);
 
     const parsed_data = try json.parseFromSlice(Records, local, string, .{});
-    defer parsed_data.deinit();
+    //defer parsed_data.deinit();
 
     const data = parsed_data.value;
 
@@ -52,6 +52,7 @@ pub fn createTextureState(a: std.mem.Allocator) !TextureState {
         if (!ray.IsTextureReady(texture)) {
             return error.invalid_json_data;
         }
+
         try state.textures.put(val.name, texture);
     }
     return state;
