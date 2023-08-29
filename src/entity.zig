@@ -1,6 +1,7 @@
 const std = @import("std");
 const Sparse = @import("sparse_set.zig").SparseSet;
 const tex = @import("textures.zig");
+const collide = @import("collisions.zig");
 const ray = @cImport({
     @cInclude("raylib.h");
 });

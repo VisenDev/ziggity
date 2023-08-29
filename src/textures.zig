@@ -7,7 +7,7 @@ const json = std.json;
 pub const TextureState = struct {
     textures: std.hash_map.StringHashMap(ray.Texture2D),
     default: ray.Texture2D,
-    pub fn get(self: *@This(), key: []const u8) ray.Texture2D {
+    pub fn get(self: *const @This(), key: []const u8) ray.Texture2D {
         if (self.textures.get(key)) |texture| {
             return texture;
         }

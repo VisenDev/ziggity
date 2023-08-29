@@ -1,7 +1,7 @@
 const std = @import("std");
-const state = @import("state.zig");
 const cwd = @import("cwd.zig");
 const entity = @import("entity.zig");
+const State = @import("state.zig").State;
 const c = @cImport({
     @cInclude("stdlib.h");
 });
@@ -26,7 +26,7 @@ pub fn main() !void {
     defer ray.CloseWindow();
     ray.SetTargetFPS(60);
 
-    var game = try state.createGameState(allocator);
+    var game = try State.init(allocator);
     const texture = game.texture_state.get("default");
 
     for (0..10) |_| {
@@ -47,11 +47,13 @@ pub fn main() !void {
         try game.entity_state.update(1.0);
 
         ray.BeginDrawing();
+        {
+            ray.ClearBackground(ray.RAYWHITE);
+            ray.DrawText("Hello, World!", 190, 200, 20, ray.LIGHTGRAY);
 
-        ray.ClearBackground(ray.RAYWHITE);
-        ray.DrawText("Hello, World!", 190, 200, 20, ray.LIGHTGRAY);
-        try game.entity_state.render(5.0);
-
+            //game.map_state.render(game.tiles, 5.0);
+            try game.entity_state.render(5.0);
+        }
         ray.EndDrawing();
     }
 }
