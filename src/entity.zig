@@ -7,115 +7,89 @@ const ray = @cImport({
 });
 
 const Vector2 = ray.Vector2;
+const max_capacity = 248;
 
-fn AvailableInitializer(comptime capacity: usize) [capacity]usize {
-    var array: [capacity]usize = undefined;
-    for (0..capacity) |index| {
+fn initializeIDs() [max_capacity]usize {
+    var array: [max_capacity]usize = undefined;
+    for (0..max_capacity) |index| {
         array[index] = index;
     }
     return array;
 }
 
-pub fn EntityState(comptime max_capacity: usize) type {
-    return struct {
-        capacity: usize = max_capacity,
-        ids: std.ArrayList(usize),
-        available_ids: std.ArrayList(usize),
+pub const EntityState = struct {
+    capacity: usize = max_capacity,
 
-        position_system: Sparse(PositionComponent, max_capacity),
-        render_system: Sparse(RenderComponent, max_capacity),
+    len: usize = 0,
+    ids: [max_capacity]usize = undefined,
 
-        pub fn init(a: std.mem.Allocator) !@This() {
-            var available = std.ArrayList(usize).init(a);
-            try available.appendSlice(&AvailableInitializer(max_capacity));
+    num_available_ids: usize = max_capacity,
+    available_ids: [max_capacity]usize = initializeIDs(),
 
-            return @This(){
-                .ids = std.ArrayList(usize).init(a),
-                .available_ids = available,
-                .position_system = Sparse(PositionComponent, max_capacity).init(a),
-                .render_system = Sparse(RenderComponent, max_capacity).init(a),
-            };
-        }
+    position_system: Sparse(PositionComponent, max_capacity),
+    render_system: Sparse(RenderComponent, max_capacity),
 
-        pub fn deinit(self: *@This()) void {
-            self.ids.deinit();
-            self.available_ids.deinit();
-
-            self.position_system.deinit();
-            self.render_system.deinit();
-        }
-
-        pub fn newEntity(self: *@This()) !usize {
-            if (self.ids.items.len > max_capacity) {
-                return error.array_at_capacity;
-            }
-            const id = self.available_ids.pop();
-            return id;
-        }
-
-        pub fn deleteEntity(self: *@This(), id: usize) !void {
-            if (id < 0 or id > self.capacity) {
-                return error.index_out_of_bounds;
-            }
-
-            try self.available_ids.append(id);
-            try self.position_system.delete(id);
-            try self.render_system.delete(id);
-        }
-
-        const Spawner = struct {
-            position: ?PositionComponent = null,
-            renderer: ?RenderComponent = null,
+    pub fn init(a: std.mem.Allocator) !@This() {
+        return @This(){
+            .position_system = try Sparse(PositionComponent, max_capacity).init(a),
+            .render_system = try Sparse(RenderComponent, max_capacity).init(a),
         };
-
-        pub fn spawn(self: *@This(), spawned: Spawner) !void {
-            const id = try self.newEntity();
-            if (spawned.position) |pos| {
-                try self.position_system.insert(id, pos);
-            }
-            if (spawned.renderer) |renderer| {
-                try self.render_system.insert(id, renderer);
-            }
-        }
-
-        pub fn update(self: *@This(), dt: f32) !void {
-            for (self.position_system.slice()) |*item| {
-                item.val.update(dt);
-            }
-        }
-
-        pub fn render(self: *@This(), scale: f32) !void {
-            for (self.render_system.slice()) |item| {
-                const position = self.position_system.get(item.id).?.val.pos;
-                try item.val.render(position, scale);
-            }
-        }
-    };
-}
-
-test "state" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    var state = try EntityState(1024).init(gpa.allocator());
-    _ = try state.newEntity();
-    _ = try state.newEntity();
-    _ = try state.newEntity();
-    const entity = try state.newEntity();
-    _ = try state.newEntity();
-    _ = try state.newEntity();
-    try state.deleteEntity(entity);
-    _ = try state.newEntity();
-    _ = try state.newEntity();
-
-    const e = try state.newEntity();
-    try state.position_system.insert(e, PositionComponent{});
-
-    for (0..10) |_| {
-        const id = try state.newEntity();
-        try state.position_system.insert(id, PositionComponent{});
     }
 
-    try state.update(1.0);
-}
+    pub fn deinit(self: *@This(), a: std.mem.Allocator) void {
+        self.position_system.deinit(a);
+        self.render_system.deinit(a);
+    }
+
+    pub fn newEntity(self: *@This()) !usize {
+        if (self.len > max_capacity) {
+            return error.array_at_capacity;
+        }
+        const id = self.available_ids[self.num_available_ids - 1];
+        self.num_available_ids -= 1;
+        return id;
+    }
+
+    pub fn deleteEntity(self: *@This(), id: usize) !void {
+        if (id < 0 or id > self.capacity) {
+            return error.index_out_of_bounds;
+        }
+
+        self.available_ids[self.num_available_ids] = id;
+        self.num_available_ids += 1;
+
+        try self.position_system.delete(id);
+        try self.render_system.delete(id);
+    }
+
+    const Spawner = struct {
+        position: ?PositionComponent = null,
+        renderer: ?RenderComponent = null,
+    };
+
+    pub fn spawn(self: *@This(), a: std.mem.Allocator, spawned: Spawner) !void {
+        const id = try self.newEntity();
+        if (spawned.position) |pos| {
+            try self.position_system.insert(a, id, pos);
+        }
+        if (spawned.renderer) |renderer| {
+            try self.render_system.insert(a, id, renderer);
+        }
+    }
+
+    pub fn update(self: *@This(), dt: f32) !void {
+        for (self.position_system.slice()) |*item| {
+            item.val.update(dt);
+        }
+    }
+
+    pub fn render(self: *@This(), scale: f32) void {
+        for (self.render_system.slice()) |item| {
+            const position = self.position_system.get(item.id).?.val.pos;
+            item.val.render(position, scale);
+        }
+    }
+};
 
 const HealthComponent = struct {
     hp: f64 = 0,
@@ -174,7 +148,7 @@ const PassiveAIComponent = struct {
 
 pub const RenderComponent = struct {
     texture: ray.Texture2D,
-    pub fn render(self: @This(), pos: Vector2, scale: f32) !void {
+    pub fn render(self: @This(), pos: Vector2, scale: f32) void {
         ray.DrawTextureEx(self.texture, pos, 0, scale, ray.WHITE);
     }
 };

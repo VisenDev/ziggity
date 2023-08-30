@@ -2,19 +2,10 @@ const std = @import("std");
 const tile = @import("tiles.zig");
 const Allocator = std.mem.Allocator;
 
-pub const Level = struct {
-    entity_state: ent.EntityState(entity_cap),
-    map_state: map.MapState,
-};
- pub const Assets = struct {
-    texture_state: tex.TextureState,
-    tile_state: tile.TileState,
- }
-
 pub fn Grid(comptime T: type) type {
     return struct {
         items: [][]?T,
-        neighbor_list: std.ArrayList(T),
+        neighbor_list: [9]T,
 
         pub fn init(a: Allocator, width: u32, height: u32) !@This() {
             var base = try a.alloc([]?T, width);
@@ -24,7 +15,7 @@ pub fn Grid(comptime T: type) type {
             }
             return @This(){
                 .items = base,
-                .neighbor_list = std.ArrayList(T).init(a),
+                .neighbor_list = undefined,
             };
         }
 
@@ -39,15 +30,14 @@ pub fn Grid(comptime T: type) type {
                 a.free(item);
             }
             a.free(self.items);
-            self.neighbor_list.deinit();
         }
 
         pub fn isValidIndex(self: *@This(), x: u32, y: u32) bool {
             return x > 0 and x < self.items.len and y > 0 and y < self.items[x].len;
         }
 
-        pub fn find_neighbors(self: *@This(), search_x: u32, search_y: u32) ![]T {
-            self.neighbor_list.items.len = 0;
+        pub fn find_neighbors(self: *@This(), search_x: u32, search_y: u32) []T {
+            var len = 0;
 
             for (0..3) |x_offset| {
                 for (0..3) |y_offset| {
@@ -59,11 +49,11 @@ pub fn Grid(comptime T: type) type {
                     }
 
                     if (self.items[x][y]) |item| {
-                        try self.neighbor_list.append(item);
+                        self.neighbor_list[len] = item;
                     }
                 }
             }
-            return self.neighbor_list.items;
+            return self.neighbor_list[0..len];
         }
     };
 }

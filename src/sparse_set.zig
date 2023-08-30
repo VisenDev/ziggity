@@ -7,23 +7,23 @@ pub fn SparseSet(comptime T: type, comptime max_capacity: usize) type {
     };
 
     return struct {
-        dense: std.ArrayList(Entry),
+        dense: std.ArrayListAlignedUnmanaged(Entry, null),
         sparse: [max_capacity]?usize,
         capacity: usize,
 
-        pub fn init(a: std.mem.Allocator) @This() {
+        pub fn init(a: std.mem.Allocator) !@This() {
             return @This(){
-                .dense = std.ArrayList(Entry).init(a),
+                .dense = try std.ArrayListAlignedUnmanaged(Entry, null).initCapacity(a, 32),
                 .sparse = [_]?usize{null} ** max_capacity,
                 .capacity = max_capacity,
             };
         }
 
-        pub fn deinit(self: *@This()) void {
-            self.*.dense.deinit();
+        pub fn deinit(self: *@This(), a: std.mem.Allocator) void {
+            self.*.dense.deinit(a);
         }
 
-        pub fn insert(self: *@This(), index: usize, val: T) !void {
+        pub fn insert(self: *@This(), a: std.mem.Allocator, index: usize, val: T) !void {
             if (index < 0 or index > self.*.capacity) {
                 return error.index_out_of_bounds;
             }
@@ -31,7 +31,7 @@ pub fn SparseSet(comptime T: type, comptime max_capacity: usize) type {
                 return error.index_not_empty;
             }
             const index_in_dense = self.dense.items.len;
-            try self.dense.append(.{
+            try self.dense.append(a, .{
                 .val = val,
                 .id = index,
             });
@@ -81,4 +81,20 @@ pub fn SparseSet(comptime T: type, comptime max_capacity: usize) type {
             return self.dense.items.len;
         }
     };
+}
+
+test "sparse_set" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var a = gpa.allocator();
+
+    var set = try SparseSet(usize, 128).init(a);
+    try set.insert(a, 0, 12);
+    try set.insert(a, 3, 13);
+    try set.insert(a, 5, 14);
+    try set.insert(a, 7, 15);
+
+    const string = try std.json.stringifyAlloc(a, set, .{});
+    std.debug.print("{s}\n\n\n", .{string});
+    const parsed = try std.json.parseFromSlice(@TypeOf(set), a, string, .{});
+    std.debug.print("{}\n\n\n", .{parsed.value});
 }
