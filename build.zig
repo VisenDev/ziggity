@@ -26,11 +26,18 @@ pub fn build(b: *std.Build) void {
     exe.linkSystemLibrary("raylib");
     exe.linkLibC();
 
-    const cflags = [_][]const u8{"-std=c99"};
+    //find raygui.h
     exe.addIncludePath(.{ .path = "lib" });
+
+    const cflags = [_][]const u8{
+        "-D RAYGUI_IMPLEMENTATION",
+        "-I/usr/local/Cellar/raylib/4.5.0/include",
+        "-L/usr/local/Cellar/raylib/4.5.0/lib",
+        "-lraylib",
+    };
     exe.addCSourceFile(.{
         .file = .{
-            .path = "lib/whereami.c",
+            .path = "lib/raygui.c",
         },
         .flags = &cflags,
     });
@@ -42,6 +49,7 @@ pub fn build(b: *std.Build) void {
     //    b.installDirectory(.{ .source_dir = "config", .install_dir = "config" });
 
     b.installDirectory(.{ .source_dir = .{ .path = "config" }, .install_dir = .bin, .install_subdir = "config" });
+    b.installDirectory(.{ .source_dir = .{ .path = "saves" }, .install_dir = .bin, .install_subdir = "saves" });
     b.installDirectory(.{ .source_dir = .{ .path = "images" }, .install_dir = .bin, .install_subdir = "images" });
     // This *creates* a Run step in the build graph, to be executed when another
     // step is evaluated that depends on it. The next line below will establish

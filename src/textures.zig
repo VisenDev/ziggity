@@ -27,7 +27,7 @@ const Records = struct {
     },
 };
 
-pub fn createTextureState(a: std.mem.Allocator) !TextureState {
+pub fn initTextureState(a: std.mem.Allocator) !TextureState {
     //const stdout = std.io.getStdOut().writer();
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const local = gpa.allocator();
