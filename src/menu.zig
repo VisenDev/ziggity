@@ -1,15 +1,16 @@
 const std = @import("std");
 const file = @import("file_utils.zig");
+const gen = @import("level_gen.zig");
 const ray = @cImport({
     @cInclude("raylib.h");
     @cInclude("raygui.h");
     @cInclude("style_dark.h");
 });
 
-pub const Window = enum { main_menu, game, save_menu, config_menu, quit };
+pub const Window = enum { main_menu, game, save_menu, config_menu, quit, new_save };
 
 pub fn drawMainMenu() Window {
-    while (true) {
+    while (!ray.WindowShouldClose()) {
         ray.BeginDrawing();
 
         ray.ClearBackground(ray.RAYWHITE);
@@ -26,14 +27,15 @@ pub fn drawMainMenu() Window {
 
         ray.EndDrawing();
     }
+    return .quit;
 }
 
-pub fn drawSaveMenu(a: std.mem.Allocator) !Window {
+pub fn drawSaveSelectMenu(a: std.mem.Allocator) !Window {
     const path = try file.getSaveDirPath(a);
     const save_dir = try std.fs.openIterableDirAbsolute(path, .{});
     var i: f32 = 0;
 
-    while (true) {
+    while (!ray.WindowShouldClose()) {
         ray.BeginDrawing();
         ray.ClearBackground(ray.RAYWHITE);
 
@@ -44,8 +46,47 @@ pub fn drawSaveMenu(a: std.mem.Allocator) !Window {
             }
         }
 
+        if (ray.GuiButton(ray.Rectangle{ .x = 200.0, .y = 20.0, .width = 115.0, .height = 30.0 }, "Create new") == 1) {
+            return .new_save;
+        }
+
         ray.DrawText("Select a save!", 20, 20, 20, ray.DARKGRAY);
         ray.EndDrawing();
         i = 0;
     }
+    return .quit;
+}
+
+pub fn drawNewSaveMenu(a: std.mem.Allocator) !Window {
+    var textBoxEditMode = false;
+    var textBoxText: [100]u8 = [_]u8{0} ** 100;
+
+    while (!ray.WindowShouldClose()) {
+        ray.BeginDrawing();
+        ray.ClearBackground(ray.RAYWHITE);
+
+        ray.DrawText("Enter Save Name!", 20, 20, 20, ray.DARKGRAY);
+
+        ray.GuiSetStyle(ray.TEXTBOX, ray.TEXT_ALIGNMENT, ray.TEXT_ALIGN_LEFT);
+        if (ray.GuiTextBox(ray.Rectangle{ .x = 20.0, .y = 60.0, .width = 115.0, .height = 30.0 }, &textBoxText, 32, textBoxEditMode) == 1) {
+            textBoxEditMode = !textBoxEditMode;
+        }
+
+        if (ray.GuiButton(ray.Rectangle{ .x = 20.0, .y = 100.0, .width = 115.0, .height = 30.0 }, "Generate") == 1) {
+            var strlen: usize = 0;
+            for (textBoxText, 0..) |ch, i| {
+                if (ch == 0) {
+                    strlen = i;
+                    break;
+                }
+            }
+
+            try file.createNewSave(a, .{ .name = textBoxText[0..strlen] });
+            return .save_menu;
+        }
+
+        ray.EndDrawing();
+    }
+
+    return .quit;
 }

@@ -23,7 +23,6 @@ pub fn main() !void {
 
     ray.GuiLoadStyleDark();
     ray.SetTargetFPS(60);
-    //const saves = try menu.getSaveIDs(a);
 
     var current_window = menu.Window.main_menu;
 
@@ -31,8 +30,9 @@ pub fn main() !void {
         current_window = switch (current_window) {
             .quit => break,
             .main_menu => menu.drawMainMenu(),
-            .save_menu => try menu.drawSaveMenu(a),
+            .save_menu => try menu.drawSaveSelectMenu(a),
             .config_menu => .config_menu,
+            .new_save => try menu.drawNewSaveMenu(a),
             .game => while (true) {
                 ray.BeginDrawing();
                 ray.ClearBackground(ray.RAYWHITE);

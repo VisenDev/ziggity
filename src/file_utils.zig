@@ -14,7 +14,7 @@ pub fn getSaveDirPath(a: std.mem.Allocator) ![]const u8 {
 
 pub fn getLevelPath(a: std.mem.Allocator, save_id: []const u8, level_id: []const u8) ![]const u8 {
     const save_dir = try getSaveDirPath(a);
-    return try std.fmt.allocPrint(a, "{s}{s}/{s}.json", .{ save_dir, save_id, level_id });
+    return try std.fmt.allocPrint(a, "{s}{s}/levels/{s}.json", .{ save_dir, save_id, level_id });
 }
 
 //========LEVEL IO========
@@ -29,18 +29,34 @@ pub fn writeLevel(a: std.mem.Allocator, l: level.Level, save_id: []const u8, lev
     const string = try std.json.stringifyAlloc(a, l, .{});
     const path = try getLevelPath(a, save_id, level_id);
     var file = try std.fs.createFileAbsolute(path, .{});
-    file.writeAll(string);
+    try file.writeAll(string);
 }
 
 //========SAVE CREATION/DELETION========
-pub fn createSave(a: std.mem.Allocator, save_id: []const u8) !void {
+pub fn createSaveDir(a: std.mem.Allocator, save_id: []const u8) !void {
     const save_dir = try getSaveDirPath(a);
-    try std.fs.makeDirAbsolute(save_dir ++ save_id);
+    const new_save_path = try std.fmt.allocPrint(a, "{s}{s}", .{ save_dir, save_id });
+    const new_save_levels_path = try std.fmt.allocPrint(a, "{s}/levels", .{new_save_path});
+    try std.fs.makeDirAbsolute(new_save_path);
+    try std.fs.makeDirAbsolute(new_save_levels_path);
 }
 
-pub fn deleteSave(a: std.mem.Allocator, save_id: []const u8) !void {
+pub fn deleteSaveDir(a: std.mem.Allocator, save_id: []const u8) !void {
     const save_dir = try getSaveDirPath(a);
-    std.fs.renameAbsolute(save_dir ++ save_id, save_dir ++ "." ++ save_id);
+    const condemned_save_path = try std.fmt.allocPrint(a, "{s}{s}", .{ save_dir, save_id });
+    const new_hidden_save_path = try std.fmt.allocPrint(a, "{s}.{s}", .{ save_dir, save_id });
+    std.fs.renameAbsolute(condemned_save_path, new_hidden_save_path);
+}
+
+pub const NewSaveOptions = struct {
+    name: []const u8,
+};
+
+pub fn createNewSave(a: std.mem.Allocator, options: NewSaveOptions) !void {
+    try createSaveDir(a, options.name);
+    const biomes = [_]level.Level.Record{.{ .name = "cave", .weight = 10 }};
+    const first_level = try level.Level.generate(a, .{ .name = "first_level", .biomes = &biomes });
+    try writeLevel(a, first_level, options.name, "first_level");
 }
 
 //========CONFIG IO========
