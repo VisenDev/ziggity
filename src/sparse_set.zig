@@ -7,9 +7,9 @@ pub fn SparseSet(comptime T: type, comptime max_capacity: usize) type {
     };
 
     return struct {
-        dense: std.ArrayListAlignedUnmanaged(Entry, null),
-        sparse: [max_capacity]?usize,
-        capacity: usize,
+        dense: std.ArrayListAlignedUnmanaged(Entry, null) = std.ArrayListAlignedUnmanaged(Entry, null){},
+        sparse: [max_capacity]?usize = [1]?usize{null} ** max_capacity,
+        capacity: usize = max_capacity,
 
         pub fn init(a: std.mem.Allocator) !@This() {
             return @This(){

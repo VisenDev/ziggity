@@ -1,15 +1,31 @@
 const std = @import("std");
-const entity = @import("entity.zig");
+const entity = @import("components.zig");
 const map = @import("map.zig");
 const texture = @import("textures.zig");
 const tile = @import("tiles.zig");
-//const exit = @import("exit.zig");
 const file = @import("file_utils.zig");
+const config = @import("config.zig");
 const json = std.json;
+
+pub const GameState = struct {
+    assets: Assets,
+    key_bindings: config.KeyBindings,
+    active_level: Level,
+    player_id: usize,
+    save_id: []u8,
+};
 
 pub const Assets = struct {
     tile_state: tile.TileState,
     texture_state: texture.TextureState,
+
+    pub fn init(a: std.mem.Allocator) !Assets {
+        const texture_state = try texture.TextureState.init(a);
+        return .{
+            .tile_state = try tile.TileState.init(a, texture_state),
+            .texture_state = texture_state,
+        };
+    }
 };
 
 pub const Exit = struct {
@@ -28,11 +44,22 @@ pub const Level = struct {
     exits: []const Exit,
 
     pub fn generate(a: std.mem.Allocator, options: GenOptions) !Level {
-        const entities = try entity.EntityState.init(a);
+        var entities = try entity.EntityState.init(a);
         const world_map = try map.MapState.init(a);
         const exits = [_]Exit{.{ .x = 5, .y = 5, .destination_id = "first_level" }};
 
         return Level{ .name = options.name, .entities = entities, .map = world_map, .exits = &exits };
+    }
+
+    pub fn update(self: Level, a: std.mem.Allocator, dt: f32) !void {
+        _ = self;
+        _ = a;
+        _ = dt;
+    }
+
+    pub fn render(self: Level, scale: f32) !void {
+        _ = self;
+        _ = scale;
     }
 };
 

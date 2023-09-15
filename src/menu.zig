@@ -1,6 +1,7 @@
 const std = @import("std");
 const file = @import("file_utils.zig");
 const gen = @import("level_gen.zig");
+const str = @import("str_utils.zig");
 const ray = @cImport({
     @cInclude("raylib.h");
     @cInclude("raygui.h");
@@ -30,11 +31,12 @@ pub fn drawMainMenu() Window {
     return .quit;
 }
 
-pub fn drawSaveSelectMenu(a: std.mem.Allocator) !Window {
+pub fn drawSaveSelectMenu(a: std.mem.Allocator, save_id: *[]u8) !Window {
     const path = try file.getSaveDirPath(a);
     const save_dir = try std.fs.openIterableDirAbsolute(path, .{});
     var i: f32 = 0;
 
+    ray.SetMousePosition(0, 0);
     while (!ray.WindowShouldClose()) {
         ray.BeginDrawing();
         ray.ClearBackground(ray.RAYWHITE);
@@ -42,6 +44,7 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator) !Window {
         var iterator = save_dir.iterate();
         while (try iterator.next()) |val| : (i += 1) {
             if (ray.GuiButton(ray.Rectangle{ .x = 20, .y = 60.0 + 40.0 * i, .width = 115.0, .height = 30.0 }, val.name.ptr) == 1) {
+                save_id.* = try a.dupe(u8, val.name);
                 return .game;
             }
         }
@@ -81,7 +84,7 @@ pub fn drawNewSaveMenu(a: std.mem.Allocator) !Window {
                 }
             }
 
-            try file.createNewSave(a, .{ .name = textBoxText[0..strlen] });
+            try file.createSave(a, .{ .name = textBoxText[0..strlen] });
             return .save_menu;
         }
 
