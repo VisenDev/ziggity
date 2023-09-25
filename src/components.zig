@@ -125,6 +125,29 @@ pub const EntityState = struct {
 
     systems: Systems(cap) = Systems(cap){},
 
+    pub fn audit(self: *const @This()) !void {
+        std.debug.print("attemping audit of entities\n", .{});
+        inline for (comptime std.meta.fields(Systems(cap))) |system_id| {
+            var sys = @field(self.systems, system_id.name);
+            for (sys.dense.items) |val| {
+                if (val.id < 0 or val.id >= cap) {
+                    std.debug.print("\n[ERROR]: invalid id of {} in dense array of {s}\n", .{ val.id, system_id.name });
+                    std.debug.print("\n[CONTENTS of {s}]: {any}\n", .{ system_id.name, sys.dense.items });
+                    return error.invalid_id;
+                }
+            }
+
+            for (sys.sparse) |maybe| {
+                if (maybe) |val| {
+                    if (val < 0 or val >= cap) {
+                        std.debug.print("invalid id of {} in sparse array of {s}\n", .{ val, system_id.name });
+                        return error.invalid_id;
+                    }
+                }
+            }
+        }
+    }
+
     pub fn init(a: std.mem.Allocator) !@This() {
         var res = Systems(cap){};
         inline for (comptime std.meta.fields(Systems(cap))) |f| {
@@ -137,6 +160,14 @@ pub const EntityState = struct {
         inline for (comptime std.meta.fields(Systems(cap))) |val| {
             var f = @field(self.systems, val.name);
             f.deinit(a);
+        }
+    }
+
+    //0s remainding capacities to avoid errors when parsing from json
+    pub fn prepForStringify(self: *@This()) void {
+        inline for (comptime std.meta.fields(Systems(cap))) |system_id| {
+            var sys = &@field(self.systems, system_id.name);
+            sys.dense.capacity = 0;
         }
     }
 
@@ -174,11 +205,12 @@ pub const EntityState = struct {
 
     pub fn spawnEntity(self: *@This(), a: std.mem.Allocator, spawned: Spawner()) !usize {
         const id = try self.newEntity();
+        std.debug.print("spawned entity id: {}\n", .{id});
 
         inline for (std.meta.fields(Spawner())) |val| {
             var f = @field(spawned, val.name);
-            if (f) |x| {
-                try @field(self.systems, val.name).insert(a, id, x);
+            if (f) |value| {
+                try @field(self.systems, val.name).insert(a, id, value);
             }
         }
 

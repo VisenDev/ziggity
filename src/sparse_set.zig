@@ -33,7 +33,9 @@ pub fn SparseSet(comptime T: type, comptime max_capacity: usize) type {
             }
             const index_in_dense = self.dense.items.len;
 
-            std.debug.print("[SPARSE INSERT] val: {}, index: {}\n", .{ val, index });
+            std.debug.print("[SPARSE INSERT] index: {}\n", .{index});
+            //TODO delete this line
+            try self.dense.ensureTotalCapacity(a, self.dense.items.len + 2);
             try self.dense.append(a, .{
                 .val = val,
                 .id = index,
@@ -84,6 +86,7 @@ pub fn SparseSet(comptime T: type, comptime max_capacity: usize) type {
             std.debug.print("dense array length: {}\n", .{self.dense.items.len});
             std.debug.print("contents: {}\n", .{self.dense});
             std.debug.print("first item contents: {}\n", .{self.dense.items[0].val});
+            std.debug.print("first item id: {}\n", .{self.dense.items[0].id});
             return self.dense.items;
         }
 

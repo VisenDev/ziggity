@@ -72,7 +72,7 @@ pub fn readLevel(a: std.mem.Allocator, save_id: []const u8, level_id: []const u8
         return error.invalid_json;
     }
 
-    return try std.json.parseFromSlice(level.Level, a, string, .{});
+    return try std.json.parseFromSlice(level.Level, a, string, .{ .allocate = .alloc_always });
 }
 
 //pub fn writeLevel(a: std.mem.Allocator, l: level.Level, save_id: []const u8, level_id: []const u8) !void {
@@ -90,6 +90,8 @@ pub fn readLevel(a: std.mem.Allocator, save_id: []const u8, level_id: []const u8
 //}
 
 pub fn writeLevel(a: std.mem.Allocator, l: level.Level, save_id: []const u8, level_id: []const u8) !void {
+    l.entities.prepForStringify();
+    std.debug.print("renderer cap at time of stringify: {}\n", .{l.entities.systems.renderer.dense.capacity});
     const string = try std.json.stringifyAlloc(a, l, .{});
     const path = try getLevelPath(a, save_id, level_id);
     var file = try std.fs.createFileAbsolute(path, .{});

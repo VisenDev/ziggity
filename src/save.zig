@@ -18,7 +18,7 @@ pub const Save = struct {
     level: level.Level,
     save_id: []const u8,
 
-    pub fn load(a: std.mem.Allocator, save_id: []const u8) !@This() {
+    pub fn load(a: std.mem.Allocator, save_id: []const u8) !*@This() {
         const save_path = try file.getSavePath(a, save_id);
         defer a.free(save_path);
         const path = try file.combine(a, save_path, Manifest.filename);
@@ -26,23 +26,32 @@ pub const Save = struct {
         const string = try std.fs.cwd().readFileAlloc(a, path, 2048);
         defer a.free(string);
         const parsed = try std.json.parseFromSlice(Manifest, a, string, .{});
-        defer parsed.deinit();
 
         const save_record = parsed.value;
         var level_json = try file.readLevel(a, save_id, save_record.active_level_id); //read level value from file
+        //        try file.writeLevel(a, level_json.value, save_id, "segfault.json");
+        //
+        //
+        //       std.debug.print("len in save.load {}\n", .{level_json.value.entities.systems.renderer.dense.items.len});
+        //       std.debug.print("val in save.load {}\n", .{level_json.value.entities.systems.renderer.dense.items[0]});
+
+        //       std.debug.print("sparse len in save.load {}\n", .{level_json.value.entities.systems.renderer.sparse.len});
+        //       std.debug.print("sparse val in save.load {?}\n", .{level_json.value.entities.systems.renderer.sparse[1023]});
 
         //for (0..level_json.value.map.tile_grid.items.len) |x| {
         //    for (0..level_json.value.map.tile_grid.items[x].len) |y| {
         //        std.debug.print(" map: {?}", .{level_json.value.map.tile_grid.items[x][y]});
         //    }
         //}
-
-        return .{
+        var result = try a.create(@This());
+        result.* = .{
             .level_json = level_json,
             .level = level_json.value,
             .keybindings = try config.KeyBindings.init(a),
             .save_id = save_id,
         };
+
+        return result;
     }
 
     pub fn deinit(self: *@This(), a: std.mem.Allocator) void {

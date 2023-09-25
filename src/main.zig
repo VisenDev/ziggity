@@ -53,6 +53,7 @@ pub fn main() !void {
 
 fn runGame(a: std.mem.Allocator, assets: level.Assets, current_save: []const u8) !menu.Window {
     var state = try save.Save.load(a, current_save);
+    try state.level.entities.audit();
     defer state.deinit(a);
 
     var camera = ray.Camera2D{
@@ -63,7 +64,13 @@ fn runGame(a: std.mem.Allocator, assets: level.Assets, current_save: []const u8)
     };
 
     ray.BeginMode2D(camera); // Begin 2D mode with custom camera (2D)
-    _ = try state.level.entities.spawnEntity(a, .{
+    //
+    //
+    const texture_id = assets.texture_state.name_index.get("slime").?;
+    std.debug.print("texture id of spawned entity in main is {}\n", .{texture_id});
+
+    std.debug.print("\n[CONTENTS of renderer before append]: {any}\n", .{state.level.entities.systems.renderer.dense});
+    const temp_id = try state.level.entities.spawnEntity(a, .{
         .position = .{
             .pos = .{
                 .x = 1.0,
@@ -75,9 +82,11 @@ fn runGame(a: std.mem.Allocator, assets: level.Assets, current_save: []const u8)
             },
         },
         .renderer = .{
-            .texture_id = assets.texture_state.name_index.get("slime").?,
+            .texture_id = texture_id,
         },
     });
+    std.debug.print("id of entity spawned in main: {}\n", .{temp_id});
+    try state.level.entities.audit();
 
     while (!ray.WindowShouldClose()) {
         //TODO implement delta time
@@ -88,7 +97,9 @@ fn runGame(a: std.mem.Allocator, assets: level.Assets, current_save: []const u8)
 
         ray.ClearBackground(ray.RAYWHITE);
         ray.DrawText("Now playing game!", 190, 44, 20, ray.LIGHTGRAY);
-        try state.level.render(assets, .{ .scale = 4.0, .grid_spacing = 32.0 });
+        state.level.render(assets, .{ .scale = 4.0, .grid_spacing = 32.0 }) catch |e| {
+            return e;
+        };
 
         ray.EndMode2D();
         ray.EndDrawing();
