@@ -1,11 +1,11 @@
-//const ray = @cImport({
-//    @cInclude("raylib.h");
-//});
-//const Vector2 = ray.Vector2;
+const ray = @cImport({
+    @cInclude("raylib.h");
+});
+const Vector2 = ray.Vector2;
 
 const std = @import("std");
+const texture = @import("textures.zig");
 const SparseSet = @import("sparse_set.zig").SparseSet;
-const Vector2 = struct { x: f32, y: f32 };
 
 pub const Components = [_]type{
     struct {
@@ -62,13 +62,10 @@ pub const Components = [_]type{
 
     struct {
         const name = "renderer";
-        //texture: ray.Texture2D,
-        pub fn render(self: @This(), pos: Vector2, scale: f32) void {
-            _ = self;
-            _ = pos;
-            _ = scale;
-            //TODO uncomment this
-            //        ray.DrawTextureEx(self.texture, pos, 0, scale, ray.WHITE);
+        texture_id: usize,
+        pub fn render(self: @This(), pos: Vector2, t: texture.TextureState, opt: texture.RenderOptions) void {
+            const my_texture = t.getI(self.texture_id);
+            ray.DrawTextureEx(my_texture, pos, 0, opt.scale, ray.WHITE);
         }
     },
 };
@@ -148,6 +145,7 @@ pub const EntityState = struct {
             return error.array_at_capacity;
         }
         const id = self.available_ids[self.num_available_ids - 1];
+        self.len += 1;
         self.num_available_ids -= 1;
         return id;
     }
@@ -174,7 +172,7 @@ pub const EntityState = struct {
         return result;
     }
 
-    pub fn spawnEntity(self: *@This(), a: std.mem.Allocator, spawned: Spawner()) !void {
+    pub fn spawnEntity(self: *@This(), a: std.mem.Allocator, spawned: Spawner()) !usize {
         const id = try self.newEntity();
 
         inline for (std.meta.fields(Spawner())) |val| {
@@ -183,6 +181,8 @@ pub const EntityState = struct {
                 try @field(self.systems, val.name).insert(a, id, x);
             }
         }
+
+        return id;
     }
 
     pub fn update(self: *@This(), dt: f32) !void {
@@ -191,10 +191,10 @@ pub const EntityState = struct {
         }
     }
 
-    pub fn render(self: *const @This(), scale: f32) void {
-        for (self.systems.render.slice()) |item| {
-            const position = self.systems.position.get(item.id).?.val.pos;
-            item.val.render(position, scale);
+    pub fn render(self: *const @This(), t: texture.TextureState, options: texture.RenderOptions) !void {
+        for (self.systems.renderer.slice()) |item| {
+            const position = (try self.systems.position.get(item.id)).?.pos;
+            item.val.render(position, t, options);
         }
     }
 

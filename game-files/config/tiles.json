@@ -1,0 +1,22 @@
+[
+    {
+        "name": "cave_wall",
+        "category": "wall",
+        "texture": "cave_wall"
+    },
+    {
+        "name": "cave_floor",
+        "category": "floor",
+        "texture": "cave_floor"
+    },
+    {
+        "name": "fort_wall",
+        "category": "wall",
+        "texture": "cave_wall"
+    },
+    {
+        "name": "fort_floor",
+        "category": "floor",
+        "texture": "cave_floor"
+    }
+]

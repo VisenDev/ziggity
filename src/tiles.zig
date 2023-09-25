@@ -4,54 +4,49 @@ const ray = @cImport({
 });
 const json = std.json;
 const tex = @import("textures.zig");
+const file = @import("file_utils.zig");
+
+const Category = enum { wall, floor };
 
 pub const Tile = struct {
     texture: ray.Texture2D,
-    side: ray.Texture2D,
-    top: ray.Texture2D,
+    category: Category,
 };
 
 const TileJSON = struct {
     name: []const u8,
-    category: enum { wall, floor },
+    category: Category,
     texture: []const u8,
-    side_texture: []const u8,
-    top_texture: []const u8,
-};
-
-pub const TileConfig = struct {
-    id: u8,
-    core: bool = true, //render the core of the texture
-    left: bool = false, //render the left border ...
-    right: bool = false,
-    top: bool = false,
 };
 
 pub const TileState = struct {
     tiles: []Tile,
+    name_index: std.StringHashMap(u8),
 
-    pub fn render(self: *@This(), config: TileConfig, x: u32, y: u32, scale: f32) void {
-        _ = self;
-        _ = config;
-        _ = x;
-        _ = y;
-        _ = scale;
+    pub inline fn get(self: *const @This(), name: []const u8) ?u8 {
+        return self.name_index.get(name);
     }
 
     pub fn init(a: std.mem.Allocator, texture_state: tex.TextureState) !@This() {
-        const string = try std.fs.cwd().readFileAlloc(a, "config/tiles.json", 2048);
-        defer a.free(string);
+        //TODO add configuration details hashing to remember which config was used
 
-        const entries = (try json.parseFromSlice([]TileJSON, a, string, .{})).value;
+        var name_index = std.StringHashMap(u8).init(a);
+        const entries = try file.readConfig([]TileJSON, a, "tiles.json");
         var result = try a.alloc(Tile, entries.len);
 
         for (entries, 0..) |entry, i| {
             result[i].texture = texture_state.get(entry.texture);
-            result[i].side = texture_state.get(entry.side_texture);
-            result[i].top = texture_state.get(entry.top_texture);
+            result[i].category = entry.category;
+            try name_index.put(entry.name, @intCast(i));
+            std.debug.print("tile loaded: {}\n", .{entry});
         }
 
-        return .{ .tiles = result };
+        return .{ .tiles = result, .name_index = name_index };
+    }
+
+    pub fn deinit(self: *const @This(), a: std.mem.Allocator) void {
+        a.free(self.tiles);
+        @constCast(self).name_index.deinit();
     }
 };
 
@@ -150,4 +145,36 @@ pub const TileState = struct {
 ////    const a = gpa.allocator();
 ////    var tiles = try loadTiles(a);
 ////    std.debug.print("{any}\n", .{tiles});
-////}
+//}
+//
+//
+//pub const TileConfig = struct {
+//    id: u8,
+//    core: bool = true, //render the core of the texture
+//    left: bool = false, //render the left border ...
+//    right: bool = false,
+//
+//
+//
+
+//pub fn render(self: *const @This(), config: TileConfig, position: ray.Vector2, options: tex.RenderOptions) void {
+//   // const tile = self.tiles[config.id];
+//    _ = self; _ = config; _ = position
+//
+
+//    ////if (config.core) {
+//    //    ray.DrawTextureEx(tile.texture, position, 0, options.scale, ray.RAYWHITE);
+//    //}
+
+//    //if (config.left) {
+//    //    ray.DrawTextureEx(tile.side, position, 0, options.scale, ray.RAYWHITE);
+//    //}
+
+//    //if (config.right) {
+//    //    ray.DrawTextureEx(tile.side, position, 0, options.scale, ray.RAYWHITE);
+//    //}
+
+//    //if (config.top) {
+//    //    ray.DrawTextureEx(tile.top, position, 0, options.scale, ray.RAYWHITE);
+//    //}
+//    top: bool = false,

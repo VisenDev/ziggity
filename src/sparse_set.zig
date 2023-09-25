@@ -12,8 +12,9 @@ pub fn SparseSet(comptime T: type, comptime max_capacity: usize) type {
         capacity: usize = max_capacity,
 
         pub fn init(a: std.mem.Allocator) !@This() {
+            _ = a;
             return @This(){
-                .dense = try std.ArrayListAlignedUnmanaged(Entry, null).initCapacity(a, 32),
+                .dense = std.ArrayListAlignedUnmanaged(Entry, null){},
                 .sparse = [_]?usize{null} ** max_capacity,
                 .capacity = max_capacity,
             };
@@ -31,6 +32,8 @@ pub fn SparseSet(comptime T: type, comptime max_capacity: usize) type {
                 return error.index_not_empty;
             }
             const index_in_dense = self.dense.items.len;
+
+            std.debug.print("[SPARSE INSERT] val: {}, index: {}\n", .{ val, index });
             try self.dense.append(a, .{
                 .val = val,
                 .id = index,
@@ -57,23 +60,30 @@ pub fn SparseSet(comptime T: type, comptime max_capacity: usize) type {
             self.sparse[self.dense_to_sparse[dense_empty_location].?] = dense_empty_location;
         }
 
-        pub fn indexEmpty(self: *@This(), index: usize) !bool {
+        pub fn indexEmpty(self: *const @This(), index: usize) !bool {
             if (index < 0 or index > self.*.capacity) {
                 return error.index_out_of_bounds;
             }
             return self.sparse[index] == null;
         }
 
-        pub fn get(self: *@This(), sparse_index: usize) ?Entry {
+        pub fn get(self: *const @This(), sparse_index: usize) !?*T {
+            if (sparse_index < 0 or sparse_index > self.*.capacity) {
+                std.debug.print("ERROR: Invalid index: {}, max_index: {}\n", .{ sparse_index, self.capacity });
+                return error.index_out_of_bounds;
+            }
             const dense_index = self.sparse[sparse_index];
             if (dense_index == null) {
                 return null;
             } else {
-                return self.dense.items[dense_index.?];
+                return &self.dense.items[dense_index.?].val;
             }
         }
 
-        pub fn slice(self: *@This()) []Entry {
+        pub fn slice(self: *const @This()) []Entry {
+            std.debug.print("dense array length: {}\n", .{self.dense.items.len});
+            std.debug.print("contents: {}\n", .{self.dense});
+            std.debug.print("first item contents: {}\n", .{self.dense.items[0].val});
             return self.dense.items;
         }
 

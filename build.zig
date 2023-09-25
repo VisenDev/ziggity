@@ -13,7 +13,12 @@ pub fn build(b: *std.Build) void {
     // Standard optimization options allow the person running `zig build` to select
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall. Here we do not
     // set a preferred release mode, allowing the user to decide how to optimize.
-    const optimize = b.standardOptimizeOption(.{ .preferred_optimize_mode = .Debug });
+    //const optimize = b.standardOptimizeOption(.{ .preferred_optimize_mode = .ReleaseSafe });
+    //const optimize = .ReleaseSmall;
+    const optimize = .Debug;
+
+    //const flags = [_][]const u8{"-fno-stack-check"};
+    //    _ = b.addUserInputFlag("-fno-reference-trace") catch false;
 
     const exe = b.addExecutable(.{
         .name = "dev",
@@ -41,6 +46,12 @@ pub fn build(b: *std.Build) void {
         },
         .flags = &cflags,
     });
+    exe.addCSourceFile(.{
+        .file = .{
+            .path = "lib/smaz/smaz.c",
+        },
+        .flags = &cflags,
+    });
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
@@ -48,9 +59,11 @@ pub fn build(b: *std.Build) void {
     b.installArtifact(exe);
     //    b.installDirectory(.{ .source_dir = "config", .install_dir = "config" });
 
-    b.installDirectory(.{ .source_dir = .{ .path = "config" }, .install_dir = .bin, .install_subdir = "config" });
-    b.installDirectory(.{ .source_dir = .{ .path = "saves" }, .install_dir = .bin, .install_subdir = "saves" });
-    b.installDirectory(.{ .source_dir = .{ .path = "images" }, .install_dir = .bin, .install_subdir = "images" });
+    //b.installDirectory(.{ .source_dir = .{ .path = "config" }, .install_dir = .bin, .install_subdir = "config" });
+    //b.installDirectory(.{ .source_dir = .{ .path = "saves" }, .install_dir = .bin, .install_subdir = "saves" });
+    //b.installDirectory(.{ .source_dir = .{ .path = "images" }, .install_dir = .bin, .install_subdir = "images" });
+    b.installDirectory(.{ .source_dir = .{ .path = "game-files" }, .install_dir = .bin, .install_subdir = "game-files" });
+
     // This *creates* a Run step in the build graph, to be executed when another
     // step is evaluated that depends on it. The next line below will establish
     // such a dependency.

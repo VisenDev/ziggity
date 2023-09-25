@@ -1,0 +1,9 @@
+{ "textures": [
+   {"name": "default", "path": "default.png", "x": 0, "y": 0, "width": 32, "height": 32},
+   {"name": "cave_wall", "path": "tilemap.png", "x": 48, "y": 0, "width": 8, "height": 8},
+   {"name": "cave_floor", "path": "tilemap.png", "x": 64, "y": 0, "width": 8, "height": 8},
+   {"name": "cave_border_side", "path": "tilemap.png", "x": 0, "y": 64, "width": 32, "height": 32},
+   {"name": "cave_border_top", "path": "tilemap.png", "x": 0, "y": 96, "width": 32, "height": 32},
+   {"name": "slime", "path": "slime.png", "x": 0, "y": 0, "width": 32, "height": 32},
+   {"name": "player", "path": "player.png", "x": 0, "y": 0, "width": 16, "height": 32}
+] }

@@ -12,18 +12,19 @@ pub const Key = struct {
     control: bool = false,
 
     pub fn pressed(self: @This()) bool {
-        if (!ray.IsKeyPressed(self.char)) {
+        if (!ray.IsKeyDown(self.char)) {
             return false;
         }
 
-        if (self.shift and !ray.IsKeyPressed(ray.KEY_LEFT_SHIFT) and !ray.IsKeyPressed(ray.KEY_RIGHT_SHIFT)) {
+        if (self.shift and !ray.IsKeyDown(ray.KEY_LEFT_SHIFT) and !ray.IsKeyDown(ray.KEY_RIGHT_SHIFT)) {
             return false;
         }
 
-        if (self.control and !ray.IsKeyPressed(ray.KEY_LEFT_CONTROL) and !ray.IsKeyPressed(ray.KEY_RIGHT_CONTROL)) {
+        if (self.control and !ray.IsKeyDown(ray.KEY_LEFT_CONTROL) and !ray.IsKeyDown(ray.KEY_RIGHT_CONTROL)) {
             return false;
         }
 
+        std.debug.print("KEY_PRESS_DETECTED: {}\n", .{self.char});
         return true;
     }
 };
@@ -34,10 +35,11 @@ pub const KeyBindings = struct {
     player_left: Key,
     player_right: Key,
 
-    const Self = @This();
+    pub fn init(a: std.mem.Allocator) !@This() {
+        std.debug.print("Attempting to load key_bindings\n", .{});
+        const res = try file.readConfig(@This(), a, "keybindings.json");
+        std.debug.print("Loaded: {c}, {c}, {c}, {c}\n", .{ res.player_up.char, res.player_down.char, res.player_right.char, res.player_left.char });
 
-    pub fn init(a: std.mem.Allocator) !Self {
-        const res = try file.readConfig(Self, a, "keybindings.json");
         return res;
     }
 };

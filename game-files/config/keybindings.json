@@ -1,0 +1,22 @@
+{
+    "player_up": {
+        "char": 87,
+        "shift": false,
+        "control": false
+    },
+    "player_down": {
+        "char": 83,
+        "shift": false,
+        "control": false
+    },
+    "player_left": {
+        "char": 65,
+        "shift": false,
+        "control": false
+    },
+    "player_right": {
+        "char": 68,
+        "shift": false,
+        "control": false
+    }
+}

@@ -1,7 +1,9 @@
 const std = @import("std");
 const file = @import("file_utils.zig");
+const save = @import("save.zig");
 const gen = @import("level_gen.zig");
 const str = @import("str_utils.zig");
+const level = @import("level.zig");
 const ray = @cImport({
     @cInclude("raylib.h");
     @cInclude("raygui.h");
@@ -60,7 +62,7 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, save_id: *[]u8) !Window {
     return .quit;
 }
 
-pub fn drawNewSaveMenu(a: std.mem.Allocator) !Window {
+pub fn drawNewSaveMenu(a: std.mem.Allocator, assets: level.Assets) !Window {
     var textBoxEditMode = false;
     var textBoxText: [100]u8 = [_]u8{0} ** 100;
 
@@ -84,7 +86,7 @@ pub fn drawNewSaveMenu(a: std.mem.Allocator) !Window {
                 }
             }
 
-            try file.createSave(a, .{ .name = textBoxText[0..strlen] });
+            try save.Save.create(a, assets, .{ .name = textBoxText[0..strlen] });
             return .save_menu;
         }
 

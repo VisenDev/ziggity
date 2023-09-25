@@ -1,6 +1,0 @@
-{ "textures": [
-   {"name": "default", "path": "images/default.png", "x": 0, "y": 0, "width": 32, "height": 32},
-   {"name": "tile_cave_wall", "path": "images/tilemap.png", "x": 0, "y": 32, "width": 32, "height": 32},
-   {"name": "tile_cave_border_side", "path": "images/tilemap.png", "x": 0, "y": 64, "width": 32, "height": 32},
-   {"name": "tile_cave_border_top", "path": "images/tilemap.png", "x": 0, "y": 96, "width": 32, "height": 32}
-] }
