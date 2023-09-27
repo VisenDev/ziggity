@@ -1,7 +1,6 @@
 const ray = @cImport({
     @cInclude("raylib.h");
 });
-const Vector2 = ray.Vector2;
 
 const std = @import("std");
 const texture = @import("textures.zig");
@@ -23,9 +22,9 @@ pub const Components = [_]type{
 
     struct {
         const name = "position";
-        pos: Vector2 = Vector2{ .x = 0, .y = 0 },
-        vel: Vector2 = Vector2{ .x = 0.1, .y = 0.1 },
-        acc: Vector2 = Vector2{ .x = 0, .y = 0 },
+        pos: ray.Vector2 = ray.Vector2{ .x = 0, .y = 0 },
+        vel: ray.Vector2 = ray.Vector2{ .x = 0.1, .y = 0.1 },
+        acc: ray.Vector2 = ray.Vector2{ .x = 0, .y = 0 },
         friction: f32 = 0.75,
         pub fn update(self: *@This(), dt: f32) void {
             self.pos.x += self.vel.x * dt;
@@ -46,7 +45,7 @@ pub const Components = [_]type{
     struct {
         const name = "hostile_ai";
         speed: f64 = 0,
-        target: Vector2 = .{ .x = 0, .y = 0 },
+        target_id: ray.Vector2 = .{ .x = 0, .y = 0 },
         view_range: f64 = 0,
         max_attack_range: f64 = 0,
         min_attack_range: f64 = 0,
@@ -63,7 +62,7 @@ pub const Components = [_]type{
     struct {
         const name = "renderer";
         texture_id: usize,
-        pub fn render(self: @This(), pos: Vector2, t: texture.TextureState, opt: texture.RenderOptions) void {
+        pub fn render(self: @This(), pos: ray.Vector2, t: texture.TextureState, opt: texture.RenderOptions) void {
             const my_texture = t.getI(self.texture_id);
             ray.DrawTextureEx(my_texture, pos, 0, opt.scale, ray.WHITE);
         }

@@ -12,25 +12,25 @@ const player = @import("player.zig");
 
 const ray = @cImport({
     @cInclude("raylib.h");
+});
+const raygui = @cImport({
     @cInclude("raygui.h");
     @cInclude("style_dark.h");
 });
 
 pub fn main() !void {
-    //var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    //defer _ = gpa.detectLeaks();
-    //var my_arena = Arena.init(gpa.allocator());
-    //defer my_arena.deinit();
-    //const a = my_arena.allocator();
-    //const a = gpa.allocator();
-    const a = std.heap.raw_c_allocator;
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.detectLeaks();
+    var my_arena = Arena.init(gpa.allocator());
+    defer my_arena.deinit();
+    const a = my_arena.allocator();
 
     ray.SetConfigFlags(ray.FLAG_WINDOW_RESIZABLE);
     ray.SetConfigFlags(ray.FLAG_VSYNC_HINT);
     ray.InitWindow(800, 450, "ziggity");
     defer ray.CloseWindow();
 
-    ray.GuiLoadStyleDark();
+    raygui.GuiLoadStyleDark();
     ray.SetTargetFPS(60);
 
     var current_window = menu.Window.main_menu;
@@ -52,9 +52,9 @@ pub fn main() !void {
 }
 
 fn runGame(a: std.mem.Allocator, assets: level.Assets, current_save: []const u8) !menu.Window {
-    var state = try save.Save.load(a, current_save);
-    try state.level.entities.audit();
-    defer state.deinit(a);
+    var s = try save.Save.load(a, current_save);
+    try s.level.entities.audit();
+    defer s.deinit(a);
 
     var camera = ray.Camera2D{
         .offset = .{ .x = @as(f32, @floatFromInt(ray.GetScreenWidth())) / 2, .y = @as(f32, @floatFromInt(ray.GetScreenHeight())) / 2 },
@@ -64,42 +64,56 @@ fn runGame(a: std.mem.Allocator, assets: level.Assets, current_save: []const u8)
     };
 
     ray.BeginMode2D(camera); // Begin 2D mode with custom camera (2D)
-    //
-    //
     const texture_id = assets.texture_state.name_index.get("slime").?;
-    std.debug.print("texture id of spawned entity in main is {}\n", .{texture_id});
-
-    std.debug.print("\n[CONTENTS of renderer before append]: {any}\n", .{state.level.entities.systems.renderer.dense});
-    const temp_id = try state.level.entities.spawnEntity(a, .{
-        .position = .{
-            .pos = .{
-                .x = 1.0,
-                .y = 2.0,
-            },
-            .vel = .{
-                .x = 0.0,
-                .y = 0.0,
-            },
-        },
-        .renderer = .{
-            .texture_id = texture_id,
-        },
+    _ = try s.level.entities.spawnEntity(a, .{
+        .position = .{},
+        .renderer = .{ .texture_id = texture_id },
     });
-    std.debug.print("id of entity spawned in main: {}\n", .{temp_id});
-    try state.level.entities.audit();
+    try s.level.entities.audit();
+
+    const grid_spacing: u32 = 32;
 
     while (!ray.WindowShouldClose()) {
-        //TODO implement delta time
-        try state.level.update(a, &state.keybindings, 1.0);
+        //update scene
+        const delta_time = ray.GetFrameTime();
+        try s.level.update(a, &s.keybindings, delta_time);
 
+        //update camera
+        {
+            var player_position = (try s.level.entities.systems.position.get(s.level.player_id)).?.pos;
+            const min_camera_x = @as(f32, @floatFromInt(ray.GetScreenWidth())) / 2.0 - grid_spacing;
+            const min_camera_y = @as(f32, @floatFromInt(ray.GetScreenHeight())) / 2.0 - grid_spacing;
+            if (player_position.x < min_camera_x) {
+                player_position.x = min_camera_x;
+            }
+
+            if (player_position.y < min_camera_y) {
+                player_position.y = min_camera_y;
+            }
+
+            const map_width: f32 = @as(f32, @floatFromInt(s.level.map.width)) * grid_spacing;
+            const map_height: f32 = @as(f32, @floatFromInt(s.level.map.height)) * grid_spacing;
+            const max_camera_x: f32 = map_width - min_camera_x;
+            const max_camera_y: f32 = map_height - min_camera_y;
+
+            if (player_position.x > max_camera_x) {
+                player_position.x = max_camera_x;
+            }
+
+            if (player_position.y > max_camera_y) {
+                player_position.y = max_camera_y;
+            }
+
+            camera.target = player_position;
+        }
+
+        //render
         ray.BeginDrawing();
         ray.BeginMode2D(camera); // Begin 2D mode with custom camera (2D)
 
         ray.ClearBackground(ray.RAYWHITE);
         ray.DrawText("Now playing game!", 190, 44, 20, ray.LIGHTGRAY);
-        state.level.render(assets, .{ .scale = 4.0, .grid_spacing = 32.0 }) catch |e| {
-            return e;
-        };
+        try s.level.render(assets, .{ .scale = 4.0, .grid_spacing = grid_spacing });
 
         ray.EndMode2D();
         ray.EndDrawing();

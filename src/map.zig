@@ -72,6 +72,8 @@ pub const IdList = struct {
 
 pub const MapState = struct {
     tile_grid: Grid(u8),
+    width: usize,
+    height: usize,
 
     pub fn generate(a: std.mem.Allocator, assets: level.Assets, opt: level.LevelGenOptions) !@This() {
         var grid = try Grid(u8).init(a, opt.width, opt.height);
@@ -88,7 +90,7 @@ pub const MapState = struct {
                 }
             }
         }
-        return .{ .tile_grid = grid };
+        return .{ .tile_grid = grid, .width = opt.width, .height = opt.height };
     }
 
     pub fn deinit(self: *const @This(), a: std.mem.Allocator) void {
@@ -96,24 +98,16 @@ pub const MapState = struct {
     }
 
     pub fn render(self: *const @This(), tiles: tile.TileState, options: texture.RenderOptions) void {
-        //std.debug.print("self.tile_grid: {}\n", .{self.tile_grid});
-        //std.debug.print("self.tile_grid.items: {*}\n", .{self.tile_grid.items});
-        //std.debug.print("self.tile_grid.items.len: {}\n", .{self.tile_grid.items.len});
-        _ = self;
-        _ = tiles;
-        _ = options;
-
-        //for (0..self.tile_grid.items.len) |x| {
-        //    for (0..self.tile_grid.items[x].len) |y| {
-        //        if (self.tile_grid.items[x][y]) |id| {
-        //            const grid_x = @as(f32, @floatFromInt(x)) * options.grid_spacing;
-        //            const grid_y = @as(f32, @floatFromInt(y)) * options.grid_spacing;
-        //            const tile_texture: ray.Texture2D = tiles.tiles[id].texture;
-        //            ray.DrawTextureEx(tile_texture, .{ .x = grid_x, .y = grid_y }, 0, options.scale, ray.RAYWHITE);
-        //            //tiles.render(.{ .id = config }, .{ .x = grid_x, .y = grid_y }, options);
-        //        }
-        //    }
-        //}
+        for (0..self.tile_grid.items.len) |x| {
+            for (0..self.tile_grid.items[x].len) |y| {
+                if (self.tile_grid.items[x][y]) |id| {
+                    const grid_x = @as(f32, @floatFromInt(x)) * options.grid_spacing;
+                    const grid_y = @as(f32, @floatFromInt(y)) * options.grid_spacing;
+                    const tile_texture: ray.Texture2D = tiles.tiles[id].texture;
+                    ray.DrawTextureEx(tile_texture, .{ .x = grid_x, .y = grid_y }, 0, options.scale, ray.RAYWHITE);
+                }
+            }
+        }
     }
 };
 

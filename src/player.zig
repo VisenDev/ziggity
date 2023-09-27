@@ -7,7 +7,7 @@ pub fn updatePlayer(player_id: usize, state: *const entity.EntityState, key: *co
         return error.invalid_player_index;
     }
 
-    const speed = 3.0 * dt;
+    const speed = 200.0 * dt;
 
     var player = (try state.systems.position.get(player_id)).?;
 

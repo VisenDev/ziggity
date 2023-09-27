@@ -83,10 +83,6 @@ pub fn SparseSet(comptime T: type, comptime max_capacity: usize) type {
         }
 
         pub fn slice(self: *const @This()) []Entry {
-            std.debug.print("dense array length: {}\n", .{self.dense.items.len});
-            std.debug.print("contents: {}\n", .{self.dense});
-            std.debug.print("first item contents: {}\n", .{self.dense.items[0].val});
-            std.debug.print("first item id: {}\n", .{self.dense.items[0].id});
             return self.dense.items;
         }
 

@@ -24,7 +24,6 @@ pub const Key = struct {
             return false;
         }
 
-        std.debug.print("KEY_PRESS_DETECTED: {}\n", .{self.char});
         return true;
     }
 };
