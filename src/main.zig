@@ -9,6 +9,7 @@ const config = @import("config.zig");
 const save = @import("save.zig");
 const err = @import("error.zig");
 const player = @import("player.zig");
+const texture = @import("textures.zig");
 
 const ray = @cImport({
     @cInclude("raylib.h");
@@ -74,38 +75,14 @@ fn runGame(a: std.mem.Allocator, assets: level.Assets, current_save: []const u8)
     const grid_spacing: u32 = 32;
 
     while (!ray.WindowShouldClose()) {
+
         //update scene
         const delta_time = ray.GetFrameTime();
         try s.level.update(a, &s.keybindings, delta_time);
 
-        //update camera
-        {
-            var player_position = (try s.level.entities.systems.position.get(s.level.player_id)).?.pos;
-            const min_camera_x = @as(f32, @floatFromInt(ray.GetScreenWidth())) / 2.0 - grid_spacing;
-            const min_camera_y = @as(f32, @floatFromInt(ray.GetScreenHeight())) / 2.0 - grid_spacing;
-            if (player_position.x < min_camera_x) {
-                player_position.x = min_camera_x;
-            }
-
-            if (player_position.y < min_camera_y) {
-                player_position.y = min_camera_y;
-            }
-
-            const map_width: f32 = @as(f32, @floatFromInt(s.level.map.width)) * grid_spacing;
-            const map_height: f32 = @as(f32, @floatFromInt(s.level.map.height)) * grid_spacing;
-            const max_camera_x: f32 = map_width - min_camera_x;
-            const max_camera_y: f32 = map_height - min_camera_y;
-
-            if (player_position.x > max_camera_x) {
-                player_position.x = max_camera_x;
-            }
-
-            if (player_position.y > max_camera_y) {
-                player_position.y = max_camera_y;
-            }
-
-            camera.target = player_position;
-        }
+        //rendering settings
+        const render_options = texture.RenderOptions{ .scale = 4.0, .grid_spacing = grid_spacing };
+        camera.target = try calculateCameraPosition(s.level, render_options);
 
         //render
         ray.BeginDrawing();
@@ -113,7 +90,7 @@ fn runGame(a: std.mem.Allocator, assets: level.Assets, current_save: []const u8)
 
         ray.ClearBackground(ray.RAYWHITE);
         ray.DrawText("Now playing game!", 190, 44, 20, ray.LIGHTGRAY);
-        try s.level.render(assets, .{ .scale = 4.0, .grid_spacing = grid_spacing });
+        try s.level.render(assets, render_options);
 
         ray.EndMode2D();
         ray.EndDrawing();
@@ -123,4 +100,33 @@ fn runGame(a: std.mem.Allocator, assets: level.Assets, current_save: []const u8)
         }
     }
     return .quit;
+}
+
+fn calculateCameraPosition(l: level.Level, render_options: texture.RenderOptions) !ray.Vector2 {
+    var player_position = try l.getPlayerPosition();
+
+    const min_camera_x = @as(f32, @floatFromInt(ray.GetScreenWidth())) / 2.0 - render_options.grid_spacing;
+    const min_camera_y = @as(f32, @floatFromInt(ray.GetScreenHeight())) / 2.0 - render_options.grid_spacing;
+    if (player_position.x < min_camera_x) {
+        player_position.x = min_camera_x;
+    }
+
+    if (player_position.y < min_camera_y) {
+        player_position.y = min_camera_y;
+    }
+
+    const map_width: f32 = @as(f32, @floatFromInt(l.map.width)) * render_options.grid_spacing;
+    const map_height: f32 = @as(f32, @floatFromInt(l.map.height)) * render_options.grid_spacing;
+    const max_camera_x: f32 = map_width - min_camera_x;
+    const max_camera_y: f32 = map_height - min_camera_y;
+
+    if (player_position.x > max_camera_x) {
+        player_position.x = max_camera_x;
+    }
+
+    if (player_position.y > max_camera_y) {
+        player_position.y = max_camera_y;
+    }
+
+    return player_position;
 }

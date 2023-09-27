@@ -6,6 +6,9 @@ const tile = @import("tiles.zig");
 const file = @import("file_utils.zig");
 const config = @import("config.zig");
 const player = @import("player.zig");
+const ray = @cImport({
+    @cInclude("raylib.h");
+});
 const json = std.json;
 
 pub const Assets = struct {
@@ -91,6 +94,10 @@ pub const Level = struct {
     pub fn deinit(self: *const @This(), a: std.mem.Allocator) void {
         self.entities.deinit(a);
         self.map.deinit(a);
+    }
+
+    pub fn getPlayerPosition(self: *const @This()) !ray.Vector2 {
+        return self.entities.getPosition(self.player_id) orelse error.invalid_player_id;
     }
 };
 

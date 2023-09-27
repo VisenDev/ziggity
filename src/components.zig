@@ -6,6 +6,13 @@ const std = @import("std");
 const texture = @import("textures.zig");
 const SparseSet = @import("sparse_set.zig").SparseSet;
 
+fn distance(a: ray.Vector2, b: ray.Vector2) f32 {
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+
+    return @sqrt(dx * dx + dy * dy);
+}
+
 pub const Components = [_]type{
     struct {
         const name = "health";
@@ -44,13 +51,37 @@ pub const Components = [_]type{
 
     struct {
         const name = "hostile_ai";
-        speed: f64 = 0,
-        target_id: ray.Vector2 = .{ .x = 0, .y = 0 },
-        view_range: f64 = 0,
-        max_attack_range: f64 = 0,
-        min_attack_range: f64 = 0,
-        attack_range: f64 = 0,
+        self_id: usize,
+        target_id: ?usize = null,
+        speed: f32 = 10.0,
+        view_range: f32 = 5,
+        max_attack_range: f32 = 2.0,
+        min_attack_range: f32 = 1.0,
+        cooldown_remaining: f32 = 0,
         action: enum { attack, move, wander } = .wander,
+        pub fn update(self: *@This(), e: *const EntityState, dt: f32) void {
+            _ = dt;
+            _ = e;
+            _ = self;
+            //const self_pos = e.getPosition(self_id);
+            //const target_pos = e.getPosition(self.target_id orelse 0);
+            ////update the action
+            //self.action = switch (self.action) {
+            //    .wander => brk: {
+            //        if (distance(self_pos, target_pos) < self.view_range) {
+            //            break :brk .attack;
+            //        } else {
+            //            break :brk .wander;
+            //        }
+            //    },
+            //};
+            ////perform the action
+            //switch(self.action) {
+            //    .wander => brk: {
+            //
+            //    }
+            //}
+        }
     },
 
     struct {
@@ -220,6 +251,9 @@ pub const EntityState = struct {
         for (self.systems.position.slice()) |*item| {
             item.val.update(dt);
         }
+        for (self.systems.hostile_ai.slice()) |*item| {
+            item.val.update(self, dt);
+        }
     }
 
     pub fn render(self: *const @This(), t: texture.TextureState, options: texture.RenderOptions) !void {
@@ -233,6 +267,15 @@ pub const EntityState = struct {
         const old = self.copyEntity(entity_id);
         try destination.spawnEntity(a, old);
         try self.deleteEntity(entity_id);
+    }
+
+    pub fn getPosition(self: *const @This(), id: usize) ?ray.Vector2 {
+        const position_component = self.systems.position.get(id) catch null;
+        if (position_component) |pc| {
+            return pc.pos;
+        } else {
+            return null;
+        }
     }
 };
 
