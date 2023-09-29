@@ -1,0 +1,10 @@
+.{
+      .name = "ziggity",
+      .version = "0.0.1",
+      .dependencies = .{
+         .@"zig-toml" = .{
+            .url = "https://github.com/aeronavery/zig-toml/archive/refs/heads/master.tar.gz",
+            .hash = "1220713a655c638a900049ab17973573387dd3023ce7288a11b7d448fa9d61e00a02",
+         },
+      },
+   }

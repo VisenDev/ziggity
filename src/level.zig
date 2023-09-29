@@ -72,11 +72,22 @@ pub const Level = struct {
                     .x = 0.0,
                     .y = 0.0,
                 },
+                .acceleration = 1,
             },
             .renderer = .{
                 .texture_id = assets.texture_state.name_index.get("player").?,
             },
         });
+
+        const texture_id = assets.texture_state.name_index.get("slime").?;
+        for (0..10) |i| {
+            _ = try entities.spawnEntity(a, .{
+                .position = .{ .pos = .{ .x = @floatFromInt(i), .y = @floatFromInt(i) }, .acceleration = @floatFromInt(i + 2) },
+                .renderer = .{ .texture_id = texture_id },
+                .hostile_ai = .{ .target_id = id },
+            });
+        }
+        try entities.audit();
 
         return Level{ .name = options.name, .entities = entities, .map = world_map, .exits = &exits, .player_id = id };
     }
@@ -84,6 +95,7 @@ pub const Level = struct {
     pub fn update(self: *Level, a: std.mem.Allocator, key: *config.KeyBindings, dt: f32) !void {
         _ = a;
         try player.updatePlayer(self.player_id, self.entities, key, dt);
+        try self.entities.update(dt);
     }
 
     pub fn render(self: Level, assets: Assets, options: texture.RenderOptions) !void {

@@ -10,6 +10,7 @@ const save = @import("save.zig");
 const err = @import("error.zig");
 const player = @import("player.zig");
 const texture = @import("textures.zig");
+const toml = @import("toml");
 
 const ray = @cImport({
     @cInclude("raylib.h");
@@ -53,26 +54,22 @@ pub fn main() !void {
 }
 
 fn runGame(a: std.mem.Allocator, assets: level.Assets, current_save: []const u8) !menu.Window {
-    var s = try save.Save.load(a, current_save);
+    var s = save.Save.load(a, current_save) catch return err.crashToMainMenu("failed to load selected save");
     try s.level.entities.audit();
     defer s.deinit(a);
 
-    var camera = ray.Camera2D{
-        .offset = .{ .x = @as(f32, @floatFromInt(ray.GetScreenWidth())) / 2, .y = @as(f32, @floatFromInt(ray.GetScreenHeight())) / 2 },
-        .rotation = 0.0,
-        .zoom = 1.0,
-        .target = .{ .x = 0, .y = 0 },
-    };
+    //   const texture_id = assets.texture_state.name_index.get("slime").?;
+    //    for (0..10) |i| {
+    //        _ = try s.level.entities.spawnEntity(a, .{
+    //            .position = .{ .pos = .{ .x = @floatFromInt(i), .y = @floatFromInt(i) }, .acceleration = @floatFromInt(i) },
+    //            .renderer = .{ .texture_id = texture_id },
+    //            .hostile_ai = .{ .target_id = s.level.player_id },
+    //        });
+    //    }
+    //    try s.level.entities.audit();
 
-    ray.BeginMode2D(camera); // Begin 2D mode with custom camera (2D)
-    const texture_id = assets.texture_state.name_index.get("slime").?;
-    _ = try s.level.entities.spawnEntity(a, .{
-        .position = .{},
-        .renderer = .{ .texture_id = texture_id },
-    });
-    try s.level.entities.audit();
-
-    const grid_spacing: u32 = 32;
+    //const grid_spacing: u32 = 32;
+    var render_options = texture.RenderOptions{ .scale = 4.0, .grid_spacing = 32, .zoom = 1 };
 
     while (!ray.WindowShouldClose()) {
 
@@ -81,8 +78,9 @@ fn runGame(a: std.mem.Allocator, assets: level.Assets, current_save: []const u8)
         try s.level.update(a, &s.keybindings, delta_time);
 
         //rendering settings
-        const render_options = texture.RenderOptions{ .scale = 4.0, .grid_spacing = grid_spacing };
-        camera.target = try calculateCameraPosition(s.level, render_options);
+        if (s.keybindings.zoom_in.pressed() and render_options.zoom < 1.3) render_options.zoom *= 1.01;
+        if (s.keybindings.zoom_out.pressed() and render_options.zoom > 0.7) render_options.zoom *= 0.99;
+        var camera = try calculateCameraPosition(s.level, render_options);
 
         //render
         ray.BeginDrawing();
@@ -91,6 +89,8 @@ fn runGame(a: std.mem.Allocator, assets: level.Assets, current_save: []const u8)
         ray.ClearBackground(ray.RAYWHITE);
         ray.DrawText("Now playing game!", 190, 44, 20, ray.LIGHTGRAY);
         try s.level.render(assets, render_options);
+
+        ray.DrawRectangle(@divFloor(ray.GetScreenWidth(), 2), @divFloor(ray.GetScreenHeight(), 2), 10, 10, ray.BLUE);
 
         ray.EndMode2D();
         ray.EndDrawing();
@@ -102,11 +102,29 @@ fn runGame(a: std.mem.Allocator, assets: level.Assets, current_save: []const u8)
     return .quit;
 }
 
-fn calculateCameraPosition(l: level.Level, render_options: texture.RenderOptions) !ray.Vector2 {
-    var player_position = try l.getPlayerPosition();
+fn screenWidth() f32 {
+    return @floatFromInt(ray.GetScreenWidth());
+}
 
-    const min_camera_x = @as(f32, @floatFromInt(ray.GetScreenWidth())) / 2.0 - render_options.grid_spacing;
-    const min_camera_y = @as(f32, @floatFromInt(ray.GetScreenHeight())) / 2.0 - render_options.grid_spacing;
+fn screenHeight() f32 {
+    return @floatFromInt(ray.GetScreenHeight());
+}
+
+fn tof32(input: anytype) f32 {
+    return @floatFromInt(input);
+}
+
+//TODO update camera offset
+fn calculateCameraPosition(l: level.Level, render_options: texture.RenderOptions) !ray.Camera2D {
+    var player_position = try l.getPlayerPosition();
+    player_position.x += 1;
+    player_position.y += 2;
+    player_position.x *= render_options.grid_spacing;
+    player_position.y *= render_options.grid_spacing;
+
+    const min_camera_x: f32 = (screenWidth() / 2) / render_options.zoom;
+    const min_camera_y: f32 = (screenHeight() / 2) / render_options.zoom;
+
     if (player_position.x < min_camera_x) {
         player_position.x = min_camera_x;
     }
@@ -115,8 +133,8 @@ fn calculateCameraPosition(l: level.Level, render_options: texture.RenderOptions
         player_position.y = min_camera_y;
     }
 
-    const map_width: f32 = @as(f32, @floatFromInt(l.map.width)) * render_options.grid_spacing;
-    const map_height: f32 = @as(f32, @floatFromInt(l.map.height)) * render_options.grid_spacing;
+    const map_width: f32 = (tof32(l.map.width)) * render_options.grid_spacing;
+    const map_height: f32 = (tof32(l.map.height)) * render_options.grid_spacing;
     const max_camera_x: f32 = map_width - min_camera_x;
     const max_camera_y: f32 = map_height - min_camera_y;
 
@@ -128,5 +146,14 @@ fn calculateCameraPosition(l: level.Level, render_options: texture.RenderOptions
         player_position.y = max_camera_y;
     }
 
-    return player_position;
+    return ray.Camera2D{
+        .offset = .{ .x = screenWidth() / 2, .y = screenHeight() / 2 },
+        .rotation = 0.0,
+        .zoom = render_options.zoom,
+        .target = player_position,
+    };
+}
+
+test "unit tests" {
+    _ = @This();
 }

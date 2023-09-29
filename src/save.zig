@@ -2,6 +2,7 @@ const std = @import("std");
 const file = @import("file_utils.zig");
 const level = @import("level.zig");
 const config = @import("config.zig");
+const err = @import("error.zig");
 
 pub const NewSaveOptions = struct {
     name: []const u8,
@@ -28,21 +29,8 @@ pub const Save = struct {
         const parsed = try std.json.parseFromSlice(Manifest, a, string, .{});
 
         const save_record = parsed.value;
-        var level_json = try file.readLevel(a, save_id, save_record.active_level_id); //read level value from file
-        //        try file.writeLevel(a, level_json.value, save_id, "segfault.json");
+        var level_json = try file.readLevel(a, save_id, save_record.active_level_id);
         //
-        //
-        //       std.debug.print("len in save.load {}\n", .{level_json.value.entities.systems.renderer.dense.items.len});
-        //       std.debug.print("val in save.load {}\n", .{level_json.value.entities.systems.renderer.dense.items[0]});
-
-        //       std.debug.print("sparse len in save.load {}\n", .{level_json.value.entities.systems.renderer.sparse.len});
-        //       std.debug.print("sparse val in save.load {?}\n", .{level_json.value.entities.systems.renderer.sparse[1023]});
-
-        //for (0..level_json.value.map.tile_grid.items.len) |x| {
-        //    for (0..level_json.value.map.tile_grid.items[x].len) |y| {
-        //        std.debug.print(" map: {?}", .{level_json.value.map.tile_grid.items[x][y]});
-        //    }
-        //}
         var result = try a.create(@This());
         result.* = .{
             .level_json = level_json,

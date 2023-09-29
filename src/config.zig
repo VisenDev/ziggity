@@ -33,6 +33,8 @@ pub const KeyBindings = struct {
     player_down: Key,
     player_left: Key,
     player_right: Key,
+    zoom_in: Key,
+    zoom_out: Key,
 
     pub fn init(a: std.mem.Allocator) !@This() {
         std.debug.print("Attempting to load key_bindings\n", .{});

@@ -1,8 +1,6 @@
 const std = @import("std");
 const level = @import("level.zig");
-const smaz = @cImport({
-    @cInclude("../lib/smaz/smaz.h");
-});
+const toml = @import("toml");
 
 //combines two paths
 pub fn combine(a: std.mem.Allocator, str1: []const u8, str2: []const u8) ![]const u8 {
@@ -97,30 +95,30 @@ pub fn writeLevel(a: std.mem.Allocator, l: level.Level, save_id: []const u8, lev
     var file = try std.fs.createFileAbsolute(path, .{});
     try file.writeAll(string);
 }
-
-test "json" {
-    var my_arena = std.heap.ArenaAllocator.init(std.testing.allocator);
-    defer my_arena.deinit();
-    const a = my_arena.allocator();
-
-    const first_level_id = "level_1";
-    const biomes = [_]level.Level.Record{.{ .name = "cave", .weight = 10 }};
-    const lvl = try level.Level.generate(a, .{ .name = first_level_id, .biomes = &biomes });
-    const string = try std.json.stringifyAlloc(a, lvl, .{});
-
-    std.debug.print("\nsize of string: {}\n", .{string.len});
-    if (!try std.json.validate(a, string)) {
-        return error.invalid_json;
-    }
-    const parsed = try std.json.parseFromSlice(level.Level, a, string, .{});
-    const parsed_2 = try std.json.parseFromSlice(level.Level, a, string, .{});
-    _ = parsed;
-    _ = parsed_2;
-    //std.debug.print("{}\n", .{parsed.value});
-}
-
-//========SAVE CREATION/DELETION========
 //
+//test "json" {
+//    var my_arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+//    defer my_arena.deinit();
+//    const a = my_arena.allocator();
+//
+//    const first_level_id = "level_1";
+//    const biomes = [_]level.Level.Record{.{ .name = "cave", .weight = 10 }};
+//    const lvl = try level.Level.generate(a, .{ .name = first_level_id, .biomes = &biomes });
+//    const string = try std.json.stringifyAlloc(a, lvl, .{});
+//
+//    std.debug.print("\nsize of string: {}\n", .{string.len});
+//    if (!try std.json.validate(a, string)) {
+//        return error.invalid_json;
+//    }
+//    const parsed = try std.json.parseFromSlice(level.Level, a, string, .{});
+//    const parsed_2 = try std.json.parseFromSlice(level.Level, a, string, .{});
+//    _ = parsed;
+//    _ = parsed_2;
+//    //std.debug.print("{}\n", .{parsed.value});
+//}
+//
+////========SAVE CREATION/DELETION========
+////
 //pub fn createSaveDir(a: std.mem.Allocator, save_id: []const u8) !void {
 //    const new_save_path =
 //    const new_save_levels_path = try std.fmt.allocPrint(a, "{s}/levels", .{new_save_path});
@@ -152,10 +150,27 @@ pub fn readConfig(comptime T: type, a: std.mem.Allocator, filename: []const u8) 
     defer a.free(full_path);
 
     const string = try std.fs.cwd().readFileAlloc(a, full_path, 2048);
-    std.debug.print("\n[CONFIG STRING LOADED] {s}\n", .{string});
+    //std.debug.print("\n[CONFIG STRING LOADED] {s}\n", .{string});
 
     const data = try std.json.parseFromSlice(T, a, string, .{});
     return data.value;
+}
+
+pub fn readToml(comptime T: type, a: std.mem.Allocator, filename: []const u8) !T {
+    const path = try getConfigDirPath(a);
+    defer a.free(path);
+
+    const full_path = try std.fmt.allocPrint(a, "{s}{s}", .{ path, filename });
+    defer a.free(full_path);
+
+    //const string = try std.fs.cwd().readFileAlloc(a, full_path, 2048);
+
+    const config = toml.parseFile(a, full_path);
+    defer config.deinit();
+}
+
+test "toml" {
+    _ = try readToml(u32, std.testing.allocator, "test.toml");
 }
 
 //test "config" {

@@ -6,13 +6,6 @@ const std = @import("std");
 const texture = @import("textures.zig");
 const SparseSet = @import("sparse_set.zig").SparseSet;
 
-fn distance(a: ray.Vector2, b: ray.Vector2) f32 {
-    const dx = a.x - b.x;
-    const dy = a.y - b.y;
-
-    return @sqrt(dx * dx + dy * dy);
-}
-
 pub const Components = [_]type{
     struct {
         const name = "health";
@@ -28,76 +21,21 @@ pub const Components = [_]type{
     },
 
     struct {
-        const name = "position";
-        pos: ray.Vector2 = ray.Vector2{ .x = 0, .y = 0 },
-        vel: ray.Vector2 = ray.Vector2{ .x = 0.1, .y = 0.1 },
-        acc: ray.Vector2 = ray.Vector2{ .x = 0, .y = 0 },
-        friction: f32 = 0.75,
-        pub fn update(self: *@This(), dt: f32) void {
-            self.pos.x += self.vel.x * dt;
-            self.pos.y += self.vel.y * dt;
-            self.vel.x += self.acc.x * dt;
-            self.vel.y += self.acc.y * dt;
-            self.acc.x *= self.friction;
-            self.acc.y *= self.friction;
-        }
-    },
-
-    struct {
         const name = "collision";
         width: f64 = 0,
         height: f64 = 0,
     },
-
-    struct {
-        const name = "hostile_ai";
-        self_id: usize,
-        target_id: ?usize = null,
-        speed: f32 = 10.0,
-        view_range: f32 = 5,
-        max_attack_range: f32 = 2.0,
-        min_attack_range: f32 = 1.0,
-        cooldown_remaining: f32 = 0,
-        action: enum { attack, move, wander } = .wander,
-        pub fn update(self: *@This(), e: *const EntityState, dt: f32) void {
-            _ = dt;
-            _ = e;
-            _ = self;
-            //const self_pos = e.getPosition(self_id);
-            //const target_pos = e.getPosition(self.target_id orelse 0);
-            ////update the action
-            //self.action = switch (self.action) {
-            //    .wander => brk: {
-            //        if (distance(self_pos, target_pos) < self.view_range) {
-            //            break :brk .attack;
-            //        } else {
-            //            break :brk .wander;
-            //        }
-            //    },
-            //};
-            ////perform the action
-            //switch(self.action) {
-            //    .wander => brk: {
-            //
-            //    }
-            //}
-        }
-    },
-
-    struct {
-        const name = "passive_ai";
-        spawn_point: f64 = 0,
-        speed_f: f64 = 0,
-    },
-
     struct {
         const name = "renderer";
         texture_id: usize,
         pub fn render(self: @This(), pos: ray.Vector2, t: texture.TextureState, opt: texture.RenderOptions) void {
             const my_texture = t.getI(self.texture_id);
-            ray.DrawTextureEx(my_texture, pos, 0, opt.scale, ray.WHITE);
+            const screen_position = ray.Vector2{ .x = pos.x * opt.grid_spacing, .y = pos.y * opt.grid_spacing };
+            ray.DrawTextureEx(my_texture, screen_position, 0, opt.scale, ray.WHITE);
         }
     },
+    @import("components/ai.zig"),
+    @import("components/position.zig"),
 };
 
 pub fn Spawner() type {
@@ -252,7 +190,7 @@ pub const EntityState = struct {
             item.val.update(dt);
         }
         for (self.systems.hostile_ai.slice()) |*item| {
-            item.val.update(self, dt);
+            item.val.update(self, item.id, dt);
         }
     }
 

@@ -17,13 +17,8 @@ pub fn build(b: *std.Build) void {
     //const optimize = .ReleaseSmall;
     const optimize = .Debug;
 
-    //const flags = [_][]const u8{"-fno-stack-check"};
-    //    _ = b.addUserInputFlag("-fno-reference-trace") catch false;
-
     const exe = b.addExecutable(.{
         .name = "dev",
-        // In this case the main source file is merely a path, however, in more
-        // complicated build scripts, this could be a generated file.
         .root_source_file = .{ .path = "src/main.zig" },
         .target = target,
         .optimize = optimize,
@@ -46,18 +41,36 @@ pub fn build(b: *std.Build) void {
         },
         .flags = &cflags,
     });
-    exe.addCSourceFile(.{
-        .file = .{
-            .path = "lib/smaz/smaz.c",
-        },
-        .flags = &cflags,
-    });
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
     // step when running `zig build`).
     b.installArtifact(exe);
+
+    //link zig-toml
+    //const build_zig_toml = b.addStaticLibrary(.{
+    //    .name = "zig-toml",
+    //    .root_source_file = .{ .path = "lib/zig-toml/src/toml.zig" },
+    //    .optimize = optimize,
+    //    .target = target,
+    //});
+    //exe.linkLibrary(build_zig_toml);
+    //addStaticLibrary(b: *Build, options: StaticLibraryOptions) *Step.Compile
     //    b.installDirectory(.{ .source_dir = "config", .install_dir = "config" });
+
+    const @"zig-toml" = b.dependency("zig-toml", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    // duck has exported itself as duck
+    // now you are re-exporting duck
+    // as a module in your project with the name duck
+    //exe.addModule("zig-toml", @"zig-toml".module("toml"));
+    // you need to link to the output of the build process
+    // that was done by the duck package
+    // in this case, duck is outputting a library
+    // to which your project need to link as well
+    exe.linkLibrary(@"zig-toml".artifact("toml"));
 
     //b.installDirectory(.{ .source_dir = .{ .path = "config" }, .install_dir = .bin, .install_subdir = "config" });
     //b.installDirectory(.{ .source_dir = .{ .path = "saves" }, .install_dir = .bin, .install_subdir = "saves" });
@@ -95,7 +108,8 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    const run_unit_tests = b.addRunArtifact(unit_tests);
+    var run_unit_tests = b.addRunArtifact(unit_tests);
+    run_unit_tests.has_side_effects = true;
 
     // Similar to creating the run step earlier, this exposes a `test` step to
     // the `zig build --help` menu, providing a way for the user to request

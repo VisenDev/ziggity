@@ -18,5 +18,16 @@
         "char": 68,
         "shift": false,
         "control": false
+    },
+    "zoom_in": {
+        "char": 61,
+        "shift": false,
+        "control": false
+    },
+    "zoom_out": {
+        "char": 45,
+        "shift": false,
+        "control": false
     }
+
 }
