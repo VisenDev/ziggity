@@ -58,10 +58,10 @@ pub fn build(b: *std.Build) void {
     //addStaticLibrary(b: *Build, options: StaticLibraryOptions) *Step.Compile
     //    b.installDirectory(.{ .source_dir = "config", .install_dir = "config" });
 
-    const @"zig-toml" = b.dependency("zig-toml", .{
-        .target = target,
-        .optimize = optimize,
-    });
+    // const @"zig-toml" = b.dependency("zig-toml", .{
+    //     .target = target,
+    //     .optimize = optimize,
+    // });
     // duck has exported itself as duck
     // now you are re-exporting duck
     // as a module in your project with the name duck
@@ -70,7 +70,7 @@ pub fn build(b: *std.Build) void {
     // that was done by the duck package
     // in this case, duck is outputting a library
     // to which your project need to link as well
-    exe.linkLibrary(@"zig-toml".artifact("toml"));
+    //    exe.linkLibrary(@"zig-toml".artifact("toml"));
 
     //b.installDirectory(.{ .source_dir = .{ .path = "config" }, .install_dir = .bin, .install_subdir = "config" });
     //b.installDirectory(.{ .source_dir = .{ .path = "saves" }, .install_dir = .bin, .install_subdir = "saves" });

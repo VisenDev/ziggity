@@ -4,7 +4,6 @@ const page_allocator = std.heap.page_allocator;
 const level = @import("level.zig");
 const file = @import("file_utils.zig");
 const menu = @import("menu.zig");
-const str = @import("str_utils.zig");
 const config = @import("config.zig");
 const save = @import("save.zig");
 const err = @import("error.zig");
@@ -33,7 +32,7 @@ pub fn main() !void {
     defer ray.CloseWindow();
 
     raygui.GuiLoadStyleDark();
-    ray.SetTargetFPS(60);
+    ray.SetTargetFPS(180);
 
     var current_window = menu.Window.main_menu;
     var save_id: []u8 = "";
@@ -58,24 +57,28 @@ fn runGame(a: std.mem.Allocator, assets: level.Assets, current_save: []const u8)
     try s.level.entities.audit();
     defer s.deinit(a);
 
-    //   const texture_id = assets.texture_state.name_index.get("slime").?;
-    //    for (0..10) |i| {
-    //        _ = try s.level.entities.spawnEntity(a, .{
-    //            .position = .{ .pos = .{ .x = @floatFromInt(i), .y = @floatFromInt(i) }, .acceleration = @floatFromInt(i) },
-    //            .renderer = .{ .texture_id = texture_id },
-    //            .hostile_ai = .{ .target_id = s.level.player_id },
-    //        });
-    //    }
-    //    try s.level.entities.audit();
-
     //const grid_spacing: u32 = 32;
     var render_options = texture.RenderOptions{ .scale = 4.0, .grid_spacing = 32, .zoom = 1 };
+
+    const palette = [_]u32{ // RKBV (2-strip film
+        4,   12,  6,
+        17,  35,  24,
+        30,  58,  41,
+        48,  93,  66,
+        77,  128, 97,
+        137, 162, 87,
+        190, 220, 127,
+        238, 255, 204,
+    };
+    _ = palette;
+    const shader = ray.LoadShader(0, ray.TextFormat("game-files/shaders/grayscale.fs", @as(c_int, 330)));
+    defer ray.UnloadShader(shader);
 
     while (!ray.WindowShouldClose()) {
 
         //update scene
         const delta_time = ray.GetFrameTime();
-        try s.level.update(a, &s.keybindings, delta_time);
+        try s.level.update(a, level.UpdateOptions{ .keys = &s.keybindings, .dt = delta_time });
 
         //rendering settings
         if (s.keybindings.zoom_in.pressed() and render_options.zoom < 1.3) render_options.zoom *= 1.01;
@@ -85,14 +88,14 @@ fn runGame(a: std.mem.Allocator, assets: level.Assets, current_save: []const u8)
         //render
         ray.BeginDrawing();
         ray.BeginMode2D(camera); // Begin 2D mode with custom camera (2D)
+        //        ray.BeginShaderMode(shader);
 
         ray.ClearBackground(ray.RAYWHITE);
-        ray.DrawText("Now playing game!", 190, 44, 20, ray.LIGHTGRAY);
         try s.level.render(assets, render_options);
 
-        ray.DrawRectangle(@divFloor(ray.GetScreenWidth(), 2), @divFloor(ray.GetScreenHeight(), 2), 10, 10, ray.BLUE);
-
+        //       ray.EndShaderMode();
         ray.EndMode2D();
+        ray.DrawFPS(15, 15);
         ray.EndDrawing();
 
         if (ray.IsKeyPressed('Q')) {

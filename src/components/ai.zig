@@ -3,6 +3,7 @@ const ray = @cImport({
     @cInclude("raylib.h");
 });
 const entity = @import("../components.zig");
+const level = @import("../level.zig");
 
 fn distance(a: ray.Vector2, b: ray.Vector2) f32 {
     const dx = a.x - b.x;
@@ -23,24 +24,30 @@ min_attack_range: f32 = 4.0,
 cooldown_remaining: f32 = 0,
 action: enum { pursue, attack, move, wander, patrol } = .wander,
 
-pub fn update(self: *@This(), e: *const entity.EntityState, self_id: usize, dt: f32) void {
-    const self_pos = e.getPosition(self_id).?;
-    const target_pos = e.getPosition(self.target_id.?).?;
-
+pub fn update(self: *@This(), e: *const entity.EntityState, info: entity.UpdateOptions, opt: level.UpdateOptions) void {
     //update cooldown
-    if (self.cooldown_remaining > 0) self.cooldown_remaining -= dt;
-
-    //distance from self to the target
-    const target_distance = distance(self_pos, target_pos);
+    if (self.cooldown_remaining > 0) self.cooldown_remaining -= opt.dt;
 
     //update the action
     switch (self.action) {
         .wander => {
-            if (target_distance < self.view_range) {
-                self.action = .pursue;
+            if(self.target_id) |target_id| {
+                
+                const self_pos = e.getPosition(info.id).?;
+                const target_pos = e.getPosition(target_id).?;
+                const target_distance = distance(self_pos, target_pos);
+                
+                if (target_distance < self.view_range) {
+                    self.action = .pursue;
+                }
+
             } else {
-                var position = (e.systems.position.get(self_id) catch return).?;
-                position.moveTowards(self.wander_destination);
+                
+                var query = entity.Event{ .id = info.id, .name = "target_query"};
+                e.notify(&query);
+                
+                var event = entity.Event{ .id = info.id, .name = "move", .location = self.wander_destination };
+                e.notify(&event);
             }
         },
         .pursue => {
@@ -54,8 +61,10 @@ pub fn update(self: *@This(), e: *const entity.EntityState, self_id: usize, dt: 
                 self.action = .wander;
             } else if (target_distance > self.min_attack_range) {
                 //move towards the target
-                var position = (e.systems.position.get(self_id) catch return).?;
-                position.moveTowards(target_pos);
+                //var position = e.systems.position.get(self_id).?;
+                //_ = position;
+                var event = entity.Event{ .id = self_id, .name = "move", .location = target_pos };
+                e.notify(&event);
             }
         },
         .attack => {

@@ -3,6 +3,8 @@ const file = @import("file_utils.zig");
 const level = @import("level.zig");
 const config = @import("config.zig");
 const err = @import("error.zig");
+const event = @import("events.zig");
+const entity = @import("components.zig");
 
 pub const NewSaveOptions = struct {
     name: []const u8,
@@ -17,6 +19,7 @@ pub const Save = struct {
     keybindings: config.KeyBindings,
     level_json: std.json.Parsed(level.Level), //level_json used to deinit the memory
     level: level.Level,
+    //    events: event.EventState,
     save_id: []const u8,
 
     pub fn load(a: std.mem.Allocator, save_id: []const u8) !*@This() {
@@ -30,13 +33,14 @@ pub const Save = struct {
 
         const save_record = parsed.value;
         var level_json = try file.readLevel(a, save_id, save_record.active_level_id);
-        //
         var result = try a.create(@This());
+
         result.* = .{
             .level_json = level_json,
             .level = level_json.value,
             .keybindings = try config.KeyBindings.init(a),
             .save_id = save_id,
+            //         .events = events,
         };
 
         return result;

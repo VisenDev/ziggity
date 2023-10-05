@@ -6,6 +6,7 @@ const tile = @import("tiles.zig");
 const file = @import("file_utils.zig");
 const config = @import("config.zig");
 const player = @import("player.zig");
+//const event = @import("events.zig");
 const ray = @cImport({
     @cInclude("raylib.h");
 });
@@ -27,6 +28,11 @@ pub const Assets = struct {
         self.texture_state.deinit();
         self.tile_state.deinit(a);
     }
+};
+
+pub const UpdateOptions = struct {
+    keys: *const config.KeyBindings,
+    dt: f32,
 };
 
 pub const Exit = struct {
@@ -92,10 +98,10 @@ pub const Level = struct {
         return Level{ .name = options.name, .entities = entities, .map = world_map, .exits = &exits, .player_id = id };
     }
 
-    pub fn update(self: *Level, a: std.mem.Allocator, key: *config.KeyBindings, dt: f32) !void {
+    pub fn update(self: *Level, a: std.mem.Allocator, opt: UpdateOptions) !void {
         _ = a;
-        try player.updatePlayer(self.player_id, self.entities, key, dt);
-        try self.entities.update(dt);
+        try player.updatePlayer(self.player_id, self.entities, opt);
+        try self.entities.update(opt);
     }
 
     pub fn render(self: Level, assets: Assets, options: texture.RenderOptions) !void {

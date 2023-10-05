@@ -1,8 +1,6 @@
 const std = @import("std");
 const file = @import("file_utils.zig");
 const save = @import("save.zig");
-const gen = @import("level_gen.zig");
-const str = @import("str_utils.zig");
 const level = @import("level.zig");
 const ray = @cImport({
     @cInclude("raylib.h");

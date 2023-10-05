@@ -4,22 +4,23 @@ const ray = @cImport({
 
 const std = @import("std");
 const texture = @import("textures.zig");
+const level = @import("level.zig");
 const SparseSet = @import("sparse_set.zig").SparseSet;
 
-pub const Components = [_]type{
-    struct {
-        const name = "health";
-        hp: f64 = 0,
-        max_hp: f64 = 0,
-        is_dead: bool = false,
-        pub fn takeDamage(self: *@This(), damage: f32) void {
-            self.*.hp -= damage;
-            if (self.*.hp <= 0) {
-                self.*.is_dead = true;
-            }
-        }
-    },
+//for handing events
+pub const Event = struct {
+    id: usize,
+    name: []const u8 = "",
+    type: []const u8 = "",
+    amount: f32 = 0,
+    location: ray.Vector2 = .{ .x = 0, .y = 0 },
+};
 
+pub const UpdateOptions = struct {
+    id: usize,
+};
+
+pub const Components = [_]type{
     struct {
         const name = "collision";
         width: f64 = 0,
@@ -34,8 +35,14 @@ pub const Components = [_]type{
             ray.DrawTextureEx(my_texture, screen_position, 0, opt.scale, ray.WHITE);
         }
     },
+    struct {
+        const name = "label";
+        hud: []const u8 = "",
+    },
     @import("components/ai.zig"),
     @import("components/position.zig"),
+    @import("components/health.zig"),
+    @import("components/attack.zig"),
 };
 
 pub fn Spawner() type {
@@ -185,18 +192,29 @@ pub const EntityState = struct {
         return id;
     }
 
-    pub fn update(self: *@This(), dt: f32) !void {
-        for (self.systems.position.slice()) |*item| {
-            item.val.update(dt);
-        }
-        for (self.systems.hostile_ai.slice()) |*item| {
-            item.val.update(self, item.id, dt);
+    pub fn update(self: *@This(), opt: level.UpdateOptions) !void {
+
+        //loop thru all the components of an entity, call the update method on them if they have the method "update"
+        inline for (Components) |component| {
+
+            //loop thru the decls to look for update
+            inline for (@typeInfo(component).Struct.decls) |decl| {
+
+                //if update exists, update all entities with that component
+                if (comptime std.mem.eql(u8, decl.name, "update")) {
+                    var system = @field(self.systems, component.name);
+
+                    for (system.slice()) |*item| {
+                        item.val.update(self, .{ .id = item.id }, opt);
+                    }
+                }
+            }
         }
     }
 
     pub fn render(self: *const @This(), t: texture.TextureState, options: texture.RenderOptions) !void {
         for (self.systems.renderer.slice()) |item| {
-            const position = (try self.systems.position.get(item.id)).?.pos;
+            const position = self.systems.position.get(item.id).?.pos;
             item.val.render(position, t, options);
         }
     }
@@ -208,11 +226,31 @@ pub const EntityState = struct {
     }
 
     pub fn getPosition(self: *const @This(), id: usize) ?ray.Vector2 {
-        const position_component = self.systems.position.get(id) catch null;
+        const position_component = self.systems.position.get(id);
         if (position_component) |pc| {
             return pc.pos;
         } else {
             return null;
+        }
+    }
+
+    //TODO fix this so only the entity the event is happening on is updated
+    pub fn notify(self: *@This(), event: *Event) void {
+
+        //loop thru all the components of an entity, call the update method on them if they have the method "update"
+        inline for (Components) |component_type| {
+
+            //loop thru the decls to look for handle
+            inline for (@typeInfo(component_type).Struct.decls) |decl| {
+
+                //if handle exists, update that entities handler with the event
+                if (comptime std.mem.eql(u8, decl.name, "handle")) {
+                    //var system = @field(self.systems, component.name);
+                    if (@field(self.systems, component_type.name).get(event.id)) |comp| {
+                        comp.handle(self, event);
+                    }
+                }
+            }
         }
     }
 };

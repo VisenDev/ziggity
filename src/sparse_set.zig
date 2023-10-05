@@ -69,10 +69,10 @@ pub fn SparseSet(comptime T: type, comptime max_capacity: usize) type {
             return self.sparse[index] == null;
         }
 
-        pub fn get(self: *const @This(), sparse_index: usize) !?*T {
+        pub fn get(self: *const @This(), sparse_index: usize) ?*T {
             if (sparse_index < 0 or sparse_index > self.*.capacity) {
                 std.debug.print("ERROR: Invalid index: {}, max_index: {}\n", .{ sparse_index, self.capacity });
-                return error.index_out_of_bounds;
+                return null;
             }
             const dense_index = self.sparse[sparse_index];
             if (dense_index == null) {
