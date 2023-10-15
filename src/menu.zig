@@ -60,7 +60,7 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, save_id: *[]u8) !Window {
     return .quit;
 }
 
-pub fn drawNewSaveMenu(a: std.mem.Allocator, assets: level.Assets) !Window {
+pub fn drawNewSaveMenu(a: std.mem.Allocator) !Window {
     var textBoxEditMode = false;
     var textBoxText: [100]u8 = [_]u8{0} ** 100;
 
@@ -84,7 +84,8 @@ pub fn drawNewSaveMenu(a: std.mem.Allocator, assets: level.Assets) !Window {
                 }
             }
 
-            try save.Save.create(a, assets, .{ .name = textBoxText[0..strlen] });
+            //TODO update this save generation code
+            try save.createNewSave(a, .{ .name = textBoxText[0..strlen] });
             return .save_menu;
         }
 

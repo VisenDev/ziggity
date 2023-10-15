@@ -43,7 +43,7 @@ pub fn getImageDirPath(a: std.mem.Allocator) ![]const u8 {
 pub fn getLevelPath(a: std.mem.Allocator, save_id: []const u8, level_id: []const u8) ![]const u8 {
     const save_path = try getSavePath(a, save_id);
     defer a.free(save_path);
-    return try std.fmt.allocPrint(a, "{s}levels/{s}.b64", .{ save_path, level_id });
+    return try std.fmt.allocPrint(a, "{s}levels/{s}.json", .{ save_path, level_id });
 }
 
 pub fn getSavePath(a: std.mem.Allocator, save_id: []const u8) ![]const u8 {
@@ -88,8 +88,7 @@ pub fn readLevel(a: std.mem.Allocator, save_id: []const u8, level_id: []const u8
 //}
 
 pub fn writeLevel(a: std.mem.Allocator, l: level.Level, save_id: []const u8, level_id: []const u8) !void {
-    l.entities.prepForStringify();
-    std.debug.print("renderer cap at time of stringify: {}\n", .{l.entities.systems.renderer.dense.capacity});
+    l.ecs.prepForStringify();
     const string = try std.json.stringifyAlloc(a, l, .{});
     const path = try getLevelPath(a, save_id, level_id);
     var file = try std.fs.createFileAbsolute(path, .{});
@@ -156,22 +155,42 @@ pub fn readConfig(comptime T: type, a: std.mem.Allocator, filename: []const u8) 
     return data.value;
 }
 
-pub fn readToml(comptime T: type, a: std.mem.Allocator, filename: []const u8) !T {
-    const path = try getConfigDirPath(a);
+//============MANIFEST PARSING============
+pub const Manifest = struct {
+    pub const filename = "manifest.json";
+    active_level_id: []const u8,
+};
+
+pub fn readManifest(a: std.mem.Allocator, save_id: []const u8) !std.json.Parsed(Manifest) {
+    const save_path = try getSavePath(a, save_id);
+    defer a.free(save_path);
+    const path = try combine(a, save_path, Manifest.filename);
     defer a.free(path);
+    const string = try std.fs.cwd().readFileAlloc(a, path, 2048);
+    defer a.free(string);
 
-    const full_path = try std.fmt.allocPrint(a, "{s}{s}", .{ path, filename });
-    defer a.free(full_path);
+    std.debug.print("Manifest contents = {s}\n\n", .{string});
 
-    //const string = try std.fs.cwd().readFileAlloc(a, full_path, 2048);
-
-    const config = toml.parseFile(a, full_path);
-    defer config.deinit();
+    const parsed = try std.json.parseFromSlice(Manifest, a, string, .{ .allocate = .alloc_always });
+    return parsed;
 }
 
-test "toml" {
-    _ = try readToml(u32, std.testing.allocator, "test.toml");
-}
+//pub fn readToml(comptime T: type, a: std.mem.Allocator, filename: []const u8) !T {
+//    const path = try getConfigDirPath(a);
+//    defer a.free(path);
+//
+//    const full_path = try std.fmt.allocPrint(a, "{s}{s}", .{ path, filename });
+//    defer a.free(full_path);
+//
+//    //const string = try std.fs.cwd().readFileAlloc(a, full_path, 2048);
+//
+//    const config = toml.parseFile(a, full_path);
+//    defer config.deinit();
+//}
+//
+//test "toml" {
+//    _ = try readToml(u32, std.testing.allocator, "test.toml");
+//}
 
 //test "config" {
 //    const Key = struct {

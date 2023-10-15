@@ -6,29 +6,30 @@ const tile = @import("tiles.zig");
 const file = @import("file_utils.zig");
 const config = @import("config.zig");
 const player = @import("player.zig");
+const ecs = @import("ecs.zig");
 //const event = @import("events.zig");
 const ray = @cImport({
     @cInclude("raylib.h");
 });
 const json = std.json;
 
-pub const Assets = struct {
-    tile_state: tile.TileState,
-    texture_state: texture.TextureState,
-
-    pub fn init(a: std.mem.Allocator) !Assets {
-        const texture_state = try texture.TextureState.init(a);
-        return .{
-            .tile_state = try tile.TileState.init(a, texture_state),
-            .texture_state = texture_state,
-        };
-    }
-
-    pub fn deinit(self: *const @This(), a: std.mem.Allocator) void {
-        self.texture_state.deinit();
-        self.tile_state.deinit(a);
-    }
-};
+//pub const Assets = struct {
+//    tile_state: tile.TileState,
+//    texture_state: texture.TextureState,
+//
+//    pub fn init(a: std.mem.Allocator) !Assets {
+//        const texture_state = try texture.TextureState.init(a);
+//        return .{
+//            .tile_state = try tile.TileState.init(a, texture_state),
+//            .texture_state = texture_state,
+//        };
+//    }
+//
+//    pub fn deinit(self: *const @This(), a: std.mem.Allocator) void {
+//        self.texture_state.deinit();
+//        self.tile_state.deinit(a);
+//    }
+//};
 
 pub const UpdateOptions = struct {
     keys: *const config.KeyBindings,
@@ -48,80 +49,78 @@ pub const Record = struct {
 
 pub const LevelGenOptions = struct {
     name: []const u8,
-    biomes: []const Record,
+    biomes: []const Record = &[_]Record{},
     density: f64 = 0.4,
     width: u32 = 100,
     height: u32 = 100,
 };
 
 pub const Level = struct {
-    name: []const u8,
-    entities: *entity.EntityState,
-    map: *map.MapState,
-    exits: []const Exit,
-    player_id: usize,
-
-    pub fn generate(a: std.mem.Allocator, assets: Assets, options: LevelGenOptions) !Level {
-        var entities = try a.create(entity.EntityState);
-        entities.* = try entity.EntityState.init(a);
-        const world_map = try a.create(map.MapState);
-        world_map.* = try map.MapState.generate(a, assets, options);
-        const exits = [_]Exit{.{ .x = 5, .y = 5, .destination_id = "first_level" }};
-
-        const id = try entities.spawnEntity(a, .{
-            .position = .{
-                .pos = .{
-                    .x = 10.0,
-                    .y = 10.0,
-                },
-                .vel = .{
-                    .x = 0.0,
-                    .y = 0.0,
-                },
-                .acceleration = 1,
-            },
-            .renderer = .{
-                .texture_id = assets.texture_state.name_index.get("player").?,
-            },
-        });
-
-        const texture_id = assets.texture_state.name_index.get("slime").?;
-        for (0..10) |i| {
-            _ = try entities.spawnEntity(a, .{
-                .position = .{ .pos = .{ .x = @floatFromInt(i), .y = @floatFromInt(i) }, .acceleration = @floatFromInt(i + 2) },
-                .renderer = .{ .texture_id = texture_id },
-                .hostile_ai = .{ .target_id = id },
-            });
-        }
-        try entities.audit();
-
-        return Level{ .name = options.name, .entities = entities, .map = world_map, .exits = &exits, .player_id = id };
-    }
-
-    pub fn update(self: *Level, a: std.mem.Allocator, opt: UpdateOptions) !void {
-        _ = a;
-        try player.updatePlayer(self.player_id, self.entities, opt);
-        try self.entities.update(opt);
-    }
-
-    pub fn render(self: Level, assets: Assets, options: texture.RenderOptions) !void {
-        self.map.render(assets.tile_state, options);
-        try self.entities.render(assets.texture_state, options);
-    }
-
-    pub fn deinit(self: *const @This(), a: std.mem.Allocator) void {
-        self.entities.deinit(a);
-        self.map.deinit(a);
-    }
-
-    pub fn getPlayerPosition(self: *const @This()) !ray.Vector2 {
-        return self.entities.getPosition(self.player_id) orelse error.invalid_player_id;
-    }
+    name: []const u8 = "",
+    ecs: *ecs.ECS = undefined,
+    map: *map.MapState = undefined,
+    exits: []const Exit = &[_]Exit{},
+    player_id: usize = 0,
 };
 
-test "json" {
-    //    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    //    const level = Level.init(gpa.allocator());
-    //    const string = try json.stringifyAlloc(gpa.allocator(), level, .{});
-    //    std.debug.print("JSON: \n\n{s}\n\n\n", .{string});
+pub fn generateLevel(a: std.mem.Allocator, options: LevelGenOptions) !Level {
+    const texture_state = try texture.TextureState.init(a);
+    defer texture_state.deinit();
+
+    const tile_state = try tile.TileState.init(a, texture_state);
+    defer tile_state.deinit(a);
+
+    var entities = try a.create(ecs.ECS);
+    entities.* = try ecs.ECS.init(a, 100);
+
+    var world_map = try a.create(map.MapState);
+    world_map.* = try map.MapState.generate(a, tile_state, options);
+
+    var exits = try a.alloc(Exit, 1);
+    exits[0] = Exit{ .x = 5, .y = 5, .destination_id = "first_level" };
+
+    const player_id = 0;
+
+    return Level{ .name = "harry truman", .ecs = entities, .map = world_map, .exits = exits, .player_id = player_id };
 }
+
+//        const texture_id = assets.texture_state.name_index.get("slime").?;
+//        for (0..10) |i| {
+//            _ = try entities.spawnEntity(a, .{
+//                .position = .{ .pos = .{ .x = @floatFromInt(i), .y = @floatFromInt(i) }, .acceleration = @floatFromInt(i + 2) },
+//                .renderer = .{ .texture_id = texture_id },
+//                .hostile_ai = .{ .target_id = id },
+//            });
+//        }
+//        try entities.audit();
+//
+//        return Level{ .name = options.name, .entities = entities, .map = world_map, .exits = &exits, .player_id = id };
+//    }
+//
+////    pub fn update(self: *Level, a: std.mem.Allocator, opt: UpdateOptions) !void {
+////        _ = a;
+////        try player.updatePlayer(self.player_id, self.entities, opt);
+////        try self.entities.update(opt);
+////    }
+//
+//    pub fn render(self: Level, assets: Assets, options: texture.RenderOptions) !void {
+//        self.map.render(assets.tile_state, options);
+//        try self.entities.render(assets.texture_state, options);
+//    }
+//
+//    pub fn deinit(self: *const @This(), a: std.mem.Allocator) void {
+//        self.entities.deinit(a);
+//        self.map.deinit(a);
+//    }
+//
+//    pub fn getPlayerPosition(self: *const @This()) !ray.Vector2 {
+//        return self.entities.getPosition(self.player_id) orelse error.invalid_player_id;
+//    }
+//};
+//
+//test "json" {
+//    //    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+//    //    const level = Level.init(gpa.allocator());
+//    //    const string = try json.stringifyAlloc(gpa.allocator(), level, .{});
+//    //    std.debug.print("JSON: \n\n{s}\n\n\n", .{string});
+//}

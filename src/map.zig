@@ -2,6 +2,7 @@ const std = @import("std");
 const texture = @import("textures.zig");
 const tile = @import("tiles.zig");
 const level = @import("level.zig");
+const options = @import("options.zig");
 const Allocator = std.mem.Allocator;
 const perlin = @cImport({
     @cInclude("perlin.c");
@@ -72,39 +73,48 @@ pub const IdList = struct {
 
 pub const MapState = struct {
     tile_grid: Grid(u8),
+    collision_grid: Grid(bool),
     width: usize,
     height: usize,
 
-    pub fn generate(a: std.mem.Allocator, assets: level.Assets, opt: level.LevelGenOptions) !@This() {
-        var grid = try Grid(u8).init(a, opt.width, opt.height);
+    pub fn generate(a: std.mem.Allocator, tile_state: tile.TileState, opt: level.LevelGenOptions) !@This() {
+        var tile_grid = try Grid(u8).init(a, opt.width, opt.height);
+        var collision_grid = try Grid(bool).init(a, opt.width, opt.height);
 
-        const floor = assets.tile_state.get("cave_floor").?;
-        const wall = assets.tile_state.get("cave_wall").?;
+        const floor = tile_state.get("cave_floor").?;
+        const wall = tile_state.get("cave_wall").?;
 
         for (0..opt.width) |x| {
             for (0..opt.height) |y| {
                 if (perlin.perlin2d(@floatFromInt(x), @floatFromInt(y), 0.1, 4) > 0.5) {
-                    grid.items[x][y] = floor;
+                    tile_grid.items[x][y] = floor;
+                    collision_grid.items[x][y] = false;
                 } else {
-                    grid.items[x][y] = wall;
+                    tile_grid.items[x][y] = wall;
+                    collision_grid.items[x][y] = true;
                 }
             }
         }
-        return .{ .tile_grid = grid, .width = opt.width, .height = opt.height };
+        return .{
+            .tile_grid = tile_grid,
+            .collision_grid = collision_grid,
+            .width = opt.width,
+            .height = opt.height,
+        };
     }
 
     pub fn deinit(self: *const @This(), a: std.mem.Allocator) void {
         self.tile_grid.deinit(a);
     }
 
-    pub fn render(self: *const @This(), tiles: tile.TileState, options: texture.RenderOptions) void {
+    pub fn render(self: *const @This(), tiles: tile.TileState, opt: options.Render) void {
         for (0..self.tile_grid.items.len) |x| {
             for (0..self.tile_grid.items[x].len) |y| {
                 if (self.tile_grid.items[x][y]) |id| {
-                    const grid_x = @as(f32, @floatFromInt(x)) * options.grid_spacing;
-                    const grid_y = @as(f32, @floatFromInt(y)) * options.grid_spacing;
+                    const grid_x = @as(f32, @floatFromInt(x)) * opt.grid_spacing;
+                    const grid_y = @as(f32, @floatFromInt(y)) * opt.grid_spacing;
                     const tile_texture: ray.Texture2D = tiles.tiles[id].texture;
-                    ray.DrawTextureEx(tile_texture, .{ .x = grid_x, .y = grid_y }, 0, options.scale, ray.RAYWHITE);
+                    ray.DrawTextureEx(tile_texture, .{ .x = grid_x, .y = grid_y }, 0, opt.scale, ray.RAYWHITE);
                 }
             }
         }

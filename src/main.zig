@@ -1,4 +1,5 @@
 const std = @import("std");
+const tile = @import("tiles.zig");
 const Arena = std.heap.ArenaAllocator;
 const page_allocator = std.heap.page_allocator;
 const level = @import("level.zig");
@@ -9,6 +10,7 @@ const save = @import("save.zig");
 const err = @import("error.zig");
 const player = @import("player.zig");
 const texture = @import("textures.zig");
+const options = @import("options.zig");
 const toml = @import("toml");
 
 const ray = @cImport({
@@ -32,12 +34,10 @@ pub fn main() !void {
     defer ray.CloseWindow();
 
     raygui.GuiLoadStyleDark();
-    ray.SetTargetFPS(180);
+    ray.SetTargetFPS(60);
 
     var current_window = menu.Window.main_menu;
     var save_id: []u8 = "";
-    const assets = try level.Assets.init(a);
-    defer assets.deinit(a); //unloads all textures from gpu
 
     while (!ray.WindowShouldClose()) {
         std.debug.print("WINDOW: {s}\n", .{save_id});
@@ -46,44 +46,49 @@ pub fn main() !void {
             .main_menu => menu.drawMainMenu(),
             .save_menu => try menu.drawSaveSelectMenu(a, &save_id),
             .config_menu => err.crashToMainMenu("config_menu_not_implemented_yet"),
-            .new_save => try menu.drawNewSaveMenu(a, assets),
-            .game => try runGame(a, assets, save_id),
+            .new_save => try menu.drawNewSaveMenu(a),
+            .game => try runGame(a, save_id),
         };
     }
 }
 
-fn runGame(a: std.mem.Allocator, assets: level.Assets, current_save: []const u8) !menu.Window {
-    var s = save.Save.load(a, current_save) catch return err.crashToMainMenu("failed to load selected save");
-    try s.level.entities.audit();
-    defer s.deinit(a);
+fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
+    const manifest = try file.readManifest(a, current_save);
+    defer manifest.deinit();
 
-    //const grid_spacing: u32 = 32;
-    var render_options = texture.RenderOptions{ .scale = 4.0, .grid_spacing = 32, .zoom = 1 };
+    std.debug.print("manifest contents in main: \n{}\n\n", .{manifest.value});
 
-    const palette = [_]u32{ // RKBV (2-strip film
-        4,   12,  6,
-        17,  35,  24,
-        30,  58,  41,
-        48,  93,  66,
-        77,  128, 97,
-        137, 162, 87,
-        190, 220, 127,
-        238, 255, 204,
+    var json_parsed_level = file.readLevel(a, current_save, manifest.value.active_level_id) catch |e| {
+        std.debug.print("ERROR: Failed to load {s} due to {}\n", .{ manifest.value.active_level_id, e });
+        return err.crashToMainMenu("failed to load selected save");
     };
-    _ = palette;
-    const shader = ray.LoadShader(0, ray.TextFormat("game-files/shaders/grayscale.fs", @as(c_int, 330)));
-    defer ray.UnloadShader(shader);
+    defer json_parsed_level.deinit();
+    var lvl = json_parsed_level.value;
+
+    const texture_state = try texture.TextureState.init(a);
+    defer texture_state.deinit();
+
+    const tile_state = try tile.TileState.init(a, texture_state);
+    defer tile_state.deinit(a);
+
+    //const shader = ray.LoadShader(0, ray.TextFormat("game-files/shaders/grayscale.fs", @as(c_int, 330)));
+    //defer ray.UnloadShader(shader);
 
     while (!ray.WindowShouldClose()) {
 
-        //update scene
+        //configure update options
         const delta_time = ray.GetFrameTime();
-        try s.level.update(a, level.UpdateOptions{ .keys = &s.keybindings, .dt = delta_time });
+        const update_options = options.Update{ .dt = delta_time };
+        const render_options = options.Render{ .zoom = 1, .scale = 4, .grid_spacing = 32 };
 
+        lvl.ecs.updateMovementSystem(a, lvl.map, update_options);
+
+        //player.updatePlayer(lvl.player_id, lvl.entities, update_options);
         //rendering settings
-        if (s.keybindings.zoom_in.pressed() and render_options.zoom < 1.3) render_options.zoom *= 1.01;
-        if (s.keybindings.zoom_out.pressed() and render_options.zoom > 0.7) render_options.zoom *= 0.99;
-        var camera = try calculateCameraPosition(s.level, render_options);
+        //if (s.keybindings.zoom_in.pressed() and render_options.zoom < 1.3) render_options.zoom *= 1.01;
+        //if (s.keybindings.zoom_out.pressed() and render_options.zoom > 0.7) render_options.zoom *= 0.99;
+
+        var camera = try calculateCameraPosition(lvl, render_options);
 
         //render
         ray.BeginDrawing();
@@ -91,7 +96,10 @@ fn runGame(a: std.mem.Allocator, assets: level.Assets, current_save: []const u8)
         //        ray.BeginShaderMode(shader);
 
         ray.ClearBackground(ray.RAYWHITE);
-        try s.level.render(assets, render_options);
+        //try s.level.render(assets, render_options);
+
+        lvl.map.render(tile_state, render_options);
+        //lvl.ecs.render(assets.texture_state, render_options);
 
         //       ray.EndShaderMode();
         ray.EndMode2D();
@@ -118,8 +126,8 @@ fn tof32(input: anytype) f32 {
 }
 
 //TODO update camera offset
-fn calculateCameraPosition(l: level.Level, render_options: texture.RenderOptions) !ray.Camera2D {
-    var player_position = try l.getPlayerPosition();
+fn calculateCameraPosition(l: level.Level, render_options: options.Render) !ray.Camera2D {
+    var player_position: ray.Vector2 = undefined; //try l.getPlayerPosition();
     player_position.x += 1;
     player_position.y += 2;
     player_position.x *= render_options.grid_spacing;
