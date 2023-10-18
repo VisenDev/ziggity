@@ -102,10 +102,22 @@ pub fn build(b: *std.Build) void {
 
     // Creates a step for unit testing. This only builds the test executable
     // but does not run it.
-    const unit_tests = b.addTest(.{
+    var unit_tests = b.addTest(.{
         .root_source_file = .{ .path = "src/main.zig" },
         .target = target,
         .optimize = optimize,
+    });
+
+    unit_tests.linkLibC();
+    unit_tests.linkSystemLibrary("raylib");
+    //find raygui.h
+    unit_tests.addIncludePath(.{ .path = "lib" });
+
+    unit_tests.addCSourceFile(.{
+        .file = .{
+            .path = "lib/raygui.c",
+        },
+        .flags = &cflags,
     });
 
     var run_unit_tests = b.addRunArtifact(unit_tests);

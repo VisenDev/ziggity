@@ -1,11 +1,9 @@
 const std = @import("std");
-const entity = @import("components.zig");
 const map = @import("map.zig");
 const texture = @import("textures.zig");
 const tile = @import("tiles.zig");
 const file = @import("file_utils.zig");
 const config = @import("config.zig");
-const player = @import("player.zig");
 const ecs = @import("ecs.zig");
 //const event = @import("events.zig");
 const ray = @cImport({
@@ -79,7 +77,12 @@ pub fn generateLevel(a: std.mem.Allocator, options: LevelGenOptions) !Level {
     var exits = try a.alloc(Exit, 1);
     exits[0] = Exit{ .x = 5, .y = 5, .destination_id = "first_level" };
 
-    const player_id = 0;
+    const player_id = entities.newEntity(a).?;
+    const player_texture = texture_state.search("player").?;
+    try entities.addComponent(a, player_id, ecs.Components.physics{ .pos = .{ .x = 5, .y = 5 } });
+    try entities.addComponent(a, player_id, ecs.Components.sprite{ .texture_id = player_texture, .texture_name = "player" });
+    try entities.addComponent(a, player_id, ecs.Components.collider{});
+    try entities.addComponent(a, player_id, ecs.Components.is_player{});
 
     return Level{ .name = "harry truman", .ecs = entities, .map = world_map, .exits = exits, .player_id = player_id };
 }

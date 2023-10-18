@@ -38,11 +38,16 @@ pub const TextureState = struct {
         }
         return self.default;
     }
+
     pub fn getI(self: *const @This(), id: usize) ray.Texture2D {
         if (id >= self.textures.len) {
             return self.default;
         }
         return self.textures[id];
+    }
+
+    pub inline fn search(self: *const @This(), key: []const u8) ?usize {
+        return self.name_index.get(key);
     }
 
     pub fn deinit(self: *const @This()) void {

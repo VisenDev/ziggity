@@ -8,9 +8,9 @@ const menu = @import("menu.zig");
 const config = @import("config.zig");
 const save = @import("save.zig");
 const err = @import("error.zig");
-const player = @import("player.zig");
 const texture = @import("textures.zig");
 const options = @import("options.zig");
+const ecs = @import("ecs.zig");
 const toml = @import("toml");
 
 const ray = @cImport({
@@ -62,14 +62,24 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
         std.debug.print("ERROR: Failed to load {s} due to {}\n", .{ manifest.value.active_level_id, e });
         return err.crashToMainMenu("failed to load selected save");
     };
+
     defer json_parsed_level.deinit();
     var lvl = json_parsed_level.value;
+
+    const keybindings = try config.KeyBindings.init(a);
+    //TODO free keybindings memory
 
     const texture_state = try texture.TextureState.init(a);
     defer texture_state.deinit();
 
     const tile_state = try tile.TileState.init(a, texture_state);
     defer tile_state.deinit(a);
+
+    // const player_id = lvl.ecs.newEntity(a).?;
+    // const player_texture = texture_state.search("player").?;
+    // try lvl.ecs.addComponent(a, player_id, ecs.Components.physics{ .pos = .{ .x = 5, .y = 5 } });
+    // try lvl.ecs.addComponent(a, player_id, ecs.Components.render{ .texture_id = player_texture, .texture_name = "player" });
+    // try lvl.ecs.addComponent(a, player_id, ecs.Components.is_player);
 
     //const shader = ray.LoadShader(0, ray.TextFormat("game-files/shaders/grayscale.fs", @as(c_int, 330)));
     //defer ray.UnloadShader(shader);
@@ -79,9 +89,10 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
         //configure update options
         const delta_time = ray.GetFrameTime();
         const update_options = options.Update{ .dt = delta_time };
-        const render_options = options.Render{ .zoom = 1, .scale = 4, .grid_spacing = 32 };
+        const render_options = options.Render{ .zoom = 1, .scale = 1, .grid_spacing = 8 };
 
         lvl.ecs.updateMovementSystem(a, lvl.map, update_options);
+        lvl.ecs.updatePlayerSystem(a, keybindings, update_options);
 
         //player.updatePlayer(lvl.player_id, lvl.entities, update_options);
         //rendering settings
@@ -99,7 +110,7 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
         //try s.level.render(assets, render_options);
 
         lvl.map.render(tile_state, render_options);
-        //lvl.ecs.render(assets.texture_state, render_options);
+        lvl.ecs.render(a, texture_state, render_options);
 
         //       ray.EndShaderMode();
         ray.EndMode2D();
@@ -166,5 +177,5 @@ fn calculateCameraPosition(l: level.Level, render_options: options.Render) !ray.
 }
 
 test "unit tests" {
-    _ = @This();
+    @import("std").testing.refAllDecls(@This());
 }

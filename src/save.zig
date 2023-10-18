@@ -5,8 +5,6 @@ const file = @import("file_utils.zig");
 const level = @import("level.zig");
 const config = @import("config.zig");
 const err = @import("error.zig");
-const event = @import("events.zig");
-const entity = @import("components.zig");
 
 pub const NewSaveOptions = struct {
     name: []const u8,

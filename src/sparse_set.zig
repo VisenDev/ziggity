@@ -18,8 +18,9 @@ pub fn SparseSet(comptime T: type) type {
             };
         }
 
-        pub fn increaseCapacity(self: *@This(), a: std.mem.Allocator, capacity: usize) !void {
-            try self.sparse.ensureTotalCapacity(a, capacity);
+        pub fn increaseCapacity(self: *@This(), a: std.mem.Allocator, new_capacity: usize) !void {
+            try self.sparse.ensureTotalCapacity(a, new_capacity);
+            //TODO append null to array
         }
 
         pub fn deinit(self: *@This(), a: std.mem.Allocator) void {
@@ -133,10 +134,8 @@ test "sparse_set" {
     try set2.insert(a, 5, 14);
 
     var intersec = intersection(a, set.dense_ids.items, set2.dense_ids.items, 32);
-    std.debug.print("{any}\n\n\n", .{intersec});
-
+    _ = intersec;
     const string = try std.json.stringifyAlloc(a, set, .{});
-    std.debug.print("{s}\n\n\n", .{string});
     const parsed = try std.json.parseFromSlice(@TypeOf(set), a, string, .{});
-    std.debug.print("{}\n\n\n", .{parsed.value});
+    _ = parsed;
 }

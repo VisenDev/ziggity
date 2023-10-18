@@ -88,7 +88,16 @@ pub fn readLevel(a: std.mem.Allocator, save_id: []const u8, level_id: []const u8
 //}
 
 pub fn writeLevel(a: std.mem.Allocator, l: level.Level, save_id: []const u8, level_id: []const u8) !void {
-    l.ecs.prepForStringify();
+    //const ec = try std.json.stringifyAlloc(a, l.ecs, .{});
+    //const lec = try std.json.stringifyAlloc(a, l.map, .{});
+    //const name = try std.json.stringifyAlloc(a, l.name, .{});
+    //const id = try std.json.stringifyAlloc(a, l.player_id, .{});
+    //const exits = try std.json.stringifyAlloc(a, l.exits, .{});
+    //_ = exits;
+    //_ = id;
+    //_ = name;
+    //_ = lec;
+    l.ecs.prepForStringify(a);
     const string = try std.json.stringifyAlloc(a, l, .{});
     const path = try getLevelPath(a, save_id, level_id);
     var file = try std.fs.createFileAbsolute(path, .{});
