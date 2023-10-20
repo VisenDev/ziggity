@@ -11,6 +11,7 @@ const err = @import("error.zig");
 const texture = @import("textures.zig");
 const options = @import("options.zig");
 const ecs = @import("ecs.zig");
+const sys = @import("systems.zig");
 const toml = @import("toml");
 
 const ray = @cImport({
@@ -74,13 +75,6 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
 
     const tile_state = try tile.TileState.init(a, texture_state);
     defer tile_state.deinit(a);
-
-    // const player_id = lvl.ecs.newEntity(a).?;
-    // const player_texture = texture_state.search("player").?;
-    // try lvl.ecs.addComponent(a, player_id, ecs.Components.physics{ .pos = .{ .x = 5, .y = 5 } });
-    // try lvl.ecs.addComponent(a, player_id, ecs.Components.render{ .texture_id = player_texture, .texture_name = "player" });
-    // try lvl.ecs.addComponent(a, player_id, ecs.Components.is_player);
-
     //const shader = ray.LoadShader(0, ray.TextFormat("game-files/shaders/grayscale.fs", @as(c_int, 330)));
     //defer ray.UnloadShader(shader);
 
@@ -89,10 +83,11 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
         //configure update options
         const delta_time = ray.GetFrameTime();
         const update_options = options.Update{ .dt = delta_time };
-        const render_options = options.Render{ .zoom = 1, .scale = 1, .grid_spacing = 8 };
+        const render_options = options.Render{ .zoom = 4, .scale = 1, .grid_spacing = 32 };
 
-        lvl.ecs.updateMovementSystem(a, lvl.map, update_options);
-        lvl.ecs.updatePlayerSystem(a, keybindings, update_options);
+        sys.updateMovementSystem(lvl.ecs, a, lvl.map, update_options);
+        sys.updatePlayerSystem(lvl.ecs, a, keybindings, update_options);
+        sys.updateWanderingSystem(lvl.ecs, a, update_options);
 
         //player.updatePlayer(lvl.player_id, lvl.entities, update_options);
         //rendering settings
@@ -138,9 +133,10 @@ fn tof32(input: anytype) f32 {
 
 //TODO update camera offset
 fn calculateCameraPosition(l: level.Level, render_options: options.Render) !ray.Camera2D {
-    var player_position: ray.Vector2 = undefined; //try l.getPlayerPosition();
-    player_position.x += 1;
-    player_position.y += 2;
+    const player_id = l.player_id;
+    var player_position: ray.Vector2 = l.ecs.components.physics.get(player_id).?.pos;
+    //player_position.x += 1;
+    //player_position.y += 2;
     player_position.x *= render_options.grid_spacing;
     player_position.y *= render_options.grid_spacing;
 

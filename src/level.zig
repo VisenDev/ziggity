@@ -79,10 +79,18 @@ pub fn generateLevel(a: std.mem.Allocator, options: LevelGenOptions) !Level {
 
     const player_id = entities.newEntity(a).?;
     const player_texture = texture_state.search("player").?;
-    try entities.addComponent(a, player_id, ecs.Components.physics{ .pos = .{ .x = 5, .y = 5 } });
-    try entities.addComponent(a, player_id, ecs.Components.sprite{ .texture_id = player_texture, .texture_name = "player" });
-    try entities.addComponent(a, player_id, ecs.Components.collider{});
-    try entities.addComponent(a, player_id, ecs.Components.is_player{});
+    try entities.addComponent(a, player_id, ecs.Component.physics{ .pos = .{ .x = 5, .y = 5 } });
+    try entities.addComponent(a, player_id, ecs.Component.sprite{ .texture_id = player_texture, .texture_name = "player" });
+    try entities.addComponent(a, player_id, ecs.Component.is_player{});
+
+    for (0..50) |_| {
+        const slime_id = entities.newEntity(a).?;
+        const slime_texture = texture_state.search("slime").?;
+        try entities.addComponent(a, slime_id, ecs.Component.physics{ .pos = ecs.randomVector2(50, 50) });
+        try entities.addComponent(a, slime_id, ecs.Component.sprite{ .texture_id = slime_texture, .texture_name = "slime" });
+        try entities.addComponent(a, slime_id, ecs.Component.collider{});
+        try entities.addComponent(a, slime_id, ecs.Component.wanderer{});
+    }
 
     return Level{ .name = "harry truman", .ecs = entities, .map = world_map, .exits = exits, .player_id = player_id };
 }

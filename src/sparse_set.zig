@@ -95,25 +95,25 @@ pub fn SparseSet(comptime T: type) type {
     };
 }
 
-pub fn intersection(a: std.mem.Allocator, arr1: []usize, arr2: []usize, max_element_value: usize) []usize {
-    var bitmap = std.bit_set.DynamicBitSet.initEmpty(a, 1) catch return &[0]usize{};
-    bitmap.resize(max_element_value, false) catch return &[0]usize{};
-    defer bitmap.deinit();
-    var result = std.ArrayListAlignedUnmanaged(usize, null){};
-
-    //add element values to the bitmap
-    for (arr1) |element| {
-        bitmap.set(element);
-    }
-
-    for (arr2) |element| {
-        if (bitmap.isSet(element)) {
-            result.append(a, element) catch return &[0]usize{};
-        }
-    }
-
-    return result.items;
-}
+//pub fn intersection(a: std.mem.Allocator, arr1: []usize, arr2: []usize) []usize {
+//    var bitmap = std.bit_set.DynamicBitSet.initEmpty(a, 1) catch return &[0]usize{};
+//    bitmap.resize(@max(arr1.len, arr2.len), false) catch return &[0]usize{};
+//    defer bitmap.deinit();
+//    var result = std.ArrayListAlignedUnmanaged(usize, null){};
+//
+//    //add element values to the bitmap
+//    for (arr1) |element| {
+//        bitmap.set(element);
+//    }
+//
+//    for (arr2) |element| {
+//        if (bitmap.isSet(element)) {
+//            result.append(a, element) catch return &[0]usize{};
+//        }
+//    }
+//
+//    return result.items;
+//}
 
 test "sparse_set" {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -133,8 +133,6 @@ test "sparse_set" {
     try set2.insert(a, 3, 13);
     try set2.insert(a, 5, 14);
 
-    var intersec = intersection(a, set.dense_ids.items, set2.dense_ids.items, 32);
-    _ = intersec;
     const string = try std.json.stringifyAlloc(a, set, .{});
     const parsed = try std.json.parseFromSlice(@TypeOf(set), a, string, .{});
     _ = parsed;
