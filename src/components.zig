@@ -15,9 +15,9 @@ pub const physics = struct {
 };
 pub const health = struct {
     pub const name = "health";
-    hp: f32,
-    max_hp: f32,
-    is_dead: bool,
+    hp: f32 = 10,
+    max_hp: f32 = 10,
+    is_dead: bool = false,
 };
 pub const sprite = struct {
     pub const name = "sprite";
@@ -30,8 +30,8 @@ pub const tracker = struct {
 };
 pub const movement_particles = struct {
     pub const name = "movement_particles";
-    color: ray.Color,
-    quantity: u32,
+    color: ray.Color = ray.WHITE,
+    quantity: u32 = 1,
 };
 pub const wanderer = struct {
     pub const name = "wanderer";
@@ -76,10 +76,14 @@ pub const nametag = struct {
     value: []u8,
 };
 pub const explode_on_death = struct {
-    pub const name = "";
+    pub const name = "explode_on_death";
     filler: u8 = 0, //this field is here because zig does not like when the struct is empty
 };
 pub const is_player = struct {
     pub const name = "is_player";
     filler: u8 = 0, //this field is here because zig does not like when the struct is empty
+};
+pub const health_trickle = struct {
+    pub const name = "health_trickle";
+    decrease_per_tick: f32 = 10,
 };

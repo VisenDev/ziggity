@@ -23,10 +23,13 @@ const raygui = @cImport({
 });
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.GeneralPurposeAllocator(.{ .verbose_log = true, .retain_metadata = true, .enable_memory_limit = true }){};
     defer _ = gpa.detectLeaks();
+    //const a = gpa.allocator();
     var my_arena = Arena.init(gpa.allocator());
     defer my_arena.deinit();
+    //var logger = std.heap.LoggingAllocator(std.log.Level.info, std.log.Level.warn).init(my_arena.allocator());
+    //const a = logger.allocator();
     const a = my_arena.allocator();
 
     ray.SetConfigFlags(ray.FLAG_WINDOW_RESIZABLE);
@@ -68,10 +71,10 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
     var lvl = json_parsed_level.value;
 
     const keybindings = try config.KeyBindings.init(a);
-    //TODO free keybindings memory
+    defer keybindings.deinit(a);
 
     const texture_state = try texture.TextureState.init(a);
-    defer texture_state.deinit();
+    defer texture_state.deinit(a);
 
     const tile_state = try tile.TileState.init(a, texture_state);
     defer tile_state.deinit(a);
@@ -85,9 +88,10 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
         const update_options = options.Update{ .dt = delta_time };
         const render_options = options.Render{ .zoom = 4, .scale = 1, .grid_spacing = 32 };
 
-        sys.updateMovementSystem(lvl.ecs, a, lvl.map, update_options);
+        sys.updateMovementSystem(lvl.ecs, a, lvl.map, &texture_state, update_options);
         sys.updatePlayerSystem(lvl.ecs, a, keybindings, update_options);
         sys.updateWanderingSystem(lvl.ecs, a, update_options);
+        sys.updateDeathSystem(lvl.ecs, a, update_options);
 
         //player.updatePlayer(lvl.player_id, lvl.entities, update_options);
         //rendering settings

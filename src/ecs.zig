@@ -9,6 +9,16 @@ const ray = @cImport({
     @cInclude("raylib.h");
 });
 
+pub fn randomFloat() f32 {
+    const state = struct {
+        var rng = std.rand.DefaultPrng.init(0);
+    };
+
+    const precision: u32 = 1000;
+    const rng_value: f32 = @floatFromInt(state.rng.next() % precision);
+    return rng_value / precision;
+}
+
 pub fn randomVector2(max_x: usize, max_y: usize) ray.Vector2 {
     const state = struct {
         var rng = std.rand.DefaultPrng.init(0);
@@ -56,6 +66,8 @@ pub const ECS = struct {
     availible_ids: std.ArrayListUnmanaged(usize),
     components: EcsComponent(),
     capacity: usize,
+    bitflags: SparseSet(std.bit_set.StaticBitSet(sliceComponentNames().len)),
+    idBuffer: std.ArrayListUnmanaged(usize), //used by system domain calculations
 
     //0s remainding capacities to avoid errors when parsing from json
     pub fn prepForStringify(self: *@This(), a: std.mem.Allocator) void {
@@ -63,8 +75,11 @@ pub const ECS = struct {
         inline for (sliceComponentNames()) |decl| {
             var sys = &@field(self.components, decl.name);
             sys.dense.capacity = 0;
+            sys.dense_ids.capacity = 0;
         }
         self.availible_ids.capacity = 0;
+        self.bitflags.dense.capacity = 0;
+        self.idBuffer.capacity = 0;
     }
 
     pub fn init(a: std.mem.Allocator, capacity: usize) !@This() {
@@ -79,25 +94,42 @@ pub const ECS = struct {
             try ids.append(a, id);
         }
 
+        var buffer = try std.ArrayListUnmanaged(usize).initCapacity(a, capacity);
+
         return @This(){
             .availible_ids = ids,
             .components = res,
             .capacity = capacity,
+            .bitflags = try SparseSet(std.bit_set.StaticBitSet(sliceComponentNames().len)).init(a, capacity),
+            .idBuffer = buffer,
         };
     }
 
     pub fn newEntity(self: *@This(), a: std.mem.Allocator) ?usize {
-        _ = a;
         const id = self.availible_ids.popOrNull();
+        if (id) |real_id| {
+            std.debug.print("created new entity {}\n", .{real_id});
+            self.bitflags.insert(a, real_id, std.bit_set.StaticBitSet(sliceComponentNames().len).initEmpty()) catch return null;
+        }
         return id;
     }
 
-    pub fn addComponent(self: *@This(), a: std.mem.Allocator, id: usize, component: anytype) !void {
+    pub fn deleteEntity(self: *@This(), a: std.mem.Allocator, id: usize) !void {
+        try self.availible_ids.append(a, id);
         inline for (sliceComponentNames()) |decl| {
+            try @field(self.components, decl.name).delete(id);
+        }
+        try self.bitflags.delete(id);
+    }
+
+    pub fn addComponent(self: *@This(), a: std.mem.Allocator, id: usize, component: anytype) !void {
+        inline for (sliceComponentNames(), 0..) |decl, i| {
             const decl_type = @field(Component, decl.name);
 
             if (decl_type == @TypeOf(component)) {
                 try @field(self.components, decl.name).insert(a, id, component);
+                self.bitflags.get(id).?.set(i);
+                //std.debug.print("added {s} to {}\n", .{ decl.name, id });
                 return;
             }
         }
@@ -109,6 +141,8 @@ pub const ECS = struct {
             @field(self.components, decl.name).deinit(a);
         }
         self.availible_ids.deinit(a);
+        self.bitflags.deinit(a);
+        self.idBuffer.deinit(a);
     }
 
     ///Get component, asserts component exists
@@ -123,64 +157,82 @@ pub const ECS = struct {
     }
 
     //==================SYSTEMS===============
-    pub fn getSystemDomain(self: *const ECS, a: std.mem.Allocator, comptime components: []const type) std.ArrayList(usize) {
-        if (components.len <= 0) {
-            return std.ArrayList(usize).init(a);
-        }
-
-        //std.debug.print("\ngetting system domain for {*}\n\n", .{components});
-        //std.debug.print("components.len: {}\n", .{components.len});
-
-        var found = std.AutoHashMap(usize, u32).init(a);
-        defer found.deinit();
-
-        inline for (0..components.len) |i| {
-            const component_domain = @field(self.components, components[i].name).dense_ids.items;
-            //std.debug.print("adding {any}\n", .{components[i]});
-            for (component_domain) |id| {
-                if (found.get(id)) |count| {
-                    //std.debug.print("found {}\n", .{id});
-                    found.put(id, count + 1) catch return std.ArrayList(usize).init(a);
-                } else {
-                    //std.debug.print("added {}\n", .{id});
-                    found.put(id, 1) catch return std.ArrayList(usize).init(a);
+    pub fn getSystemDomain(self: *ECS, a: std.mem.Allocator, comptime components: []const type) []usize {
+        comptime var bit_mask = std.bit_set.StaticBitSet(sliceComponentNames().len).initEmpty();
+        comptime for (components) |comp| {
+            for (sliceComponentNames(), 0..) |decl, i| {
+                if (std.mem.eql(u8, decl.name, comp.name)) {
+                    bit_mask.set(i);
                 }
             }
-        }
+        };
 
-        var result = std.ArrayList(usize).init(a);
+        self.idBuffer.clearRetainingCapacity();
 
-        var iterator = found.iterator();
-        while (iterator.next()) |entry| {
-            if (entry.value_ptr.* >= components.len) {
-                result.append(entry.key_ptr.*) catch return std.ArrayList(usize).init(a);
+        //std.debug.print("bit mask {b}\n", .{bit_mask.mask});
+        for (self.bitflags.dense.items, 0..) |component_mask, i| {
+            if (bit_mask.mask & component_mask.mask == bit_mask.mask) {
+                const id = (self.bitflags.dense_ids.items[i]);
+                //std.debug.print("found {s} for {}\n", .{ sliceComponentNames()[i].name, id });
+
+                //check if capacity remains
+                self.idBuffer.append(a, id) catch return self.idBuffer.items;
             }
         }
 
-        //const last_component_domain = @field(self.components, components[components.len - 1].name).dense_ids.items;
-        //std.debug.print("adding {any}\n", .{components[components.len - 1]});
-        //for (last_component_domain) |id| {
-        //    if (found.get(id)) |count| {
-        //        _ = count;
-        //        //if (count >= components.len - 1) {
-        //        result.append(id) catch return std.ArrayList(usize).init(a);
-        //        //}
+        return self.idBuffer.items;
+
+        //std.debug.print("domain is {any}\n", .{result.items});
+
+        //comptime architype_bit_mask =
+        //var arena = std.heap.ArenaAllocator.init(a);
+        //defer arena.deinit();
+        //const aa = arena.allocator();
+
+        //if (components.len <= 0) {
+        //    return std.ArrayList(usize).init(a);
+        //}
+
+        ////std.debug.print("\ngetting system domain for {*}\n\n", .{components});
+        ////std.debug.print("components.len: {}\n", .{components.len});
+
+        //var found = std.AutoHashMap(usize, u32).init(aa);
+        //defer found.deinit();
+
+        //inline for (0..components.len) |i| {
+        //    const component_domain = @field(self.components, components[i].name).dense_ids.items;
+        //    //std.debug.print("adding {any}\n", .{components[i]});
+        //    for (component_domain) |id| {
+        //        if (found.get(id)) |count| {
+        //            //std.debug.print("found {}\n", .{id});
+        //            found.put(id, count + 1) catch return std.ArrayList(usize).init(a);
+        //        } else {
+        //            //std.debug.print("added {}\n", .{id});
+        //            found.put(id, 1) catch return std.ArrayList(usize).init(a);
+        //        }
         //    }
         //}
 
-        return result;
+        //var result = std.ArrayList(usize).init(a);
+
+        //var iterator = found.iterator();
+        //while (iterator.next()) |entry| {
+        //    if (entry.value_ptr.* >= components.len) {
+        //        result.append(entry.key_ptr.*) catch return std.ArrayList(usize).init(a);
+        //    }
+        //}
+
+        //return result;
     }
 
     //===============RENDERING================
-    pub fn render(self: *const ECS, a: std.mem.Allocator, texture_state: texture.TextureState, opt: options.Render) void {
+    pub fn render(self: *ECS, a: std.mem.Allocator, texture_state: texture.TextureState, opt: options.Render) void {
         //const set = intersection(a, self.components.render.dense_ids.items, self.components.physics.dense_ids.items, self.capacity);
         //const systems = [_][]const u8{ "physics", "sprite" };
         const systems = [_]type{ Component.physics, Component.sprite };
         const set = self.getSystemDomain(a, &systems);
 
-        defer set.deinit();
-
-        for (set.items) |member| {
+        for (set) |member| {
             const sprite = self.components.sprite.get(member).?;
             const physics = self.components.physics.get(member).?;
 
@@ -200,7 +252,7 @@ pub const ECS = struct {
 //}
 
 test "ECS" {
-    var ecs = try ECS.init(std.testing.allocator, 100);
+    var ecs = try ECS.init(std.testing.allocator, 101);
     defer ecs.deinit(std.testing.allocator);
 
     const player_id = ecs.newEntity(std.testing.allocator).?;
@@ -214,26 +266,26 @@ test "ECS" {
         //std.debug.print("New Entity: {} \n", .{id});
     }
 
+    for (0..91) |id| {
+        try ecs.deleteEntity(std.testing.allocator, id);
+    }
+
     {
         const systems = [_]type{Component.physics};
         const set = ecs.getSystemDomain(std.testing.allocator, &systems);
-        defer set.deinit();
-        try std.testing.expect(set.items.len == 11);
+        try std.testing.expect(set.len == 10);
     }
 
     {
         const systems = [_]type{};
         const set = ecs.getSystemDomain(std.testing.allocator, &systems);
-        defer set.deinit();
-        try std.testing.expect(set.items.len == 0);
+        try std.testing.expect(set.len == 10);
     }
 
     {
-        const systems = [_]type{ Component.is_player, Component.physics };
+        const systems = [_]type{ Component.physics, Component.is_player };
         const set = ecs.getSystemDomain(std.testing.allocator, &systems);
-        defer set.deinit();
-        //std.debug.print("set: {any}\n\n", .{set});
-        try std.testing.expect(set.items.len == 1);
+        try std.testing.expect(set.len == 1);
     }
 
     try std.testing.expect(ecs.components.is_player.dense.items.len == 1);

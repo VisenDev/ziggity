@@ -5,15 +5,15 @@ const ray = @cImport({
 });
 const json = std.json;
 
-pub const RenderOptions = struct {
-    scale: f32,
-    grid_spacing: f32,
-    zoom: f32,
-
-    pub fn getScreenPosition(self: *const @This(), vec: ray.Vector2) ray.Vector2 {
-        return ray.Vector2{ .x = vec.x * self.grid_spacing, .y = vec.y * self.grid_spacing };
-    }
-};
+//pub const RenderOptions = struct {
+//    scale: f32,
+//    grid_spacing: f32,
+//    zoom: f32,
+//
+//    pub fn getScreenPosition(self: *const @This(), vec: ray.Vector2) ray.Vector2 {
+//        return ray.Vector2{ .x = vec.x * self.grid_spacing, .y = vec.y * self.grid_spacing };
+//    }
+//};
 
 const Records = struct {
     //stores texture records
@@ -50,15 +50,18 @@ pub const TextureState = struct {
         return self.name_index.get(key);
     }
 
-    pub fn deinit(self: *const @This()) void {
-        //var it = self.textures.iterator();
+    pub fn deinit(self: *const @This(), a: std.mem.Allocator) void {
+        _ = a;
         for (self.textures) |val| {
             ray.UnloadTexture(val);
         }
+        //a.destroy(self);
     }
 
     pub fn init(a: std.mem.Allocator) !TextureState {
-        const data = try file.readConfig(Records, a, "textures.json");
+        const data_json = try file.readConfig(Records, a, "textures.json");
+        //defer data_json.deinit();
+        const data = data_json.value;
 
         var textures = std.ArrayList(ray.Texture2D).init(a);
         var name_index = std.hash_map.StringHashMap(usize).init(a);

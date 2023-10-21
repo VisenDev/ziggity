@@ -31,7 +31,8 @@ pub const TileState = struct {
         //TODO add configuration details hashing to remember which config was used
 
         var name_index = std.StringHashMap(u8).init(a);
-        const entries = try file.readConfig([]TileJSON, a, "tiles.json");
+        const entries_json = try file.readConfig([]TileJSON, a, "tiles.json");
+        const entries = entries_json.value;
         var result = try a.alloc(Tile, entries.len);
 
         for (entries, 0..) |entry, i| {

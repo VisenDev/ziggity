@@ -38,9 +38,15 @@ pub const KeyBindings = struct {
 
     pub fn init(a: std.mem.Allocator) !@This() {
         std.debug.print("Attempting to load key_bindings\n", .{});
-        const res = try file.readConfig(@This(), a, "keybindings.json");
-        std.debug.print("Loaded: {c}, {c}, {c}, {c}\n", .{ res.player_up.char, res.player_down.char, res.player_right.char, res.player_left.char });
+        const json_config = try file.readConfig(@This(), a, "keybindings.json");
+        defer json_config.deinit();
 
-        return res;
+        return json_config.value;
+    }
+
+    pub fn deinit(self: *const @This(), a: std.mem.Allocator) void {
+        _ = a;
+        _ = self;
+        //a.destroy(self);
     }
 };

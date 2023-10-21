@@ -36,11 +36,14 @@ pub fn SparseSet(comptime T: type) type {
             if (!try self.indexEmpty(index)) {
                 return error.index_not_empty;
             }
+
             const index_in_dense = self.dense.items.len;
 
             try self.dense.append(a, val);
             try self.dense_ids.append(a, index);
             self.sparse.items[index] = index_in_dense;
+
+            //            std.debug.print("number of elements: {}\n", .{self.dense.items.len});
         }
 
         pub fn delete(self: *@This(), sparse_index_to_delete: usize) !void {
@@ -57,9 +60,14 @@ pub fn SparseSet(comptime T: type) type {
             //set the now empty location to the top of the dense array
             const dense_top_value = self.dense.pop();
             const dense_top_id = self.dense_ids.pop();
-            self.dense.items[dense_empty_location] = dense_top_value;
-            self.dense_ids.items[dense_empty_location] = dense_top_id;
-            self.sparse.items[dense_top_id] = dense_empty_location;
+
+            std.debug.assert(self.dense_ids.items.len == self.dense.items.len);
+
+            if (dense_empty_location < self.dense.items.len) {
+                self.dense.items[dense_empty_location] = dense_top_value;
+                self.dense_ids.items[dense_empty_location] = dense_top_id;
+                self.sparse.items[dense_top_id] = dense_empty_location;
+            }
 
             //update the sparse index that used to point to the dense array top
             //self.sparse[self.dense_to_sparse[dense_empty_location].?] = dense_empty_location;
@@ -116,10 +124,10 @@ pub fn SparseSet(comptime T: type) type {
 //}
 
 test "sparse_set" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    var a = gpa.allocator();
+    var a = std.testing.allocator;
 
     var set = try SparseSet(usize).init(a, 128);
+    defer set.deinit(a);
     try set.insert(a, 0, 12);
     try set.insert(a, 3, 13);
     try set.insert(a, 5, 14);
@@ -128,12 +136,24 @@ test "sparse_set" {
     try set.insert(a, 1, 16);
     try set.insert(a, 0, 17);
 
+    try set.insert(a, 100, 16);
+    try set.insert(a, 19, 17);
+    try set.insert(a, 127, 17);
+    try set.delete(100);
+    try set.delete(19);
+    try set.insert(a, 9, 17);
+    try set.delete(9);
+    try set.delete(127);
+
     var set2 = try SparseSet(usize).init(a, 128);
+    defer set2.deinit(a);
+
     try set2.insert(a, 0, 12);
     try set2.insert(a, 3, 13);
     try set2.insert(a, 5, 14);
 
     const string = try std.json.stringifyAlloc(a, set, .{});
+    defer a.free(string);
     const parsed = try std.json.parseFromSlice(@TypeOf(set), a, string, .{});
-    _ = parsed;
+    defer parsed.deinit();
 }

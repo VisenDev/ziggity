@@ -34,9 +34,8 @@ pub fn updateHostileAiSystem(self: *ecs.ECS, a: std.mem.Allocator, opt: options.
 
     const systems = [_]type{ Component.mind, Component.tracker };
     const set = self.getSystemDomain(a, &systems);
-    defer set.deinit();
 
-    for (set.items) |member| {
+    for (set) |member| {
         var mind = self.get(Component.mind, member);
         var tracker = self.get(Component.mind, member);
         _ = tracker;
@@ -61,16 +60,15 @@ pub fn moveTowards(physics: *Component.physics, destination: ray.Vector2, opt: o
 }
 
 pub fn updateWanderingSystem(self: *ecs.ECS, a: std.mem.Allocator, opt: options.Update) void {
-    const systems = [_]type{ Component.wanderer, Component.physics };
+    const systems = [_]type{ Component.physics, Component.wanderer };
     const set = self.getSystemDomain(a, &systems);
-    defer set.deinit();
 
-    for (set.items) |member| {
+    for (set) |member| {
         var wanderer = self.get(Component.wanderer, member);
 
         switch (wanderer.state) {
             .arrived => {
-                wanderer.cooldown = opt.dt * 300;
+                wanderer.cooldown = opt.dt * 300 * ecs.randomFloat();
                 wanderer.state = .waiting;
             },
             .waiting => {
@@ -83,12 +81,14 @@ pub fn updateWanderingSystem(self: *ecs.ECS, a: std.mem.Allocator, opt: options.
                 const random_destination = ecs.randomVector2(50, 50);
                 wanderer.destination = random_destination;
                 wanderer.state = .travelling;
+                wanderer.cooldown = opt.dt * 300 * ecs.randomFloat();
             },
             .travelling => {
                 var physics = self.get(Component.physics, member);
                 moveTowards(physics, wanderer.destination, opt);
+                wanderer.cooldown -= opt.dt;
 
-                if (distance(physics.pos, wanderer.destination) < 1) {
+                if (distance(physics.pos, wanderer.destination) < 1 or wanderer.cooldown <= 0) {
                     wanderer.state = .arrived;
                 }
             },
@@ -96,13 +96,19 @@ pub fn updateWanderingSystem(self: *ecs.ECS, a: std.mem.Allocator, opt: options.
     }
 }
 
-pub fn updateMovementSystem(self: *ecs.ECS, a: std.mem.Allocator, m: *const map.MapState, opt: options.Update) void {
+pub fn updateMovementSystem(
+    self: *ecs.ECS,
+    a: std.mem.Allocator,
+    m: *const map.MapState,
+    textures: *const texture.TextureState,
+    opt: options.Update,
+) void {
     _ = opt;
 
-    const set = self.getSystemDomain(a, &[_]type{Component.physics});
-    defer set.deinit();
+    const systems = [_]type{Component.physics};
+    const set = self.getSystemDomain(a, &systems);
 
-    for (set.items) |member| {
+    for (set) |member| {
         var physics = self.get(Component.physics, member);
 
         const old_position = physics.pos;
@@ -119,6 +125,30 @@ pub fn updateMovementSystem(self: *ecs.ECS, a: std.mem.Allocator, m: *const map.
                 physics.pos = old_position;
             }
         }
+
+        if (self.getMaybe(Component.movement_particles, member)) |_| {
+            if (physics.pos.x != old_position.x or physics.pos.y != old_position.y) {
+                const particle = self.newEntity(a).?;
+                self.addComponent(a, particle, Component.health{}) catch return;
+                self.addComponent(
+                    a,
+                    particle,
+                    Component.physics{ .pos = physics.pos, .vel = .{
+                        .x = ecs.randomFloat() * 0.1,
+                        .y = ecs.randomFloat() * 0.1,
+                    } },
+                ) catch return;
+                self.addComponent(
+                    a,
+                    particle,
+                    Component.sprite{
+                        .texture_id = textures.name_index.get("particle").?,
+                        .texture_name = "particle",
+                    },
+                ) catch return;
+                self.addComponent(a, particle, Component.health_trickle{}) catch return;
+            }
+        }
     }
 }
 
@@ -130,11 +160,10 @@ pub fn updatePlayerSystem(
 ) void {
     const systems = [_]type{ Component.is_player, Component.physics };
     const set = self.getSystemDomain(a, &systems);
-    defer set.deinit();
 
     const magnitude: f32 = 100;
 
-    for (set.items) |member| {
+    for (set) |member| {
         var direction = ray.Vector2{ .x = 0, .y = 0 };
 
         if (keys.player_up.pressed()) {
@@ -156,5 +185,29 @@ pub fn updatePlayerSystem(
         var physics = self.get(Component.physics, member);
         physics.vel.x += direction.x * physics.acceleration * opt.dt;
         physics.vel.y += direction.y * physics.acceleration * opt.dt;
+    }
+}
+
+pub fn updateDeathSystem(
+    self: *ecs.ECS,
+    a: std.mem.Allocator,
+    opt: options.Update,
+) void {
+    const systems = [_]type{Component.health};
+    const set = self.getSystemDomain(a, &systems);
+
+    for (set) |member| {
+        var health = self.get(Component.health, member);
+
+        if (self.getMaybe(Component.health_trickle, member)) |health_trickle| {
+            health.hp -= health_trickle.decrease_per_tick * opt.dt;
+        }
+
+        if (health.hp <= 0) {
+            health.is_dead = true;
+        }
+        if (health.is_dead) {
+            self.deleteEntity(a, member) catch return;
+        }
     }
 }

@@ -63,13 +63,13 @@ pub const Level = struct {
 
 pub fn generateLevel(a: std.mem.Allocator, options: LevelGenOptions) !Level {
     const texture_state = try texture.TextureState.init(a);
-    defer texture_state.deinit();
+    defer texture_state.deinit(a);
 
     const tile_state = try tile.TileState.init(a, texture_state);
     defer tile_state.deinit(a);
 
     var entities = try a.create(ecs.ECS);
-    entities.* = try ecs.ECS.init(a, 100);
+    entities.* = try ecs.ECS.init(a, 5000);
 
     var world_map = try a.create(map.MapState);
     world_map.* = try map.MapState.generate(a, tile_state, options);
@@ -81,6 +81,7 @@ pub fn generateLevel(a: std.mem.Allocator, options: LevelGenOptions) !Level {
     const player_texture = texture_state.search("player").?;
     try entities.addComponent(a, player_id, ecs.Component.physics{ .pos = .{ .x = 5, .y = 5 } });
     try entities.addComponent(a, player_id, ecs.Component.sprite{ .texture_id = player_texture, .texture_name = "player" });
+    try entities.addComponent(a, player_id, ecs.Component.movement_particles{});
     try entities.addComponent(a, player_id, ecs.Component.is_player{});
 
     for (0..50) |_| {
@@ -90,6 +91,8 @@ pub fn generateLevel(a: std.mem.Allocator, options: LevelGenOptions) !Level {
         try entities.addComponent(a, slime_id, ecs.Component.sprite{ .texture_id = slime_texture, .texture_name = "slime" });
         try entities.addComponent(a, slime_id, ecs.Component.collider{});
         try entities.addComponent(a, slime_id, ecs.Component.wanderer{});
+        try entities.addComponent(a, slime_id, ecs.Component.health{});
+        try entities.addComponent(a, slime_id, ecs.Component.movement_particles{});
     }
 
     return Level{ .name = "harry truman", .ecs = entities, .map = world_map, .exits = exits, .player_id = player_id };

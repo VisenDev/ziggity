@@ -14,7 +14,7 @@ pub fn createNewSave(a: std.mem.Allocator, options: NewSaveOptions) !void {
 
     //load states necessary to generate level
     const texture_state = try texture.TextureState.init(a);
-    defer texture_state.deinit();
+    defer texture_state.deinit(a);
 
     const tile_state = try tile.TileState.init(a, texture_state);
     defer tile_state.deinit(a);

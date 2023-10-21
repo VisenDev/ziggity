@@ -150,7 +150,7 @@ pub fn writeLevel(a: std.mem.Allocator, l: level.Level, save_id: []const u8, lev
 //}
 
 //========CONFIG IO========
-pub fn readConfig(comptime T: type, a: std.mem.Allocator, filename: []const u8) !T {
+pub fn readConfig(comptime T: type, a: std.mem.Allocator, filename: []const u8) !std.json.Parsed(T) {
     const path = try getConfigDirPath(a);
     defer a.free(path);
 
@@ -158,10 +158,10 @@ pub fn readConfig(comptime T: type, a: std.mem.Allocator, filename: []const u8) 
     defer a.free(full_path);
 
     const string = try std.fs.cwd().readFileAlloc(a, full_path, 2048);
+    defer a.free(string);
     //std.debug.print("\n[CONFIG STRING LOADED] {s}\n", .{string});
 
-    const data = try std.json.parseFromSlice(T, a, string, .{});
-    return data.value;
+    return try std.json.parseFromSlice(T, a, string, .{ .allocate = .alloc_always });
 }
 
 //============MANIFEST PARSING============
