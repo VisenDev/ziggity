@@ -1,3 +1,4 @@
+const anime = @import("animation.zig");
 const ray = @cImport({
     @cInclude("raylib.h");
 });
@@ -21,8 +22,7 @@ pub const health = struct {
 };
 pub const sprite = struct {
     pub const name = "sprite";
-    texture_id: usize,
-    texture_name: []const u8,
+    player: anime.AnimationPlayer,
 };
 pub const tracker = struct {
     pub const name = "tracker";

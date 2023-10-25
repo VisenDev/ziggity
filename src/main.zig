@@ -1,18 +1,20 @@
-const std = @import("std");
-const tile = @import("tiles.zig");
-const Arena = std.heap.ArenaAllocator;
-const page_allocator = std.heap.page_allocator;
-const level = @import("level.zig");
-const file = @import("file_utils.zig");
-const menu = @import("menu.zig");
-const config = @import("config.zig");
-const save = @import("save.zig");
-const err = @import("error.zig");
-const texture = @import("textures.zig");
-const options = @import("options.zig");
-const ecs = @import("ecs.zig");
-const sys = @import("systems.zig");
-const toml = @import("toml");
+pub const std = @import("std");
+const anime = @import("animation.zig");
+pub const tile = @import("tiles.zig");
+pub const Arena = std.heap.ArenaAllocator;
+pub const page_allocator = std.heap.page_allocator;
+pub const level = @import("level.zig");
+pub const file = @import("file_utils.zig");
+pub const menu = @import("menu.zig");
+pub const key = @import("keybindings.zig");
+pub const save = @import("save.zig");
+pub const err = @import("error.zig");
+pub const texture = @import("textures.zig");
+pub const options = @import("options.zig");
+pub const ecs = @import("ecs.zig");
+pub const sys = @import("systems.zig");
+pub const animate = @import("animation.zig");
+//pub const toml = @import("toml");
 
 const ray = @cImport({
     @cInclude("raylib.h");
@@ -70,7 +72,7 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
     defer json_parsed_level.deinit();
     var lvl = json_parsed_level.value;
 
-    const keybindings = try config.KeyBindings.init(a);
+    const keybindings = try key.KeyBindings.init(a);
     defer keybindings.deinit(a);
 
     const texture_state = try texture.TextureState.init(a);
@@ -78,6 +80,9 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
 
     const tile_state = try tile.TileState.init(a, texture_state);
     defer tile_state.deinit(a);
+
+    var animation_state = try anime.AnimationState.init(a);
+    defer animation_state.animations.deinit();
     //const shader = ray.LoadShader(0, ray.TextFormat("game-files/shaders/grayscale.fs", @as(c_int, 330)));
     //defer ray.UnloadShader(shader);
 
@@ -86,12 +91,13 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
         //configure update options
         const delta_time = ray.GetFrameTime();
         const update_options = options.Update{ .dt = delta_time };
-        const render_options = options.Render{ .zoom = 4, .scale = 1, .grid_spacing = 32 };
+        const render_options = options.Render{ .zoom = 2, .scale = 1, .grid_spacing = 32 };
 
         sys.updateMovementSystem(lvl.ecs, a, lvl.map, &texture_state, update_options);
         sys.updatePlayerSystem(lvl.ecs, a, keybindings, update_options);
         sys.updateWanderingSystem(lvl.ecs, a, update_options);
         sys.updateDeathSystem(lvl.ecs, a, update_options);
+        sys.updateSpriteSystem(lvl.ecs, a, &animation_state, update_options);
 
         //player.updatePlayer(lvl.player_id, lvl.entities, update_options);
         //rendering settings
@@ -109,7 +115,7 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
         //try s.level.render(assets, render_options);
 
         lvl.map.render(tile_state, render_options);
-        lvl.ecs.render(a, texture_state, render_options);
+        sys.renderSprites(lvl.ecs, a, &animation_state, render_options);
 
         //       ray.EndShaderMode();
         ray.EndMode2D();
@@ -139,6 +145,7 @@ fn tof32(input: anytype) f32 {
 fn calculateCameraPosition(l: level.Level, render_options: options.Render) !ray.Camera2D {
     const player_id = l.player_id;
     var player_position: ray.Vector2 = l.ecs.components.physics.get(player_id).?.pos;
+    //    std.debug.print("player_position: {}\n", .{player_position});
     //player_position.x += 1;
     //player_position.y += 2;
     player_position.x *= render_options.grid_spacing;

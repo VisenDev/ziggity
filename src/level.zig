@@ -3,7 +3,7 @@ const map = @import("map.zig");
 const texture = @import("textures.zig");
 const tile = @import("tiles.zig");
 const file = @import("file_utils.zig");
-const config = @import("config.zig");
+const key = @import("keybindings.zig");
 const ecs = @import("ecs.zig");
 //const event = @import("events.zig");
 const ray = @cImport({
@@ -30,7 +30,7 @@ const json = std.json;
 //};
 
 pub const UpdateOptions = struct {
-    keys: *const config.KeyBindings,
+    keys: *const key.KeyBindings,
     dt: f32,
 };
 
@@ -78,17 +78,17 @@ pub fn generateLevel(a: std.mem.Allocator, options: LevelGenOptions) !Level {
     exits[0] = Exit{ .x = 5, .y = 5, .destination_id = "first_level" };
 
     const player_id = entities.newEntity(a).?;
-    const player_texture = texture_state.search("player").?;
     try entities.addComponent(a, player_id, ecs.Component.physics{ .pos = .{ .x = 5, .y = 5 } });
-    try entities.addComponent(a, player_id, ecs.Component.sprite{ .texture_id = player_texture, .texture_name = "player" });
+    try entities.addComponent(a, player_id, ecs.Component.sprite{ .player = .{ .animation_name = "player" } });
     try entities.addComponent(a, player_id, ecs.Component.movement_particles{});
     try entities.addComponent(a, player_id, ecs.Component.is_player{});
 
     for (0..50) |_| {
         const slime_id = entities.newEntity(a).?;
         const slime_texture = texture_state.search("slime").?;
+        _ = slime_texture;
         try entities.addComponent(a, slime_id, ecs.Component.physics{ .pos = ecs.randomVector2(50, 50) });
-        try entities.addComponent(a, slime_id, ecs.Component.sprite{ .texture_id = slime_texture, .texture_name = "slime" });
+        try entities.addComponent(a, slime_id, ecs.Component.sprite{ .player = .{ .animation_name = "slime" } });
         try entities.addComponent(a, slime_id, ecs.Component.collider{});
         try entities.addComponent(a, slime_id, ecs.Component.wanderer{});
         try entities.addComponent(a, slime_id, ecs.Component.health{});

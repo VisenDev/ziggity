@@ -1,7 +1,8 @@
 const std = @import("std");
+const anime = @import("animation.zig");
 const map = @import("map.zig");
-const config = @import("config.zig");
 const texture = @import("textures.zig");
+const key = @import("keybindings.zig");
 const options = @import("options.zig");
 const ecs = @import("ecs.zig");
 const SparseSet = @import("sparse_set.zig").SparseSet;
@@ -103,8 +104,7 @@ pub fn updateMovementSystem(
     textures: *const texture.TextureState,
     opt: options.Update,
 ) void {
-    _ = opt;
-
+    _ = textures;
     const systems = [_]type{Component.physics};
     const set = self.getSystemDomain(a, &systems);
 
@@ -133,17 +133,23 @@ pub fn updateMovementSystem(
                 self.addComponent(
                     a,
                     particle,
-                    Component.physics{ .pos = physics.pos, .vel = .{
-                        .x = ecs.randomFloat() * 0.1,
-                        .y = ecs.randomFloat() * 0.1,
-                    } },
+                    Component.physics{
+                        .pos = .{
+                            .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
+                            .y = physics.pos.y + 1 + 0.2 * (ecs.randomFloat() - 0.5),
+                        },
+                        .vel = .{
+                            .x = (ecs.randomFloat() - 0.5) * opt.dt,
+                            .y = (ecs.randomFloat() - 0.5) * opt.dt,
+                        },
+                    },
                 ) catch return;
+
                 self.addComponent(
                     a,
                     particle,
                     Component.sprite{
-                        .texture_id = textures.name_index.get("particle").?,
-                        .texture_name = "particle",
+                        .player = .{ .animation_name = "particle" },
                     },
                 ) catch return;
                 self.addComponent(a, particle, Component.health_trickle{}) catch return;
@@ -155,7 +161,7 @@ pub fn updateMovementSystem(
 pub fn updatePlayerSystem(
     self: *ecs.ECS,
     a: std.mem.Allocator,
-    keys: config.KeyBindings,
+    keys: key.KeyBindings,
     opt: options.Update,
 ) void {
     const systems = [_]type{ Component.is_player, Component.physics };
@@ -209,5 +215,38 @@ pub fn updateDeathSystem(
         if (health.is_dead) {
             self.deleteEntity(a, member) catch return;
         }
+    }
+}
+
+pub fn updateSpriteSystem(
+    self: *ecs.ECS,
+    a: std.mem.Allocator,
+    animation_state: *anime.AnimationState,
+    opt: options.Update,
+) void {
+    const systems = [_]type{Component.sprite};
+    const set = self.getSystemDomain(a, &systems);
+
+    for (set) |member| {
+        self.components.sprite.get(member).?.player.update(animation_state, opt);
+    }
+}
+
+//===============RENDERING================
+pub fn renderSprites(self: *ecs.ECS, a: std.mem.Allocator, animation_state: *const anime.AnimationState, opt: options.Render) void {
+    const systems = [_]type{ Component.physics, Component.sprite };
+    const set = self.getSystemDomain(a, &systems);
+
+    for (set) |member| {
+        const sprite = self.components.sprite.get(member).?;
+        const physics = self.components.physics.get(member).?;
+
+        const screen_position = ray.Rectangle{
+            .x = physics.pos.x * opt.grid_spacing,
+            .y = physics.pos.y * opt.grid_spacing,
+            .width = opt.grid_spacing,
+            .height = opt.grid_spacing,
+        };
+        sprite.player.render(animation_state, screen_position);
     }
 }

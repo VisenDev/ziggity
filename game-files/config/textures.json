@@ -6,5 +6,5 @@
    {"name": "cave_border_top", "path": "tilemap.png", "x": 0, "y": 96, "width": 32, "height": 32},
    {"name": "slime", "path": "slime.png", "x": 0, "y": 0, "width": 32, "height": 32},
    {"name": "player", "path": "player.png", "x": 0, "y": 0, "width": 16, "height": 32},
-   {"name": "particle", "path": "tilemap.png", "x": 200, "y": 0, "width": 2, "height": 2}
+   {"name": "particle", "path": "particle_default.png", "x": 0, "y": 0, "width": 3, "height": 3}
 ] }

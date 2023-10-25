@@ -2,6 +2,89 @@ const std = @import("std");
 const level = @import("level.zig");
 const toml = @import("toml");
 
+pub const config_file_extension = ".json5";
+
+//removes comments from a json file
+pub fn stripComments(a: std.mem.Allocator, input: []const u8) !std.ArrayList(u8) {
+    const States = enum { slash, comment_start, comment, normal };
+    var state = States.normal;
+    var result = std.ArrayList(u8).init(a);
+
+    for (input) |ch| {
+        state = switch (state) {
+            .normal => switch (ch) {
+                '/' => .slash,
+                else => .normal,
+            },
+            .slash => switch (ch) {
+                '/' => .comment_start,
+                else => .normal,
+            },
+            .comment => switch (ch) {
+                '\n' => .normal,
+                else => .comment,
+            },
+            .comment_start => switch (ch) {
+                '\n' => .normal,
+                else => .comment,
+            },
+        };
+
+        if (state != .comment) {
+            try result.append(ch);
+        }
+
+        //remove slashes
+        if (state == .comment_start) {
+            _ = result.popOrNull();
+            _ = result.popOrNull();
+        }
+    }
+
+    return result;
+}
+
+test "stripComments" {
+    const string =
+        \\{
+        \\  "frames": [
+        \\    {
+        \\    //hi I am comment
+        \\    "texture": null,
+        \\    "filepath": "fireball.png",
+        \\    "subrect": {"x": 0, "y": 0, "width": 16, "height": 16}, //commment here
+        \\    "milliseconds": 250,
+        \\    "origin": {"x": 8, "y": 8}
+        \\    }
+        \\  ],
+        \\  //Hello world
+        \\  "name": "fireball",
+        \\  "rotation_speed": 0
+        \\}
+    ;
+    const removed_comments =
+        \\{
+        \\  "frames": [
+        \\    {
+        \\    
+        \\    "texture": null,
+        \\    "filepath": "fireball.png",
+        \\    "subrect": {"x": 0, "y": 0, "width": 16, "height": 16}, 
+        \\    "milliseconds": 250,
+        \\    "origin": {"x": 8, "y": 8}
+        \\    }
+        \\  ],
+        \\  
+        \\  "name": "fireball",
+        \\  "rotation_speed": 0
+        \\}
+    ;
+
+    const commentless = try stripComments(std.testing.allocator, string);
+    defer commentless.deinit();
+    try std.testing.expect(std.mem.eql(u8, commentless.items, removed_comments));
+}
+
 //combines two paths
 pub fn combine(a: std.mem.Allocator, str1: []const u8, str2: []const u8) ![]const u8 {
     return try std.fmt.allocPrint(a, "{s}{s}", .{ str1, str2 });
@@ -159,9 +242,11 @@ pub fn readConfig(comptime T: type, a: std.mem.Allocator, filename: []const u8) 
 
     const string = try std.fs.cwd().readFileAlloc(a, full_path, 2048);
     defer a.free(string);
-    //std.debug.print("\n[CONFIG STRING LOADED] {s}\n", .{string});
 
-    return try std.json.parseFromSlice(T, a, string, .{ .allocate = .alloc_always });
+    const comment_free = try stripComments(a, string);
+    defer comment_free.deinit();
+
+    return try std.json.parseFromSlice(T, a, comment_free.items, .{ .allocate = .alloc_always });
 }
 
 //============MANIFEST PARSING============

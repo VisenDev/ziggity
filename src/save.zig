@@ -3,7 +3,6 @@ const texture = @import("textures.zig");
 const tile = @import("tiles.zig");
 const file = @import("file_utils.zig");
 const level = @import("level.zig");
-const config = @import("config.zig");
 const err = @import("error.zig");
 
 pub const NewSaveOptions = struct {

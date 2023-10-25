@@ -1,6 +1,6 @@
 const std = @import("std");
 const map = @import("map.zig");
-const config = @import("config.zig");
+const key = @import("keybindings.zig");
 const texture = @import("textures.zig");
 const options = @import("options.zig");
 const SparseSet = @import("sparse_set.zig").SparseSet;
@@ -108,7 +108,7 @@ pub const ECS = struct {
     pub fn newEntity(self: *@This(), a: std.mem.Allocator) ?usize {
         const id = self.availible_ids.popOrNull();
         if (id) |real_id| {
-            std.debug.print("created new entity {}\n", .{real_id});
+            //std.debug.print("created new entity {}\n", .{real_id});
             self.bitflags.insert(a, real_id, std.bit_set.StaticBitSet(sliceComponentNames().len).initEmpty()) catch return null;
         }
         return id;
@@ -181,75 +181,8 @@ pub const ECS = struct {
         }
 
         return self.idBuffer.items;
-
-        //std.debug.print("domain is {any}\n", .{result.items});
-
-        //comptime architype_bit_mask =
-        //var arena = std.heap.ArenaAllocator.init(a);
-        //defer arena.deinit();
-        //const aa = arena.allocator();
-
-        //if (components.len <= 0) {
-        //    return std.ArrayList(usize).init(a);
-        //}
-
-        ////std.debug.print("\ngetting system domain for {*}\n\n", .{components});
-        ////std.debug.print("components.len: {}\n", .{components.len});
-
-        //var found = std.AutoHashMap(usize, u32).init(aa);
-        //defer found.deinit();
-
-        //inline for (0..components.len) |i| {
-        //    const component_domain = @field(self.components, components[i].name).dense_ids.items;
-        //    //std.debug.print("adding {any}\n", .{components[i]});
-        //    for (component_domain) |id| {
-        //        if (found.get(id)) |count| {
-        //            //std.debug.print("found {}\n", .{id});
-        //            found.put(id, count + 1) catch return std.ArrayList(usize).init(a);
-        //        } else {
-        //            //std.debug.print("added {}\n", .{id});
-        //            found.put(id, 1) catch return std.ArrayList(usize).init(a);
-        //        }
-        //    }
-        //}
-
-        //var result = std.ArrayList(usize).init(a);
-
-        //var iterator = found.iterator();
-        //while (iterator.next()) |entry| {
-        //    if (entry.value_ptr.* >= components.len) {
-        //        result.append(entry.key_ptr.*) catch return std.ArrayList(usize).init(a);
-        //    }
-        //}
-
-        //return result;
-    }
-
-    //===============RENDERING================
-    pub fn render(self: *ECS, a: std.mem.Allocator, texture_state: texture.TextureState, opt: options.Render) void {
-        //const set = intersection(a, self.components.render.dense_ids.items, self.components.physics.dense_ids.items, self.capacity);
-        //const systems = [_][]const u8{ "physics", "sprite" };
-        const systems = [_]type{ Component.physics, Component.sprite };
-        const set = self.getSystemDomain(a, &systems);
-
-        for (set) |member| {
-            const sprite = self.components.sprite.get(member).?;
-            const physics = self.components.physics.get(member).?;
-
-            const my_texture = texture_state.getI(sprite.texture_id);
-            const screen_position = ray.Vector2{ .x = physics.pos.x * opt.grid_spacing, .y = physics.pos.y * opt.grid_spacing };
-            ray.DrawTextureEx(my_texture, screen_position, 0, opt.scale, ray.WHITE);
-        }
     }
 };
-
-//pub fn intersection(a: std.mem.Allocator, arr1: []usize, arr2: []usize) []usize {
-//    _ = arr2;
-//    var found = std.AutoHashMap(usize, bool).init(a);
-//    for(arr1) |element| {
-//        found.put(element, true);
-//    }
-//}
 
 test "ECS" {
     var ecs = try ECS.init(std.testing.allocator, 101);
