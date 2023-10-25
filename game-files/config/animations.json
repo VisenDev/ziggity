@@ -1,0 +1,38 @@
+[
+{
+   "frames": [
+   {
+      "subrect": {"x": 0, "y": 0, "width": 4, "height": 4}, 
+         "milliseconds": 250                                   
+   }
+   ],
+   "name": "particle",
+   "rotation_speed": 0,
+   "filepath": "particle_default.png",
+   "origin": {"x": 8, "y": 8} 
+},
+{
+   "frames": [
+   {
+      "subrect": {"x": 0, "y": 0, "width": 16, "height": 32},
+      "milliseconds": 250                                 
+   }
+   ],
+   "name": "player",
+   "rotation_speed": 0,
+   "filepath": "player.png",
+   "origin": {"x": 0, "y": 0} 
+},
+{
+   "frames": [
+   {
+      "subrect": {"x": 0, "y": 0, "width": 8, "height": 8},
+      "milliseconds": 250                                
+   }
+   ],
+   "name": "slime",
+   "rotation_speed": 1,
+   "filepath": "slime.png",
+   "origin": {"x": 4, "y": 4} 
+}
+]
