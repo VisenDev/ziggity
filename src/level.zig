@@ -1,4 +1,5 @@
 const std = @import("std");
+const anime = @import("animation.zig");
 const map = @import("map.zig");
 const texture = @import("textures.zig");
 const tile = @import("tiles.zig");
@@ -49,8 +50,8 @@ pub const LevelGenOptions = struct {
     name: []const u8,
     biomes: []const Record = &[_]Record{},
     density: f64 = 0.4,
-    width: u32 = 100,
-    height: u32 = 100,
+    width: u32 = 50,
+    height: u32 = 50,
 };
 
 pub const Level = struct {
@@ -62,11 +63,8 @@ pub const Level = struct {
 };
 
 pub fn generateLevel(a: std.mem.Allocator, options: LevelGenOptions) !Level {
-    const texture_state = try texture.TextureState.init(a);
-    defer texture_state.deinit(a);
-
-    const tile_state = try tile.TileState.init(a, texture_state);
-    defer tile_state.deinit(a);
+    var tile_state = try tile.TileState.init(a);
+    defer tile_state.deinit();
 
     var entities = try a.create(ecs.ECS);
     entities.* = try ecs.ECS.init(a, 5000);
@@ -85,8 +83,6 @@ pub fn generateLevel(a: std.mem.Allocator, options: LevelGenOptions) !Level {
 
     for (0..50) |_| {
         const slime_id = entities.newEntity(a).?;
-        const slime_texture = texture_state.search("slime").?;
-        _ = slime_texture;
         try entities.addComponent(a, slime_id, ecs.Component.physics{ .pos = ecs.randomVector2(50, 50) });
         try entities.addComponent(a, slime_id, ecs.Component.sprite{ .player = .{ .animation_name = "slime" } });
         try entities.addComponent(a, slime_id, ecs.Component.collider{});

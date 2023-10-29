@@ -37,7 +37,7 @@ pub const KeyBindings = struct {
     zoom_out: Key = .{ .char = '-' },
 
     pub fn init(a: std.mem.Allocator) !@This() {
-        const json_config = file.readConfig(@This(), a, "keybindings.json") catch return @This(){};
+        const json_config = file.readConfig(@This(), a, file.FileName.keybindings) catch return @This(){};
         defer json_config.deinit();
 
         return json_config.value;

@@ -1,8 +1,13 @@
 const std = @import("std");
 const level = @import("level.zig");
-const toml = @import("toml");
 
-pub const config_file_extension = ".json5";
+const ztoml = @import("ztoml");
+
+pub const FileName = struct {
+    pub const tiles = "tiles.toml";
+    pub const keybindings = "keybindings.toml";
+    pub const animations = "animations.toml";
+};
 
 //removes comments from a json file
 pub fn stripComments(a: std.mem.Allocator, input: []const u8) !std.ArrayList(u8) {
@@ -172,14 +177,22 @@ pub fn readLevel(a: std.mem.Allocator, save_id: []const u8, level_id: []const u8
 
 pub fn writeLevel(a: std.mem.Allocator, l: level.Level, save_id: []const u8, level_id: []const u8) !void {
     //const ec = try std.json.stringifyAlloc(a, l.ecs, .{});
-    //const lec = try std.json.stringifyAlloc(a, l.map, .{});
+    //_ = ec;
+    ////const lec = try std.json.stringifyAlloc(a, l.map, .{});
+    //const ggg = try std.json.stringifyAlloc(a, l.map.tile_grid, .{});
+    //_ = ggg;
+    //const gg = try std.json.stringifyAlloc(a, l.map.animation_grid, .{});
+    //_ = gg;
+    //const g = try std.json.stringifyAlloc(a, l.map.collision_grid, .{});
+    //_ = g;
+
     //const name = try std.json.stringifyAlloc(a, l.name, .{});
+    //_ = name;
     //const id = try std.json.stringifyAlloc(a, l.player_id, .{});
+    //_ = id;
     //const exits = try std.json.stringifyAlloc(a, l.exits, .{});
     //_ = exits;
-    //_ = id;
-    //_ = name;
-    //_ = lec;
+    //std.debug.print("map: {any}\n", .{lec});
     l.ecs.prepForStringify(a);
     const string = try std.json.stringifyAlloc(a, l, .{});
     const path = try getLevelPath(a, save_id, level_id);
@@ -208,31 +221,13 @@ pub fn writeLevel(a: std.mem.Allocator, l: level.Level, save_id: []const u8, lev
 //    //std.debug.print("{}\n", .{parsed.value});
 //}
 //
-////========SAVE CREATION/DELETION========
-////
-//pub fn createSaveDir(a: std.mem.Allocator, save_id: []const u8) !void {
-//    const new_save_path =
-//    const new_save_levels_path = try std.fmt.allocPrint(a, "{s}/levels", .{new_save_path});
-//    try std.fs.makeDirAbsolute(new_save_path);
-//    try std.fs.makeDirAbsolute(new_save_levels_path);
-//}
-
-//pub const SaveState = struct {
-//    name: []const u8,
-//    current_level: []const u8,
-//};
-
-//pub fn readSaveState(a: std.mem.Allocator, save_id: []const u8) !SaveState {
-//    const save_path = try getSavePath(a, str.findNullTerminator(save_id));
-//    const path = try std.fmt.allocPrint(a, "{s}state.json", .{save_path});
-//    std.debug.print("READING SAVE STATE: {s}\n", .{path});
-//
-//    const string = try std.fs.cwd().readFileAlloc(a, path, 2048);
-//    const parsed = try std.json.parseFromSlice(SaveState, a, string, .{});
-//    return parsed.value;
-//}
 
 //========CONFIG IO========
+pub fn toSlice(str: [*c]u8) []u8 {
+    const len = std.mem.indexOfSentinel(u8, 0, str);
+    return str[0..len];
+}
+
 pub fn readConfig(comptime T: type, a: std.mem.Allocator, filename: []const u8) !std.json.Parsed(T) {
     const path = try getConfigDirPath(a);
     defer a.free(path);
@@ -240,13 +235,21 @@ pub fn readConfig(comptime T: type, a: std.mem.Allocator, filename: []const u8) 
     const full_path = try std.fmt.allocPrint(a, "{s}{s}", .{ path, filename });
     defer a.free(full_path);
 
-    const string = try std.fs.cwd().readFileAlloc(a, full_path, 2048);
+    var string = try std.fs.cwd().readFileAlloc(a, full_path, 2048);
+    var sentinel_string = try a.dupeZ(u8, string);
     defer a.free(string);
 
-    const comment_free = try stripComments(a, string);
-    defer comment_free.deinit();
+    std.debug.print("trying to parse {s}\n", .{filename});
+    std.debug.print("\n{s}\n\n", .{string});
 
-    return try std.json.parseFromSlice(T, a, comment_free.items, .{ .allocate = .alloc_always });
+    if (std.mem.eql(u8, "toml", filename[(filename.len - 4)..])) {
+        return try ztoml.parseToml(T, a, sentinel_string);
+    }
+
+    //const comment_free = try stripComments(a, string);
+    //defer comment_free.deinit();
+
+    return try std.json.parseFromSlice(T, a, string, .{ .allocate = .alloc_always });
 }
 
 //============MANIFEST PARSING============
@@ -268,37 +271,3 @@ pub fn readManifest(a: std.mem.Allocator, save_id: []const u8) !std.json.Parsed(
     const parsed = try std.json.parseFromSlice(Manifest, a, string, .{ .allocate = .alloc_always });
     return parsed;
 }
-
-//pub fn readToml(comptime T: type, a: std.mem.Allocator, filename: []const u8) !T {
-//    const path = try getConfigDirPath(a);
-//    defer a.free(path);
-//
-//    const full_path = try std.fmt.allocPrint(a, "{s}{s}", .{ path, filename });
-//    defer a.free(full_path);
-//
-//    //const string = try std.fs.cwd().readFileAlloc(a, full_path, 2048);
-//
-//    const config = toml.parseFile(a, full_path);
-//    defer config.deinit();
-//}
-//
-//test "toml" {
-//    _ = try readToml(u32, std.testing.allocator, "test.toml");
-//}
-
-//test "config" {
-//    const Key = struct {
-//        char: u8,
-//        shift: bool = false,
-//        control: bool = false,
-//    };
-//
-//    const KeyBindings = struct {
-//        player_up: Key,
-//        player_down: Key,
-//        player_left: Key,
-//        player_right: Key,
-//    };
-//
-//    //_ = try readConfig(KeyBindings, std.testing.allocator, "keybindings.json");
-//}

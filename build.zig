@@ -1,20 +1,7 @@
 const std = @import("std");
 
-// Although this function looks imperative, note that its job is to
-// declaratively construct a build graph that will be executed by an external
-// runner.
 pub fn build(b: *std.Build) void {
-    // Standard target options allows the person running `zig build` to choose
-    // what target to build for. Here we do not override the defaults, which
-    // means any target is allowed, and the default is native. Other options
-    // for restricting supported target set are available.
     const target = b.standardTargetOptions(.{});
-
-    // Standard optimization options allow the person running `zig build` to select
-    // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall. Here we do not
-    // set a preferred release mode, allowing the user to decide how to optimize.
-    //const optimize = b.standardOptimizeOption(.{ .preferred_optimize_mode = .ReleaseSafe });
-    //const optimize = .ReleaseSmall;
     const optimize = .Debug;
 
     const exe = b.addExecutable(.{
@@ -23,12 +10,15 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+
+    //link raylib
     exe.linkSystemLibrary("raylib");
     exe.linkLibC();
 
     //find raygui.h
     exe.addIncludePath(.{ .path = "lib" });
 
+    //flags to find raylib correctly
     const cflags = [_][]const u8{
         "-D RAYGUI_IMPLEMENTATION",
         "-I/usr/local/Cellar/raylib/4.5.0/include",
@@ -41,44 +31,26 @@ pub fn build(b: *std.Build) void {
         },
         .flags = &cflags,
     });
-    // This declares intent for the executable to be installed into the
-    // standard location when the user invokes the "install" step (the default
-    // step when running `zig build`).
     b.installArtifact(exe);
 
-    //link zig-toml
-    //const build_zig_toml = b.addStaticLibrary(.{
-    //    .name = "zig-toml",
-    //    .root_source_file = .{ .path = "lib/zig-toml/src/toml.zig" },
-    //    .optimize = optimize,
-    //    .target = target,
-    //});
-    //exe.linkLibrary(build_zig_toml);
-    //addStaticLibrary(b: *Build, options: StaticLibraryOptions) *Step.Compile
-    //    b.installDirectory(.{ .source_dir = "config", .install_dir = "config" });
+    // =============TOML TO JSON LINKING=================
+    //const rust_compile = b.addSystemCommand(&[_][]const u8{ "cargo", "build", "--release", "--manifest-path=toml-to-json/Cargo.toml" });
+    //b.default_step.dependOn(&rust_compile.step);
 
-    // const @"zig-toml" = b.dependency("zig-toml", .{
-    //     .target = target,
-    //     .optimize = optimize,
-    // });
-    // duck has exported itself as duck
-    // now you are re-exporting duck
-    // as a module in your project with the name duck
-    //exe.addModule("zig-toml", @"zig-toml".module("toml"));
-    // you need to link to the output of the build process
-    // that was done by the duck package
-    // in this case, duck is outputting a library
-    // to which your project need to link as well
-    //    exe.linkLibrary(@"zig-toml".artifact("toml"));
+    //exe.addIncludePath(.{ .path = "toml-to-json" });
+    //exe.addLibraryPath(.{ .path = "toml-to-json/target/release" });
+    //exe.linkSystemLibrary("toml_to_json");
+    //const ztoml = ztoml_dep.artifact("ztoml");
+    //exe.linkLibrary(ztoml);
+    const ztoml_dep = b.dependency("ztoml", .{});
+    b.default_step.dependOn(ztoml_dep.builder.default_step);
+    exe.addModule("ztoml", ztoml_dep.module("ztoml"));
+    @import("ztoml").link(ztoml_dep.builder, exe);
 
-    //b.installDirectory(.{ .source_dir = .{ .path = "config" }, .install_dir = .bin, .install_subdir = "config" });
-    //b.installDirectory(.{ .source_dir = .{ .path = "saves" }, .install_dir = .bin, .install_subdir = "saves" });
-    //b.installDirectory(.{ .source_dir = .{ .path = "images" }, .install_dir = .bin, .install_subdir = "images" });
+    //installing
+
     b.installDirectory(.{ .source_dir = .{ .path = "game-files" }, .install_dir = .bin, .install_subdir = "game-files" });
 
-    // This *creates* a Run step in the build graph, to be executed when another
-    // step is evaluated that depends on it. The next line below will establish
-    // such a dependency.
     const run_cmd = b.addRunArtifact(exe);
 
     // By making the run step depend on the install step, it will be run from the
@@ -108,9 +80,15 @@ pub fn build(b: *std.Build) void {
     });
 
     unit_tests.linkLibC();
+    unit_tests.step.dependOn((b.getInstallStep()));
     unit_tests.linkSystemLibrary("raylib");
     //find raygui.h
     unit_tests.addIncludePath(.{ .path = "lib" });
+
+    //link unit tests with toml to json
+    unit_tests.addIncludePath(.{ .path = "toml-to-json" });
+    unit_tests.addLibraryPath(.{ .path = "toml-to-json/target/release" });
+    unit_tests.linkSystemLibrary("toml_to_json");
 
     unit_tests.addCSourceFile(.{
         .file = .{

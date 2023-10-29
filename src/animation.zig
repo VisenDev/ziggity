@@ -6,6 +6,10 @@ const ray = @cImport({
     @cInclude("raylib.h");
 });
 
+fn tof32(input: anytype) f32 {
+    return @floatFromInt(input);
+}
+
 pub const AnimationFrame = struct {
     subrect: ray.Rectangle,
     milliseconds: f32 = 250,
@@ -36,10 +40,22 @@ pub const AnimationPlayer = struct {
     tint: ray.Color = ray.WHITE,
 
     //renders the animation
-    pub fn render(self: *@This(), state: *const AnimationState, position: ray.Rectangle) void {
+    pub fn render(self: *@This(), state: *const AnimationState, position: ray.Vector2) void {
         const animation = state.animations.get(self.animation_name).?;
         const frame = animation.frames[self.current_frame];
-        ray.DrawTexturePro(animation.texture.?, frame.subrect, position, animation.origin, self.rotation, self.tint);
+        ray.DrawTexturePro(
+            animation.texture.?,
+            frame.subrect,
+            ray.Rectangle{
+                .x = position.x,
+                .y = position.y,
+                .width = tof32(animation.texture.?.width),
+                .height = tof32(animation.texture.?.height),
+            },
+            animation.origin,
+            self.rotation,
+            self.tint,
+        );
     }
 
     //updates animation frame and rotation
@@ -59,10 +75,11 @@ pub const AnimationState = struct {
     animations: std.StringHashMap(Animation),
 
     pub fn init(a: std.mem.Allocator) !@This() {
-        const animations_json = try file.readConfig([]Animation, a, "animations.json");
+        const json_type = struct { animations: []Animation };
+        const animations_json = try file.readConfig(json_type, a, file.FileName.animations);
         var animations = std.StringHashMap(Animation).init(a);
 
-        for (animations_json.value) |*animation| {
+        for (animations_json.value.animations) |*animation| {
             const path = try file.combine(a, try file.getImageDirPath(a), animation.filepath);
             defer a.free(path);
 

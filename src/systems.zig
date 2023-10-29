@@ -101,10 +101,10 @@ pub fn updateMovementSystem(
     self: *ecs.ECS,
     a: std.mem.Allocator,
     m: *const map.MapState,
-    textures: *const texture.TextureState,
+    animations: * const anime.AnimationState,
     opt: options.Update,
 ) void {
-    _ = textures;
+    _ = animations;
     const systems = [_]type{Component.physics};
     const set = self.getSystemDomain(a, &systems);
 
@@ -234,6 +234,7 @@ pub fn updateSpriteSystem(
 
 //===============RENDERING================
 pub fn renderSprites(self: *ecs.ECS, a: std.mem.Allocator, animation_state: *const anime.AnimationState, opt: options.Render) void {
+    _ = opt;
     const systems = [_]type{ Component.physics, Component.sprite };
     const set = self.getSystemDomain(a, &systems);
 
@@ -241,12 +242,6 @@ pub fn renderSprites(self: *ecs.ECS, a: std.mem.Allocator, animation_state: *con
         const sprite = self.components.sprite.get(member).?;
         const physics = self.components.physics.get(member).?;
 
-        const screen_position = ray.Rectangle{
-            .x = physics.pos.x * opt.grid_spacing,
-            .y = physics.pos.y * opt.grid_spacing,
-            .width = opt.grid_spacing,
-            .height = opt.grid_spacing,
-        };
-        sprite.player.render(animation_state, screen_position);
+        sprite.player.render(animation_state, physics.pos);
     }
 }

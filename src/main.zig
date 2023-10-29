@@ -15,6 +15,9 @@ pub const ecs = @import("ecs.zig");
 pub const sys = @import("systems.zig");
 pub const animate = @import("animation.zig");
 //pub const toml = @import("toml");
+const t2j = @cImport({
+    @cInclude("toml-to-json.h");
+});
 
 const ray = @cImport({
     @cInclude("raylib.h");
@@ -75,14 +78,12 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
     const keybindings = try key.KeyBindings.init(a);
     defer keybindings.deinit(a);
 
-    const texture_state = try texture.TextureState.init(a);
-    defer texture_state.deinit(a);
-
-    const tile_state = try tile.TileState.init(a, texture_state);
-    defer tile_state.deinit(a);
+    var tile_state = try tile.TileState.init(a);
+    defer tile_state.deinit();
 
     var animation_state = try anime.AnimationState.init(a);
     defer animation_state.animations.deinit();
+
     //const shader = ray.LoadShader(0, ray.TextFormat("game-files/shaders/grayscale.fs", @as(c_int, 330)));
     //defer ray.UnloadShader(shader);
 
@@ -91,9 +92,9 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
         //configure update options
         const delta_time = ray.GetFrameTime();
         const update_options = options.Update{ .dt = delta_time };
-        const render_options = options.Render{ .zoom = 2, .scale = 1, .grid_spacing = 32 };
+        const render_options = options.Render{ .zoom = 1, .scale = 1, .grid_spacing = 32 };
 
-        sys.updateMovementSystem(lvl.ecs, a, lvl.map, &texture_state, update_options);
+        sys.updateMovementSystem(lvl.ecs, a, lvl.map, &animation_state, update_options);
         sys.updatePlayerSystem(lvl.ecs, a, keybindings, update_options);
         sys.updateWanderingSystem(lvl.ecs, a, update_options);
         sys.updateDeathSystem(lvl.ecs, a, update_options);
@@ -112,9 +113,8 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
         //        ray.BeginShaderMode(shader);
 
         ray.ClearBackground(ray.RAYWHITE);
-        //try s.level.render(assets, render_options);
 
-        lvl.map.render(tile_state, render_options);
+        lvl.map.render(&animation_state, render_options);
         sys.renderSprites(lvl.ecs, a, &animation_state, render_options);
 
         //       ray.EndShaderMode();
