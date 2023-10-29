@@ -1,0 +1,22 @@
+#resulution of the tileset
+resolution = 32
+
+[[tiles]]
+name = "cave_wall"
+category = "wall"
+animation = "cave_wall"
+
+[[tiles]]
+name = "cave_floor"
+category = "floor"
+animation = "cave_floor"
+
+[[tiles]]
+name = "fort_wall"
+category = "wall"
+animation = "fort_wall"
+
+[[tiles]]
+name = "fort_floor"
+category = "floor"
+animation = "fort_floor"

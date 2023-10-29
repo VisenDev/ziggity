@@ -13,6 +13,10 @@ const ray = @cImport({
     @cInclude("raylib.h");
 });
 
+fn tof32(input: anytype) f32 {
+    return @floatFromInt(input);
+}
+
 pub fn Grid(comptime T: type) type {
     return struct {
         items: [][]?T,
@@ -88,11 +92,6 @@ pub const MapState = struct {
         var collision_grid = try Grid(bool).init(a, opt.width, opt.height);
         var animation_grid = try Grid(anime.AnimationPlayer).init(a, opt.width, opt.height);
 
-        const floor = tile_state.get("cave_floor").?;
-        std.debug.print("floor: {any}\n", .{floor});
-        const wall = tile_state.get("cave_wall").?;
-        std.debug.print("wall: {any}\n", .{wall});
-
         for (0..opt.width) |x| {
             for (0..opt.height) |y| {
                 if (perlin.perlin2d(@floatFromInt(x), @floatFromInt(y), 0.1, 4) > 0.5) {
@@ -141,13 +140,12 @@ pub const MapState = struct {
         self.tile_grid.deinit(a);
     }
 
-    pub fn render(self: *const @This(), animation_state: *const anime.AnimationState, opt: options.Render) void {
-        _ = opt;
+    pub fn render(self: *const @This(), animation_state: *const anime.AnimationState, tile_state: *const tile.TileState) void {
         for (0..self.animation_grid.items.len) |x| {
             for (0..self.animation_grid.items[x].len) |y| {
                 if (self.animation_grid.items[x][y]) |*player| {
-                    const grid_x = @as(f32, @floatFromInt(x)) * 32;
-                    const grid_y = @as(f32, @floatFromInt(y)) * 32;
+                    const grid_x = tof32(x * tile_state.resolution);
+                    const grid_y = tof32(y * tile_state.resolution);
                     player.render(animation_state, .{ .x = grid_x, .y = grid_y });
                     //const tile_texture: ray.Texture2D = tiles.tiles[id].texture;
                     //ray.DrawTextureEx(tile_texture, .{ .x = grid_x, .y = grid_y }, 0, opt.scale, ray.RAYWHITE);

@@ -1,0 +1,45 @@
+[[animations]]
+name = "particle"
+rotation_speed = 0 #how much the animation rotates every game tick
+filepath = "particle_default.png"
+origin = {x = 8, y = 8} #where the animation should be drawn relative to
+frames = [ #this contains every frame of the animation, and how many milliseconds it is shown
+   { subrect = {x = 0, y = 0, width = 4, height = 4}, milliseconds = 250 },
+   { subrect = {x = 0, y = 0, width = 4, height = 4}, milliseconds = 250 }
+]
+
+[[animations]]
+name = "player"
+rotation_speed = 0
+filepath = "player.png"
+origin = {x = 0, y = 0}
+frames = [
+   { subrect = {x = 0, y = 0, width = 16, height = 32}, milliseconds = 250 }
+]
+
+[[animations]]
+name = "slime"
+rotation_speed = 0
+filepath = "slime.png"
+origin = {x = 0, y = 0}
+frames = [
+   { subrect = {x = 0, y = 0, width = 32, height = 32}, milliseconds = 1000 }
+]
+
+[[animations]]
+name = "cave_floor"
+rotation_speed = 0
+filepath = "tilemap.png"
+origin = {x = 0, y = 0}
+frames = [
+   { subrect = {x = 0, y = 0, width = 32, height = 32}, milliseconds = 1000 }
+]
+
+[[animations]]
+name = "cave_wall"
+rotation_speed = 0
+filepath = "tilemap.png"
+origin = {x = 0, y = 0}
+frames = [
+   { subrect = {x = 32, y = 0, width = 32, height = 32}, milliseconds = 1000 }
+]

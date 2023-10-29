@@ -21,6 +21,7 @@ pub const Animation = struct {
     name: []const u8,
     rotation_speed: f32 = 0, //scalar to be multiplied by dt when rotating
     origin: ray.Vector2 = .{ .x = 0, .y = 0 },
+    render_style: enum { pixel_perfect, scaled } = .pixel_perfect,
     frames: []const AnimationFrame,
 
     pub inline fn length(self: *const @This()) usize {
@@ -49,8 +50,8 @@ pub const AnimationPlayer = struct {
             ray.Rectangle{
                 .x = position.x,
                 .y = position.y,
-                .width = tof32(animation.texture.?.width),
-                .height = tof32(animation.texture.?.height),
+                .width = frame.subrect.width + 0.1,
+                .height = frame.subrect.height + 0.1,
             },
             animation.origin,
             self.rotation,
@@ -80,13 +81,17 @@ pub const AnimationState = struct {
         var animations = std.StringHashMap(Animation).init(a);
 
         for (animations_json.value.animations) |*animation| {
-            const path = try file.combine(a, try file.getImageDirPath(a), animation.filepath);
+            const path = try file.combineAppendSentinel(a, try file.getImageDirPath(a), animation.filepath);
             defer a.free(path);
 
             const image = ray.LoadImage(path.ptr);
             defer ray.UnloadImage(image);
 
             const texture = ray.LoadTextureFromImage(image);
+            if (!ray.IsTextureReady(texture)) {
+                std.debug.print("path: {any}\n", .{path.ptr});
+                @panic("failed to load texture");
+            }
             animation.texture = texture;
 
             try animations.put(animation.name, animation.*);

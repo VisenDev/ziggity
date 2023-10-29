@@ -1,4 +1,5 @@
 const std = @import("std");
+const tile = @import("tiles.zig");
 const anime = @import("animation.zig");
 const map = @import("map.zig");
 const texture = @import("textures.zig");
@@ -101,7 +102,7 @@ pub fn updateMovementSystem(
     self: *ecs.ECS,
     a: std.mem.Allocator,
     m: *const map.MapState,
-    animations: * const anime.AnimationState,
+    animations: *const anime.AnimationState,
     opt: options.Update,
 ) void {
     _ = animations;
@@ -233,8 +234,16 @@ pub fn updateSpriteSystem(
 }
 
 //===============RENDERING================
-pub fn renderSprites(self: *ecs.ECS, a: std.mem.Allocator, animation_state: *const anime.AnimationState, opt: options.Render) void {
-    _ = opt;
+
+fn tof32(input: anytype) f32 {
+    return @floatFromInt(input);
+}
+
+pub inline fn scaleVector(a: ray.Vector2, scalar: anytype) ray.Vector2 {
+    return .{ .x = a.x * tof32(scalar), .y = a.y * tof32(scalar) };
+}
+
+pub fn renderSprites(self: *ecs.ECS, a: std.mem.Allocator, animation_state: *const anime.AnimationState, tile_state: *const tile.TileState) void {
     const systems = [_]type{ Component.physics, Component.sprite };
     const set = self.getSystemDomain(a, &systems);
 
@@ -242,6 +251,6 @@ pub fn renderSprites(self: *ecs.ECS, a: std.mem.Allocator, animation_state: *con
         const sprite = self.components.sprite.get(member).?;
         const physics = self.components.physics.get(member).?;
 
-        sprite.player.render(animation_state, physics.pos);
+        sprite.player.render(animation_state, scaleVector(physics.pos, tile_state.resolution));
     }
 }

@@ -3,8 +3,8 @@
       .version = "0.0.1",
       .dependencies = .{
          .ztoml = .{
-            .hash = "1220d532ec9e3df148f013f3f8070631692dbdc4516964a939f00a75af18ec925670",
             .url = "https://github.com/VisenDev/ztoml/archive/refs/heads/main.tar.gz",
+            .hash = "1220b093649934a3ccf0cd8da07a1b25cd37ebd95d8463549c9e1368218531192823",
          },
       },
    }

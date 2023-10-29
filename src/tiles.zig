@@ -21,14 +21,14 @@ pub const TileState = struct {
     pub fn init(a: std.mem.Allocator) !@This() {
         var result = std.StringHashMap(Tile).init(a);
 
-        const json_type = struct { tiles: []Tile };
+        const json_type = struct { resolution: u32, tiles: []Tile };
         const tile_json = file.readConfig(json_type, a, file.FileName.tiles) catch return .{ .tiles = result, .resolution = 32 };
 
         for (tile_json.value.tiles) |tile| {
             try result.put(tile.name, tile);
         }
 
-        return .{ .tiles = result, .resolution = 32 };
+        return .{ .tiles = result, .resolution = tile_json.value.resolution };
     }
 
     pub fn deinit(self: *@This()) void {

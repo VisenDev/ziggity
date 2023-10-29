@@ -33,22 +33,13 @@ pub fn build(b: *std.Build) void {
     });
     b.installArtifact(exe);
 
-    // =============TOML TO JSON LINKING=================
-    //const rust_compile = b.addSystemCommand(&[_][]const u8{ "cargo", "build", "--release", "--manifest-path=toml-to-json/Cargo.toml" });
-    //b.default_step.dependOn(&rust_compile.step);
-
-    //exe.addIncludePath(.{ .path = "toml-to-json" });
-    //exe.addLibraryPath(.{ .path = "toml-to-json/target/release" });
-    //exe.linkSystemLibrary("toml_to_json");
-    //const ztoml = ztoml_dep.artifact("ztoml");
-    //exe.linkLibrary(ztoml);
+    // =============ZTOML LINKING=================
     const ztoml_dep = b.dependency("ztoml", .{});
     b.default_step.dependOn(ztoml_dep.builder.default_step);
     exe.addModule("ztoml", ztoml_dep.module("ztoml"));
     @import("ztoml").link(ztoml_dep.builder, exe);
 
-    //installing
-
+    //=============INSTALL GAME FILES===========
     b.installDirectory(.{ .source_dir = .{ .path = "game-files" }, .install_dir = .bin, .install_subdir = "game-files" });
 
     const run_cmd = b.addRunArtifact(exe);
@@ -59,15 +50,12 @@ pub fn build(b: *std.Build) void {
     // files, this ensures they will be present and in the expected location.
     run_cmd.step.dependOn(b.getInstallStep());
 
-    // This allows the user to pass arguments to the application in the build
-    // command itself, like this: `zig build run -- arg1 arg2 etc`
+    //=================PASS EXTRA ARGS================
     if (b.args) |args| {
         run_cmd.addArgs(args);
     }
 
-    // This creates a build step. It will be visible in the `zig build --help` menu,
-    // and can be selected like this: `zig build run`
-    // This will evaluate the `run` step rather than the default, which is "install".
+    //================CREATE RUN BUILD STEP=============
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
 
@@ -78,6 +66,10 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+
+    unit_tests.step.dependOn(ztoml_dep.builder.default_step);
+    unit_tests.addModule("ztoml", ztoml_dep.module("ztoml"));
+    @import("ztoml").link(ztoml_dep.builder, unit_tests);
 
     unit_tests.linkLibC();
     unit_tests.step.dependOn((b.getInstallStep()));
