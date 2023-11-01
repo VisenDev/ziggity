@@ -94,7 +94,7 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
         const delta_time = ray.GetFrameTime();
         const update_options = options.Update{ .dt = delta_time };
 
-        sys.updateMovementSystem(lvl.ecs, a, lvl.map, &animation_state, update_options);
+        try sys.updateMovementSystem(lvl.ecs, a, lvl.map, &animation_state, update_options);
         sys.updatePlayerSystem(lvl.ecs, a, keybindings, update_options);
         sys.updateWanderingSystem(lvl.ecs, a, update_options);
         sys.updateDeathSystem(lvl.ecs, a, update_options);
@@ -120,4 +120,8 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
         }
     }
     return .quit;
+}
+
+test "unit tests" {
+    @import("std").testing.refAllDecls(@This());
 }

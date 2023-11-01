@@ -4,6 +4,7 @@ const key = @import("keybindings.zig");
 const texture = @import("textures.zig");
 const options = @import("options.zig");
 const SparseSet = @import("sparse_set.zig").SparseSet;
+const Grid = @import("grid.zig").Grid;
 pub const Component = @import("components.zig");
 const ray = @cImport({
     @cInclude("raylib.h");
@@ -67,7 +68,8 @@ pub const ECS = struct {
     components: EcsComponent(),
     capacity: usize,
     bitflags: SparseSet(std.bit_set.StaticBitSet(sliceComponentNames().len)),
-    idBuffer: std.ArrayListUnmanaged(usize), //used by system domain calculations
+    id_buffer: std.ArrayListUnmanaged(usize), //used by system domain calculations
+    position_cache: Grid(std.ArrayListUnmanaged(usize)),
 
     //0s remainding capacities to avoid errors when parsing from json
     pub fn prepForStringify(self: *@This(), a: std.mem.Allocator) void {
@@ -79,7 +81,8 @@ pub const ECS = struct {
         }
         self.availible_ids.capacity = 0;
         self.bitflags.dense.capacity = 0;
-        self.idBuffer.capacity = 0;
+        self.id_buffer.capacity = 0;
+        self.position_cache = .{ .default_value = .{} };
     }
 
     pub fn init(a: std.mem.Allocator, capacity: usize) !@This() {
@@ -101,7 +104,8 @@ pub const ECS = struct {
             .components = res,
             .capacity = capacity,
             .bitflags = try SparseSet(std.bit_set.StaticBitSet(sliceComponentNames().len)).init(a, capacity),
-            .idBuffer = buffer,
+            .id_buffer = buffer,
+            .position_cache = try Grid(std.ArrayListUnmanaged(usize)).init(a, 32, 32, .{}),
         };
     }
 
@@ -142,7 +146,8 @@ pub const ECS = struct {
         }
         self.availible_ids.deinit(a);
         self.bitflags.deinit(a);
-        self.idBuffer.deinit(a);
+        self.id_buffer.deinit(a);
+        self.position_cache.deinit(a);
     }
 
     ///Get component, asserts component exists
@@ -167,7 +172,7 @@ pub const ECS = struct {
             }
         };
 
-        self.idBuffer.clearRetainingCapacity();
+        self.id_buffer.clearRetainingCapacity();
 
         //std.debug.print("bit mask {b}\n", .{bit_mask.mask});
         for (self.bitflags.dense.items, 0..) |component_mask, i| {
@@ -176,11 +181,11 @@ pub const ECS = struct {
                 //std.debug.print("found {s} for {}\n", .{ sliceComponentNames()[i].name, id });
 
                 //check if capacity remains
-                self.idBuffer.append(a, id) catch return self.idBuffer.items;
+                self.id_buffer.append(a, id) catch return self.id_buffer.items;
             }
         }
 
-        return self.idBuffer.items;
+        return self.id_buffer.items;
     }
 };
 

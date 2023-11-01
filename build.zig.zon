@@ -1,6 +1,7 @@
 .{
       .name = "ziggity",
       .version = "0.0.1",
+      .paths = .{""},
       .dependencies = .{
          .ztoml = .{
             .url = "https://github.com/VisenDev/ztoml/archive/refs/heads/main.tar.gz",

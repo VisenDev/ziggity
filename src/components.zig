@@ -60,9 +60,12 @@ pub const loot = struct {
     pub const name = "loot";
     item_ids: []usize,
 };
-pub const collider = struct {
-    pub const name = "collider";
-    hitbox: ray.Rectangle = .{ .x = -1, .y = -1, .width = 2, .height = 2 },
+pub const hitbox = struct {
+    pub const name = "hitbox";
+    left: f32 = 0.5,
+    right: f32 = 0.5,
+    top: f32 = 0.5,
+    bottom: f32 = 0.5,
 };
 pub const damage = struct {
     pub const name = "damage";

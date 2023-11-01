@@ -67,7 +67,7 @@ pub fn generateLevel(a: std.mem.Allocator, options: LevelGenOptions) !Level {
     defer tile_state.deinit();
 
     var entities = try a.create(ecs.ECS);
-    entities.* = try ecs.ECS.init(a, 5000);
+    entities.* = try ecs.ECS.init(a, 8000);
 
     var world_map = try a.create(map.MapState);
     world_map.* = try map.MapState.generate(a, tile_state, options);
@@ -85,7 +85,7 @@ pub fn generateLevel(a: std.mem.Allocator, options: LevelGenOptions) !Level {
         const slime_id = entities.newEntity(a).?;
         try entities.addComponent(a, slime_id, ecs.Component.physics{ .pos = ecs.randomVector2(50, 50) });
         try entities.addComponent(a, slime_id, ecs.Component.sprite{ .player = .{ .animation_name = "slime" } });
-        try entities.addComponent(a, slime_id, ecs.Component.collider{});
+        try entities.addComponent(a, slime_id, ecs.Component.hitbox{});
         try entities.addComponent(a, slime_id, ecs.Component.wanderer{});
         try entities.addComponent(a, slime_id, ecs.Component.health{});
         try entities.addComponent(a, slime_id, ecs.Component.movement_particles{});
