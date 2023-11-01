@@ -1,4 +1,5 @@
 const anime = @import("animation.zig");
+const sys = @import("systems.zig");
 const ray = @cImport({
     @cInclude("raylib.h");
 });
@@ -15,10 +16,9 @@ pub const physics = struct {
     friction: f32 = 0.96,
 
     pub fn getCachePosition(self: @This()) struct { x: usize, y: usize } {
-        const position_cache_scaling_factor = 4;
         return .{
-            .x = @intFromFloat(@max(@divFloor(self.pos.x, position_cache_scaling_factor), 0)),
-            .y = @intFromFloat(@max(@divFloor(self.pos.y, position_cache_scaling_factor), 0)),
+            .x = @intFromFloat(@max(@divFloor(self.pos.x, sys.position_cache_scale), 0)),
+            .y = @intFromFloat(@max(@divFloor(self.pos.y, sys.position_cache_scale), 0)),
         };
     }
 };
@@ -76,6 +76,15 @@ pub const hitbox = struct {
     right: f32 = 0.5,
     top: f32 = 0.5,
     bottom: f32 = 0.5,
+
+    pub fn getCollisionRect(self: @This(), pos: ray.Vector2) ray.Rectangle {
+        return ray.Rectangle{
+            .x = pos.x - self.left,
+            .y = pos.y - self.top,
+            .width = self.left + self.right,
+            .height = self.top + self.bottom,
+        };
+    }
 };
 pub const damage = struct {
     pub const name = "damage";

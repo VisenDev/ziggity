@@ -1,20 +1,22 @@
-pub const std = @import("std");
+const std = @import("std");
 const cam = @import("camera.zig");
 const anime = @import("animation.zig");
-pub const tile = @import("tiles.zig");
-pub const Arena = std.heap.ArenaAllocator;
-pub const page_allocator = std.heap.page_allocator;
-pub const level = @import("level.zig");
-pub const file = @import("file_utils.zig");
-pub const menu = @import("menu.zig");
-pub const key = @import("keybindings.zig");
-pub const save = @import("save.zig");
-pub const err = @import("error.zig");
-pub const texture = @import("textures.zig");
-pub const options = @import("options.zig");
-pub const ecs = @import("ecs.zig");
-pub const sys = @import("systems.zig");
-pub const animate = @import("animation.zig");
+const tile = @import("tiles.zig");
+const Arena = std.heap.ArenaAllocator;
+const page_allocator = std.heap.page_allocator;
+const level = @import("level.zig");
+const file = @import("file_utils.zig");
+const menu = @import("menu.zig");
+const key = @import("keybindings.zig");
+const save = @import("save.zig");
+const err = @import("error.zig");
+const texture = @import("textures.zig");
+const options = @import("options.zig");
+const ecs = @import("ecs.zig");
+const sys = @import("systems.zig");
+const animate = @import("animation.zig");
+const debug = @import("debug.zig");
+
 //pub const toml = @import("toml");
 const t2j = @cImport({
     @cInclude("toml-to-json.h");
@@ -83,6 +85,8 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
     var animation_state = try anime.AnimationState.init(a);
     defer animation_state.animations.deinit();
 
+    var debug_mode = true;
+
     //const shader = ray.LoadShader(0, ray.TextFormat("game-files/shaders/grayscale.fs", @as(c_int, 330)));
     //defer ray.UnloadShader(shader);
 
@@ -110,11 +114,20 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
         ray.ClearBackground(ray.RAYWHITE);
 
         lvl.map.render(&animation_state, &tile_state);
+
+        if (debug_mode) {
+            debug.renderPositionCache(lvl.ecs, a, tile_state.resolution);
+            debug.renderHitboxes(lvl.ecs, a, tile_state.resolution);
+        }
+
         sys.renderSprites(lvl.ecs, a, &animation_state, &tile_state);
 
         //       ray.EndShaderMode();
         ray.EndMode2D();
-        ray.DrawFPS(15, 15);
+        if (debug_mode) {
+            ray.DrawFPS(15, 15);
+            try debug.renderEntityCount(lvl.ecs);
+        }
         ray.EndDrawing();
 
         if (ray.IsKeyPressed('Q')) {

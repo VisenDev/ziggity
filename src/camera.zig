@@ -5,6 +5,7 @@ const ray = @cImport({
 });
 pub const std = @import("std");
 pub const level = @import("level.zig");
+const sys = @import("systems.zig");
 
 fn screenWidth() f32 {
     return @floatFromInt(ray.GetScreenWidth());
@@ -74,6 +75,13 @@ pub fn calculateCameraPosition(
         .zoom = zoom,
         .target = player_position,
     };
+}
+
+pub fn mousePos(camera: ray.Camera2D, tile_state_resolution: usize) ray.Vector2 {
+    return sys.scaleVector(
+        ray.GetScreenToWorld2D(ray.GetMousePosition(), camera),
+        1.0 / @as(f32, @floatFromInt(tile_state_resolution)),
+    );
 }
 
 test "unit tests" {

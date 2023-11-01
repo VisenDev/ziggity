@@ -17,21 +17,10 @@ pub fn checkCollision(
     physics_2: Component.physics,
     hitbox_2: Component.hitbox,
 ) bool {
-    const rect_1 = ray.Rectangle{
-        .x = physics_1.pos.x - hitbox_1.left,
-        .y = physics_1.pos.y - hitbox_1.top,
-        .width = hitbox_1.left + hitbox_1.right,
-        .height = hitbox_1.top + hitbox_1.bottom,
-    };
-
-    const rect_2 = ray.Rectangle{
-        .x = physics_2.pos.x - hitbox_2.left,
-        .y = physics_2.pos.y - hitbox_2.top,
-        .width = hitbox_2.left + hitbox_2.right,
-        .height = hitbox_2.top + hitbox_2.bottom,
-    };
-
-    return ray.CheckCollisionRecs(rect_1, rect_2);
+    return ray.CheckCollisionRecs(
+        hitbox_1.getCollisionRect(physics_1.pos),
+        hitbox_2.getCollisionRect(physics_2.pos),
+    );
 }
 
 pub fn findCollidingEntities(
@@ -45,15 +34,20 @@ pub fn findCollidingEntities(
     const hitbox = self.getMaybe(Component.hitbox, id) orelse return self.id_buffer.items;
 
     const pos = physics.getCachePosition();
-    const neighbor_list = self.position_cache.findNeighbors(pos.x, pos.y);
+    const neighbor_list = self.position_cache.findNeighbors(a, pos.x, pos.y);
     for (neighbor_list) |neighbor| {
         for (neighbor.items) |neighbor_id| {
             const neighbor_physics = self.getMaybe(Component.physics, neighbor_id) orelse continue;
             const neighbor_hitbox = self.getMaybe(Component.hitbox, neighbor_id) orelse continue;
 
-            if (!checkCollision(physics.*, hitbox.*, neighbor_physics.*, neighbor_hitbox.*)) continue;
-            try self.id_buffer.append(a, id);
+            if (checkCollision(physics.*, hitbox.*, neighbor_physics.*, neighbor_hitbox.*)) {
+                try self.id_buffer.append(a, neighbor_id);
+            }
         }
+    }
+
+    if (self.id_buffer.items.len > 0) {
+        //std.debug.print("collisions detected", .{});
     }
     return self.id_buffer.items;
 }

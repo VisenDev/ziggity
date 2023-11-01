@@ -21,7 +21,7 @@ frames = [
 name = "slime"
 rotation_speed = 0
 filepath = "slime.png"
-origin = {x = 0, y = 0}
+origin = {x = 16, y = 16}
 frames = [
    { subrect = {x = 0, y = 0, width = 32, height = 32}, milliseconds = 1000 }
 ]
@@ -47,9 +47,9 @@ frames = [
 
 [[animations]]
 name = "fireball"
-rotation_speed = 0
-filepath = "tilemap.png"
+rotation_speed = 10 
+filepath = "particle_default.png"
 origin = {x = 0, y = 0}
 frames = [
-   { subrect = {x = 128, y = 0, width = 32, height = 32}, milliseconds = 1000 }
+   { subrect = {x = 0, y = 0, width = 8, height = 8}, milliseconds = 1000 }
 ]

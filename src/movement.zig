@@ -90,8 +90,11 @@ pub fn updateMovementSystem(
         }
     }
 
+    //only cache entities with both a physics and hitbox component
+    const cache_systems = [_]type{ Component.physics, Component.hitbox };
+
     //cache positions
-    for (set) |member| {
+    for (self.getSystemDomain(a, &cache_systems)) |member| {
         const physics = self.get(Component.physics, member);
 
         const pos = physics.getCachePosition();

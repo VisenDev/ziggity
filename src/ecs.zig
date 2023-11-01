@@ -20,6 +20,10 @@ pub fn randomFloat() f32 {
     return rng_value / precision;
 }
 
+pub fn tof32(input: anytype) f32 {
+    return @floatFromInt(input);
+}
+
 pub fn randomVector2(max_x: usize, max_y: usize) ray.Vector2 {
     const state = struct {
         var rng = std.rand.DefaultPrng.init(0);

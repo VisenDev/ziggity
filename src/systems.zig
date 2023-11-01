@@ -9,6 +9,7 @@ const ecs = @import("ecs.zig");
 const SparseSet = @import("sparse_set.zig").SparseSet;
 const Grid = @import("grid.zig").Grid;
 const coll = @import("collisions.zig");
+const cam = @import("camera.zig");
 pub const Component = @import("components.zig");
 const intersection = @import("sparse_set.zig").intersection;
 const ray = @cImport({
@@ -17,6 +18,9 @@ const ray = @cImport({
 
 pub usingnamespace @import("movement.zig");
 const moveTowards = @This().moveTowards;
+
+//IMPORTANT, controls the scale of the position cache relative to the map
+pub const position_cache_scale: usize = 8;
 
 fn distance(a: ray.Vector2, b: ray.Vector2) f32 {
     const dx = a.x - b.x;
@@ -116,7 +120,7 @@ pub fn updatePlayerSystem(
         //let player shoot projectiles
         if (ray.IsMouseButtonDown(ray.MOUSE_BUTTON_LEFT)) {
             const fireball = self.newEntity(a) orelse return;
-            const pos = scaleVector(ray.GetScreenToWorld2D(ray.GetMousePosition(), camera), 1.0 / @as(f32, @floatFromInt(tile_state_resolution)));
+            const pos = cam.mousePos(camera, tile_state_resolution);
             self.addComponent(a, fireball, Component.physics{
                 .pos = pos,
                 .vel = .{
@@ -131,6 +135,7 @@ pub fn updatePlayerSystem(
                 .type = "force",
                 .amount = 10,
             }) catch return;
+            self.addComponent(a, fireball, Component.hitbox{}) catch return;
         }
     }
 }
@@ -153,6 +158,7 @@ pub fn updateDeathSystem(
         if (health.hp <= 0) {
             health.is_dead = true;
         }
+
         if (health.is_dead) {
             self.deleteEntity(a, member) catch return;
         }
@@ -170,7 +176,7 @@ pub fn updateHealthCooldownSystem(
     for (set) |member| {
         var health = self.get(Component.health, member);
 
-        if (health.cooldown_remaining > 0) {
+        if (health.cooldown_remaining >= 0) {
             health.cooldown_remaining -= opt.dt;
         }
     }
@@ -204,11 +210,17 @@ pub fn updateDamageSystem(
         const damage = self.get(Component.damage, member);
 
         for (colliders) |entity| {
-            std.debug.print("colliding entity found! {}\n", .{entity});
             var health = self.getMaybe(Component.health, entity) orelse continue;
+
+            const animation = self.get(Component.sprite, entity).*.player.animation_name;
+            std.debug.print("colliding entity found! {}{s}\n", .{ entity, animation });
+
             if (health.cooldown_remaining <= 0) {
+                std.debug.print("damage dealt", .{});
                 health.hp -= damage.amount;
                 health.cooldown_remaining = Component.health.damage_cooldown;
+            } else {
+                std.debug.print("failed to damage entity with health {}\n", .{health});
             }
         }
     }
@@ -216,7 +228,7 @@ pub fn updateDamageSystem(
 
 //===============RENDERING================
 
-fn tof32(input: anytype) f32 {
+pub fn tof32(input: anytype) f32 {
     return @floatFromInt(input);
 }
 
@@ -225,6 +237,14 @@ pub inline fn scaleVector(a: ray.Vector2, scalar: anytype) ray.Vector2 {
         return .{ .x = a.x * scalar, .y = a.y * scalar };
 
     return .{ .x = a.x * tof32(scalar), .y = a.y * tof32(scalar) };
+}
+
+pub inline fn scaleRectangle(a: ray.Rectangle, scalar: anytype) ray.Rectangle {
+    if (@TypeOf(scalar) == f32)
+        return .{ .x = a.x * scalar, .y = a.y * scalar, .width = a.width * scalar, .height = a.height * scalar };
+
+    const floated = tof32(scalar);
+    return .{ .x = a.x * floated, .y = a.y * floated, .width = a.width * floated, .height = a.height * floated };
 }
 
 pub fn renderSprites(self: *ecs.ECS, a: std.mem.Allocator, animation_state: *const anime.AnimationState, tile_state: *const tile.TileState) void {

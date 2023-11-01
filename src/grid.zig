@@ -85,7 +85,7 @@ pub fn Grid(comptime T: type) type {
             self.neighbor_list.deinit(a);
         }
 
-        pub fn isValidIndex(self: *const @This(), x: usize, y: usize) bool {
+        pub fn isValidIndex(self: *const @This(), x: anytype, y: anytype) bool {
             return x >= 0 and x < self.items.len and y >= 0 and y < self.items[x].len;
         }
 
@@ -95,25 +95,30 @@ pub fn Grid(comptime T: type) type {
         }
 
         ///finds neighbors to any given cell
-        pub fn findNeighbors(self: *const @This(), search_x: usize, search_y: usize) []T {
+        pub fn findNeighbors(self: *@This(), a: std.mem.Allocator, search_x: usize, search_y: usize) []T {
             var len: usize = 0;
 
-            if (self.neighbor_list.items.len + self.neighbor_list.capacity < 9) {
-                @panic("neighbor_list memory not allocated");
+            if (self.neighbor_list.items.len < 9) {
+                self.neighbor_list.appendNTimes(a, self.default_value, 9) catch return self.neighbor_list.items;
             }
 
             for (0..3) |x_offset| {
                 for (0..3) |y_offset| {
+                    //prevent integer overflow
+                    if (search_x + x_offset == 0 or search_y + y_offset == 0) continue;
+
                     const x = search_x + x_offset - 1;
                     const y = search_y + y_offset - 1;
 
-                    if (x == search_x or y == search_y or !self.isValidIndex(x, y)) {
+                    if (!self.isValidIndex(x, y)) {
                         continue;
                     }
 
                     self.neighbor_list.items[len] = self.items[x][y];
+                    len += 1;
                 }
             }
+
             return self.neighbor_list.items[0..len];
         }
     };
