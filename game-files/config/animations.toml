@@ -43,3 +43,13 @@ origin = {x = 0, y = 0}
 frames = [
    { subrect = {x = 32, y = 0, width = 32, height = 32}, milliseconds = 1000 }
 ]
+
+
+[[animations]]
+name = "fireball"
+rotation_speed = 0
+filepath = "tilemap.png"
+origin = {x = 0, y = 0}
+frames = [
+   { subrect = {x = 128, y = 0, width = 32, height = 32}, milliseconds = 1000 }
+]

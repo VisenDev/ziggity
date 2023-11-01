@@ -96,7 +96,7 @@ pub fn Grid(comptime T: type) type {
 
         ///finds neighbors to any given cell
         pub fn findNeighbors(self: *const @This(), search_x: usize, search_y: usize) []T {
-            var len = 0;
+            var len: usize = 0;
 
             if (self.neighbor_list.items.len + self.neighbor_list.capacity < 9) {
                 @panic("neighbor_list memory not allocated");
@@ -111,12 +111,10 @@ pub fn Grid(comptime T: type) type {
                         continue;
                     }
 
-                    if (self.items[x][y]) |item| {
-                        self.neighbor_list.items[len] = item;
-                    }
+                    self.neighbor_list.items[len] = self.items[x][y];
                 }
             }
-            return self.neighbor_list[0..len];
+            return self.neighbor_list.items[0..len];
         }
     };
 }

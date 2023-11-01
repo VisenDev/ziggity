@@ -93,14 +93,16 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
         //configure update options
         const delta_time = ray.GetFrameTime();
         const update_options = options.Update{ .dt = delta_time };
+        camera = cam.calculateCameraPosition(camera, lvl, &tile_state, &keybindings);
 
         try sys.updateMovementSystem(lvl.ecs, a, lvl.map, &animation_state, update_options);
-        sys.updatePlayerSystem(lvl.ecs, a, keybindings, update_options);
+        sys.updatePlayerSystem(lvl.ecs, a, keybindings, camera, tile_state.resolution, update_options);
         sys.updateWanderingSystem(lvl.ecs, a, update_options);
+        try sys.updateDamageSystem(lvl.ecs, a, update_options);
+        sys.updateHealthCooldownSystem(lvl.ecs, a, update_options);
         sys.updateDeathSystem(lvl.ecs, a, update_options);
         sys.updateSpriteSystem(lvl.ecs, a, &animation_state, update_options);
 
-        camera = cam.calculateCameraPosition(camera, lvl, &tile_state, &keybindings);
         ray.BeginDrawing();
         ray.BeginMode2D(camera); // Begin 2D mode with custom camera (2D)
         //        ray.BeginShaderMode(shader);

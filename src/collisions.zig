@@ -1,0 +1,59 @@
+const std = @import("std");
+const map = @import("map.zig");
+const key = @import("keybindings.zig");
+const texture = @import("textures.zig");
+const options = @import("options.zig");
+const SparseSet = @import("sparse_set.zig").SparseSet;
+const Grid = @import("grid.zig").Grid;
+pub const Component = @import("components.zig");
+const ecs = @import("ecs.zig");
+const ray = @cImport({
+    @cInclude("raylib.h");
+});
+
+pub fn checkCollision(
+    physics_1: Component.physics,
+    hitbox_1: Component.hitbox,
+    physics_2: Component.physics,
+    hitbox_2: Component.hitbox,
+) bool {
+    const rect_1 = ray.Rectangle{
+        .x = physics_1.pos.x - hitbox_1.left,
+        .y = physics_1.pos.y - hitbox_1.top,
+        .width = hitbox_1.left + hitbox_1.right,
+        .height = hitbox_1.top + hitbox_1.bottom,
+    };
+
+    const rect_2 = ray.Rectangle{
+        .x = physics_2.pos.x - hitbox_2.left,
+        .y = physics_2.pos.y - hitbox_2.top,
+        .width = hitbox_2.left + hitbox_2.right,
+        .height = hitbox_2.top + hitbox_2.bottom,
+    };
+
+    return ray.CheckCollisionRecs(rect_1, rect_2);
+}
+
+pub fn findCollidingEntities(
+    self: *ecs.ECS,
+    a: std.mem.Allocator,
+    id: usize,
+) ![]usize {
+    self.id_buffer.clearRetainingCapacity();
+
+    const physics = self.getMaybe(Component.physics, id) orelse return self.id_buffer.items;
+    const hitbox = self.getMaybe(Component.hitbox, id) orelse return self.id_buffer.items;
+
+    const pos = physics.getCachePosition();
+    const neighbor_list = self.position_cache.findNeighbors(pos.x, pos.y);
+    for (neighbor_list) |neighbor| {
+        for (neighbor.items) |neighbor_id| {
+            const neighbor_physics = self.getMaybe(Component.physics, neighbor_id) orelse continue;
+            const neighbor_hitbox = self.getMaybe(Component.hitbox, neighbor_id) orelse continue;
+
+            if (!checkCollision(physics.*, hitbox.*, neighbor_physics.*, neighbor_hitbox.*)) continue;
+            try self.id_buffer.append(a, id);
+        }
+    }
+    return self.id_buffer.items;
+}

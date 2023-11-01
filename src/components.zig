@@ -13,12 +13,22 @@ pub const physics = struct {
     //internal, should usually be treated as constants
     acceleration: f32 = 0.02,
     friction: f32 = 0.96,
+
+    pub fn getCachePosition(self: @This()) struct { x: usize, y: usize } {
+        const position_cache_scaling_factor = 4;
+        return .{
+            .x = @intFromFloat(@max(@divFloor(self.pos.x, position_cache_scaling_factor), 0)),
+            .y = @intFromFloat(@max(@divFloor(self.pos.y, position_cache_scaling_factor), 0)),
+        };
+    }
 };
 pub const health = struct {
     pub const name = "health";
     hp: f32 = 10,
     max_hp: f32 = 10,
     is_dead: bool = false,
+    cooldown_remaining: f32 = 0,
+    pub const damage_cooldown: u32 = 150;
 };
 pub const sprite = struct {
     pub const name = "sprite";
@@ -69,10 +79,8 @@ pub const hitbox = struct {
 };
 pub const damage = struct {
     pub const name = "damage";
-    type: []u8,
-    amount: f32,
-    cooldown: f32,
-    default_cooldown: f32,
+    type: []const u8 = "",
+    amount: f32 = 10,
 };
 pub const nametag = struct {
     pub const name = "nametag";

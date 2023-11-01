@@ -8,11 +8,15 @@ const options = @import("options.zig");
 const ecs = @import("ecs.zig");
 const SparseSet = @import("sparse_set.zig").SparseSet;
 const Grid = @import("grid.zig").Grid;
+const coll = @import("collisions.zig");
 pub const Component = @import("components.zig");
 const intersection = @import("sparse_set.zig").intersection;
 const ray = @cImport({
     @cInclude("raylib.h");
 });
+
+pub usingnamespace @import("movement.zig");
+const moveTowards = @This().moveTowards;
 
 fn distance(a: ray.Vector2, b: ray.Vector2) f32 {
     const dx = a.x - b.x;
@@ -34,21 +38,6 @@ pub fn updateHostileAiSystem(self: *ecs.ECS, a: std.mem.Allocator, opt: options.
 
         switch (mind.activity) {}
     }
-}
-
-pub fn normalize(v: ray.Vector2) ray.Vector2 {
-    const mag = std.math.sqrt(v.x * v.x + v.y * v.y);
-    return ray.Vector2{
-        .x = v.x / mag,
-        .y = v.y / mag,
-    };
-}
-
-//makes a physics system move towards a destination
-pub fn moveTowards(physics: *Component.physics, destination: ray.Vector2, opt: options.Update) void {
-    const normal = normalize(destination);
-    physics.vel.x += normal.x * physics.acceleration * opt.dt;
-    physics.vel.y += normal.y * physics.acceleration * opt.dt;
 }
 
 pub fn updateWanderingSystem(self: *ecs.ECS, a: std.mem.Allocator, opt: options.Update) void {
@@ -88,150 +77,12 @@ pub fn updateWanderingSystem(self: *ecs.ECS, a: std.mem.Allocator, opt: options.
     }
 }
 
-pub fn checkCollision(
-    physics_1: Component.physics,
-    hitbox_1: Component.hitbox,
-    physics_2: Component.physics,
-    hitbox_2: Component.hitbox,
-) bool {
-    const rect_1 = ray.Rectangle{
-        .x = physics_1.pos.x - hitbox_1.left,
-        .y = physics_1.pos.y - hitbox_1.top,
-        .width = hitbox_1.left + hitbox_1.right,
-        .height = hitbox_1.top + hitbox_1.bottom,
-    };
-
-    const rect_2 = ray.Rectangle{
-        .x = physics_2.pos.x - hitbox_2.left,
-        .y = physics_2.pos.y - hitbox_2.top,
-        .width = hitbox_2.left + hitbox_2.right,
-        .height = hitbox_2.top + hitbox_2.bottom,
-    };
-
-    return ray.CheckCollisionRecs(rect_1, rect_2);
-}
-
-const position_cache_scaling_factor = 4;
-///returns the position cache position from a coordinate
-fn cachePosition(pos: ray.Vector2) struct { x: usize, y: usize } {
-    return .{
-        .x = @intFromFloat(@max(@divFloor(pos.x, position_cache_scaling_factor), 0)),
-        .y = @intFromFloat(@max(@divFloor(pos.y, position_cache_scaling_factor), 0)),
-    };
-}
-
-pub fn findCollidingEntities(
-    self: *ecs.ECS,
-    a: std.mem.Allocator,
-    id: usize,
-) ![]usize {
-    self.id_buffer.clearRetainingCapacity();
-
-    const physics = self.getMaybe(Component.physics, id) orelse return &{};
-    const hitbox = self.getMaybe(Component.hitbox, id) orelse return &{};
-
-    const pos = cachePosition(physics.pos);
-    const neighbor_list = self.position_cache.findNeighbors(pos.x, pos.y);
-    for (neighbor_list) |neighbor| {
-        for (neighbor.items) |neighbor_id| {
-            const neighbor_physics = self.getMaybe(Component.physics, neighbor_id) orelse continue;
-            const neighbor_hitbox = self.getMaybe(Component.hitbox, neighbor_id) orelse continue;
-
-            if (!checkCollision(physics, hitbox, neighbor_physics, neighbor_hitbox)) continue;
-            self.id_buffer.append(a, id);
-        }
-    }
-    return self.id_buffer.items;
-}
-
-pub fn updateMovementSystem(
-    self: *ecs.ECS,
-    a: std.mem.Allocator,
-    m: *const map.MapState,
-    animations: *const anime.AnimationState,
-    opt: options.Update,
-) !void {
-    _ = m;
-    _ = animations;
-    const systems = [_]type{Component.physics};
-    const set = self.getSystemDomain(a, &systems);
-
-    for (set) |member| {
-        var physics = self.get(Component.physics, member);
-
-        const old_position = physics.pos;
-
-        physics.pos.x += physics.vel.x;
-        physics.pos.y += physics.vel.y;
-
-        physics.vel.x *= physics.friction;
-        physics.vel.y *= physics.friction;
-
-        //undo if the entity collides
-        if (self.getMaybe(Component.hitbox, member)) |hitbox| {
-            _ = hitbox;
-            //TODO add collision with map detection
-            //physics.pos = old_position;
-        }
-
-        if (self.getMaybe(Component.movement_particles, member)) |_| {
-            if (physics.pos.x != old_position.x or physics.pos.y != old_position.y) {
-                const particle = self.newEntity(a).?;
-                self.addComponent(a, particle, Component.health{}) catch return;
-                self.addComponent(
-                    a,
-                    particle,
-                    Component.physics{
-                        .pos = .{
-                            .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
-                            .y = physics.pos.y + 1 + 0.2 * (ecs.randomFloat() - 0.5),
-                        },
-                        .vel = .{
-                            .x = (ecs.randomFloat() - 0.5) * opt.dt,
-                            .y = (ecs.randomFloat() - 0.5) * opt.dt,
-                        },
-                    },
-                ) catch return;
-
-                self.addComponent(
-                    a,
-                    particle,
-                    Component.sprite{
-                        .player = .{ .animation_name = "particle" },
-                    },
-                ) catch return;
-                self.addComponent(a, particle, Component.health_trickle{}) catch return;
-            }
-        }
-    }
-
-    //clear position cache
-    for (0..self.position_cache.getWidth()) |x| {
-        for (0..self.position_cache.getHeight()) |y| {
-            self.position_cache.get(x, y).?.clearRetainingCapacity();
-        }
-    }
-
-    //cache positions
-    for (set) |member| {
-        const physics = self.get(Component.physics, member);
-
-        const x: usize = @intFromFloat(@max(@divFloor(physics.pos.x, position_cache_scaling_factor), 0));
-        const y: usize = @intFromFloat(@max(@divFloor(physics.pos.y, position_cache_scaling_factor), 0));
-
-        if (x < 0 or y < 0) continue;
-
-        var cache_list = try self.position_cache.getOrSet(a, x, y, .{});
-        try cache_list.append(a, member);
-    }
-
-    //calculate collisions
-}
-
 pub fn updatePlayerSystem(
     self: *ecs.ECS,
     a: std.mem.Allocator,
     keys: key.KeyBindings,
+    camera: ray.Camera2D,
+    tile_state_resolution: usize,
     opt: options.Update,
 ) void {
     const systems = [_]type{ Component.is_player, Component.physics };
@@ -261,6 +112,26 @@ pub fn updatePlayerSystem(
         var physics = self.get(Component.physics, member);
         physics.vel.x += direction.x * physics.acceleration * opt.dt;
         physics.vel.y += direction.y * physics.acceleration * opt.dt;
+
+        //let player shoot projectiles
+        if (ray.IsMouseButtonDown(ray.MOUSE_BUTTON_LEFT)) {
+            const fireball = self.newEntity(a) orelse return;
+            const pos = scaleVector(ray.GetScreenToWorld2D(ray.GetMousePosition(), camera), 1.0 / @as(f32, @floatFromInt(tile_state_resolution)));
+            self.addComponent(a, fireball, Component.physics{
+                .pos = pos,
+                .vel = .{
+                    .x = (ecs.randomFloat() - 0.5) * opt.dt,
+                    .y = (ecs.randomFloat() - 0.5) * opt.dt,
+                },
+            }) catch return;
+            self.addComponent(a, fireball, Component.sprite{
+                .player = .{ .animation_name = "fireball" },
+            }) catch return;
+            self.addComponent(a, fireball, Component.damage{
+                .type = "force",
+                .amount = 10,
+            }) catch return;
+        }
     }
 }
 
@@ -288,6 +159,23 @@ pub fn updateDeathSystem(
     }
 }
 
+pub fn updateHealthCooldownSystem(
+    self: *ecs.ECS,
+    a: std.mem.Allocator,
+    opt: options.Update,
+) void {
+    const systems = [_]type{Component.health};
+    const set = self.getSystemDomain(a, &systems);
+
+    for (set) |member| {
+        var health = self.get(Component.health, member);
+
+        if (health.cooldown_remaining > 0) {
+            health.cooldown_remaining -= opt.dt;
+        }
+    }
+}
+
 pub fn updateSpriteSystem(
     self: *ecs.ECS,
     a: std.mem.Allocator,
@@ -302,6 +190,30 @@ pub fn updateSpriteSystem(
     }
 }
 
+pub fn updateDamageSystem(
+    self: *ecs.ECS,
+    a: std.mem.Allocator,
+    opt: options.Update,
+) !void {
+    _ = opt;
+    const systems = [_]type{ Component.physics, Component.hitbox, Component.damage };
+    const set = self.getSystemDomain(a, &systems);
+
+    for (set) |member| {
+        const colliders = try coll.findCollidingEntities(self, a, member);
+        const damage = self.get(Component.damage, member);
+
+        for (colliders) |entity| {
+            std.debug.print("colliding entity found! {}\n", .{entity});
+            var health = self.getMaybe(Component.health, entity) orelse continue;
+            if (health.cooldown_remaining <= 0) {
+                health.hp -= damage.amount;
+                health.cooldown_remaining = Component.health.damage_cooldown;
+            }
+        }
+    }
+}
+
 //===============RENDERING================
 
 fn tof32(input: anytype) f32 {
@@ -309,6 +221,9 @@ fn tof32(input: anytype) f32 {
 }
 
 pub inline fn scaleVector(a: ray.Vector2, scalar: anytype) ray.Vector2 {
+    if (@TypeOf(scalar) == f32)
+        return .{ .x = a.x * scalar, .y = a.y * scalar };
+
     return .{ .x = a.x * tof32(scalar), .y = a.y * tof32(scalar) };
 }
 
