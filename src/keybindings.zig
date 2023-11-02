@@ -12,6 +12,22 @@ pub const Key = struct {
     control: bool = false,
 
     pub fn pressed(self: @This()) bool {
+        if (!ray.IsKeyPressed(self.char)) {
+            return false;
+        }
+
+        if (self.shift and !ray.IsKeyPressed(ray.KEY_LEFT_SHIFT) and !ray.IsKeyPressed(ray.KEY_RIGHT_SHIFT)) {
+            return false;
+        }
+
+        if (self.control and !ray.IsKeyPressed(ray.KEY_LEFT_CONTROL) and !ray.IsKeyPressed(ray.KEY_RIGHT_CONTROL)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    pub fn down(self: @This()) bool {
         if (!ray.IsKeyDown(self.char)) {
             return false;
         }
@@ -35,6 +51,7 @@ pub const KeyBindings = struct {
     player_right: Key = .{ .char = 'D' },
     zoom_in: Key = .{ .char = '=' },
     zoom_out: Key = .{ .char = '-' },
+    debug_mode: Key = .{ .char = '/' },
 
     pub fn init(a: std.mem.Allocator) !@This() {
         const json_config = file.readConfig(@This(), a, file.FileName.keybindings) catch return @This(){};

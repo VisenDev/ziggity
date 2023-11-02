@@ -67,7 +67,7 @@ pub fn updateMovementSystem(
                 self.addComponent(a, particle, Component.physics{
                     .pos = .{
                         .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
-                        .y = physics.pos.y + 1 + 0.2 * (ecs.randomFloat() - 0.5),
+                        .y = physics.pos.y + 0.8 * (ecs.randomFloat() - 0.5),
                     },
                     .vel = .{
                         .x = (ecs.randomFloat() - 0.5) * opt.dt,
@@ -76,7 +76,7 @@ pub fn updateMovementSystem(
                 }) catch return;
 
                 self.addComponent(a, particle, Component.sprite{
-                    .player = .{ .animation_name = "particle" },
+                    .player = .{ .animation_name = "particle", .tint = ray.ColorAlpha(ray.GRAY, 0.2) },
                 }) catch return;
                 self.addComponent(a, particle, Component.health_trickle{}) catch return;
             }

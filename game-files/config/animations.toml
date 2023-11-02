@@ -2,10 +2,10 @@
 name = "particle"
 rotation_speed = 0 #how much the animation rotates every game tick
 filepath = "particle_default.png"
-origin = {x = 8, y = 8} #where the animation should be drawn relative to
+origin = {x = 4, y = 4} #where the animation should be drawn relative to
 frames = [ #this contains every frame of the animation, and how many milliseconds it is shown
-   { subrect = {x = 0, y = 0, width = 4, height = 4}, milliseconds = 250 },
-   { subrect = {x = 0, y = 0, width = 4, height = 4}, milliseconds = 250 }
+   { subrect = {x = 0, y = 0, width = 8, height = 8}, milliseconds = 250 },
+   { subrect = {x = 0, y = 0, width = 8, height = 8}, milliseconds = 250 }
 ]
 
 [[animations]]

@@ -23,7 +23,7 @@ pub inline fn initCamera() ray.Camera2D {
     return ray.Camera2D{
         .offset = .{ .x = 0, .y = 0 },
         .rotation = 0.0,
-        .zoom = 1,
+        .zoom = 2,
         .target = .{ .x = 0, .y = 0 },
     };
 }
@@ -36,8 +36,8 @@ pub fn calculateCameraPosition(
     keybindings: *const key.KeyBindings,
 ) ray.Camera2D {
     var zoom = camera.zoom;
-    if (keybindings.zoom_in.pressed() and zoom < 4.3) zoom *= 1.01;
-    if (keybindings.zoom_out.pressed() and zoom > 0.7) zoom *= 0.99;
+    if (keybindings.zoom_in.down() and zoom < 4.3) zoom *= 1.01;
+    if (keybindings.zoom_out.down() and zoom > 0.7) zoom *= 0.99;
 
     const player_id = l.player_id;
     var player_position: ray.Vector2 = l.ecs.components.physics.get(player_id).?.pos;

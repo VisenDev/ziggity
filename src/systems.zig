@@ -20,7 +20,7 @@ pub usingnamespace @import("movement.zig");
 const moveTowards = @This().moveTowards;
 
 //IMPORTANT, controls the scale of the position cache relative to the map
-pub const position_cache_scale: usize = 8;
+pub const position_cache_scale: usize = 2;
 
 fn distance(a: ray.Vector2, b: ray.Vector2) f32 {
     const dx = a.x - b.x;
@@ -97,19 +97,19 @@ pub fn updatePlayerSystem(
     for (set) |member| {
         var direction = ray.Vector2{ .x = 0, .y = 0 };
 
-        if (keys.player_up.pressed()) {
+        if (keys.player_up.down()) {
             direction.y -= magnitude;
         }
 
-        if (keys.player_down.pressed()) {
+        if (keys.player_down.down()) {
             direction.y += magnitude;
         }
 
-        if (keys.player_left.pressed()) {
+        if (keys.player_left.down()) {
             direction.x -= magnitude;
         }
 
-        if (keys.player_right.pressed()) {
+        if (keys.player_right.down()) {
             direction.x += magnitude;
         }
 
@@ -129,13 +129,15 @@ pub fn updatePlayerSystem(
                 },
             }) catch return;
             self.addComponent(a, fireball, Component.sprite{
-                .player = .{ .animation_name = "fireball" },
+                .player = .{ .animation_name = "fireball", .tint = ray.ColorAlpha(ray.ORANGE, 0.5) },
             }) catch return;
             self.addComponent(a, fireball, Component.damage{
                 .type = "force",
                 .amount = 10,
             }) catch return;
-            self.addComponent(a, fireball, Component.hitbox{}) catch return;
+            self.addComponent(a, fireball, Component.hitbox{ .top = 0.1, .bottom = 0.1, .left = 0.1, .right = 0.1 }) catch return;
+            self.addComponent(a, fireball, Component.health_trickle{ .decrease_per_tick = 0.001 }) catch return;
+            self.addComponent(a, fireball, Component.health{ .hp = 1000 }) catch return;
         }
     }
 }
@@ -219,8 +221,6 @@ pub fn updateDamageSystem(
                 std.debug.print("damage dealt", .{});
                 health.hp -= damage.amount;
                 health.cooldown_remaining = Component.health.damage_cooldown;
-            } else {
-                std.debug.print("failed to damage entity with health {}\n", .{health});
             }
         }
     }

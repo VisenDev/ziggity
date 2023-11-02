@@ -27,7 +27,7 @@ pub fn renderHitboxes(self: *ecs.ECS, a: std.mem.Allocator, tile_state_resolutio
         const hitbox = self.get(Component.hitbox, member);
 
         const rect = hitbox.getCollisionRect(physics.pos);
-        ray.DrawRectangleRec(sys.scaleRectangle(rect, tile_state_resolution), ray.ColorAlpha(ray.RAYWHITE, 0.1));
+        ray.DrawRectangleLinesEx(sys.scaleRectangle(rect, tile_state_resolution), 1, ray.ColorAlpha(ray.RAYWHITE, 0.4));
     }
 }
 
@@ -46,10 +46,10 @@ pub fn renderPositionCache(self: *ecs.ECS, a: std.mem.Allocator, tile_state_reso
                     .y = sys.tof32(y * sys.position_cache_scale * tile_state_resolution),
                 };
                 const size = sys.tof32(sys.position_cache_scale * tile_state_resolution);
-                ray.DrawRectangleV(position, .{ .x = size, .y = size }, ray.ColorAlpha(ray.YELLOW, 0.01));
+                ray.DrawRectangleLinesEx(.{ .x = position.x, .y = position.y, .width = size, .height = size }, 1, ray.ColorAlpha(ray.YELLOW, 0.5));
 
                 _ = std.fmt.bufPrintZ(&buf, "{}", .{contents.items.len}) catch unreachable;
-                ray.DrawTextEx(ray.GetFontDefault(), &buf, position, 10, font_size, ray.RAYWHITE);
+                ray.DrawTextEx(ray.GetFontDefault(), &buf, position, font_size / 2, 2, ray.RAYWHITE);
             }
         }
     }

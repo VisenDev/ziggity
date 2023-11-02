@@ -94,6 +94,11 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
 
     while (!ray.WindowShouldClose()) {
 
+        //debug on or off
+        if (keybindings.debug_mode.pressed()) {
+            debug_mode = !debug_mode;
+        }
+
         //configure update options
         const delta_time = ray.GetFrameTime();
         const update_options = options.Update{ .dt = delta_time };
