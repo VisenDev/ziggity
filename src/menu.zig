@@ -10,11 +10,15 @@ const ray = @cImport({
 
 pub const Window = enum { main_menu, game, save_menu, config_menu, quit, new_save };
 
+fn backgroundColor() ray.Color {
+    return ray.GetColor(@intCast(ray.GuiGetStyle(0, ray.BACKGROUND_COLOR)));
+}
+
 pub fn drawMainMenu() Window {
     while (!ray.WindowShouldClose()) {
         ray.BeginDrawing();
 
-        ray.ClearBackground(ray.RAYWHITE);
+        ray.ClearBackground(backgroundColor());
         ray.DrawText("Hello, World!", 190, 200, 20, ray.LIGHTGRAY);
         if (ray.GuiButton(ray.Rectangle{ .x = 20.0, .y = 20.0, .width = 115.0, .height = 30.0 }, "PLAY") == 1) {
             return .save_menu;
@@ -39,7 +43,7 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, save_id: *[]u8) !Window {
     ray.SetMousePosition(0, 0);
     while (!ray.WindowShouldClose()) {
         ray.BeginDrawing();
-        ray.ClearBackground(ray.RAYWHITE);
+        ray.ClearBackground(backgroundColor());
 
         var iterator = save_dir.iterate();
         while (try iterator.next()) |val| : (i += 1) {
@@ -66,7 +70,7 @@ pub fn drawNewSaveMenu(a: std.mem.Allocator) !Window {
 
     while (!ray.WindowShouldClose()) {
         ray.BeginDrawing();
-        ray.ClearBackground(ray.RAYWHITE);
+        ray.ClearBackground(backgroundColor());
 
         ray.DrawText("Enter Save Name!", 20, 20, 20, ray.DARKGRAY);
 

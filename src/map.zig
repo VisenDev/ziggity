@@ -6,6 +6,7 @@ const level = @import("level.zig");
 const options = @import("options.zig");
 const Allocator = std.mem.Allocator;
 const Grid = @import("grid.zig").Grid;
+
 const perlin = @cImport({
     @cInclude("perlin.c");
 });

@@ -136,8 +136,6 @@ pub fn updatePlayerSystem(
                 .amount = 10,
             }) catch return;
             self.addComponent(a, fireball, Component.hitbox{ .top = 0.1, .bottom = 0.1, .left = 0.1, .right = 0.1 }) catch return;
-            self.addComponent(a, fireball, Component.health_trickle{ .decrease_per_tick = 0.001 }) catch return;
-            self.addComponent(a, fireball, Component.health{ .hp = 1000 }) catch return;
         }
     }
 }

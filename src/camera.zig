@@ -7,11 +7,11 @@ pub const std = @import("std");
 pub const level = @import("level.zig");
 const sys = @import("systems.zig");
 
-fn screenWidth() f32 {
+pub fn screenWidth() f32 {
     return @floatFromInt(ray.GetScreenWidth());
 }
 
-fn screenHeight() f32 {
+pub fn screenHeight() f32 {
     return @floatFromInt(ray.GetScreenHeight());
 }
 

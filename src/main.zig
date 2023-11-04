@@ -16,6 +16,7 @@ const ecs = @import("ecs.zig");
 const sys = @import("systems.zig");
 const animate = @import("animation.zig");
 const debug = @import("debug.zig");
+const cmd = @import("console.zig");
 
 //pub const toml = @import("toml");
 const t2j = @cImport({
@@ -76,7 +77,7 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
     defer json_parsed_level.deinit();
     var lvl = json_parsed_level.value;
 
-    const keybindings = try key.KeyBindings.init(a);
+    var keybindings = try key.KeyBindings.init(a);
     defer keybindings.deinit(a);
 
     var tile_state = try tile.TileState.init(a);
@@ -84,6 +85,9 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
 
     var animation_state = try anime.AnimationState.init(a);
     defer animation_state.animations.deinit();
+
+    var console = try cmd.Console.init(a);
+    defer console.deinit();
 
     var debug_mode = true;
 
@@ -93,11 +97,12 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
     var camera = cam.initCamera();
 
     while (!ray.WindowShouldClose()) {
-
         //debug on or off
         if (keybindings.debug_mode.pressed()) {
             debug_mode = !debug_mode;
         }
+
+        keybindings.update(console.isPlayerTyping());
 
         //configure update options
         const delta_time = ray.GetFrameTime();
@@ -114,8 +119,6 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
 
         ray.BeginDrawing();
         ray.BeginMode2D(camera); // Begin 2D mode with custom camera (2D)
-        //        ray.BeginShaderMode(shader);
-
         ray.ClearBackground(ray.RAYWHITE);
 
         lvl.map.render(&animation_state, &tile_state);
@@ -126,13 +129,14 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
         }
 
         sys.renderSprites(lvl.ecs, a, &animation_state, &tile_state);
-
-        //       ray.EndShaderMode();
         ray.EndMode2D();
+
         if (debug_mode) {
             ray.DrawFPS(15, 15);
             try debug.renderEntityCount(lvl.ecs);
         }
+
+        try console.render(keybindings);
         ray.EndDrawing();
 
         if (ray.IsKeyPressed('Q')) {

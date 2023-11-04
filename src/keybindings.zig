@@ -6,12 +6,16 @@ const ray = @cImport({
 
 //================KeyBindings======================
 
+var deactivated = false;
+
 pub const Key = struct {
     char: u8,
     shift: bool = false,
     control: bool = false,
 
     pub fn pressed(self: @This()) bool {
+        if (deactivated) return false;
+
         if (!ray.IsKeyPressed(self.char)) {
             return false;
         }
@@ -28,6 +32,8 @@ pub const Key = struct {
     }
 
     pub fn down(self: @This()) bool {
+        if (deactivated) return false;
+
         if (!ray.IsKeyDown(self.char)) {
             return false;
         }
@@ -52,6 +58,7 @@ pub const KeyBindings = struct {
     zoom_in: Key = .{ .char = '=' },
     zoom_out: Key = .{ .char = '-' },
     debug_mode: Key = .{ .char = '/' },
+    console: Key = .{ .char = 'T' },
 
     pub fn init(a: std.mem.Allocator) !@This() {
         const json_config = file.readConfig(@This(), a, file.FileName.keybindings) catch return @This(){};
@@ -63,5 +70,10 @@ pub const KeyBindings = struct {
     pub fn deinit(self: *const @This(), a: std.mem.Allocator) void {
         _ = a;
         _ = self;
+    }
+
+    pub fn update(self: *@This(), player_is_typing: bool) void {
+        _ = self;
+        deactivated = player_is_typing;
     }
 };
