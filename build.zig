@@ -11,6 +11,19 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    //link guile
+    //exe.linkSystemLibrary("guile-3.0");
+
+    //link lua
+    const ziglua = b.dependency("ziglua", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
+    // add the ziglua module and lua artifact
+    exe.addModule("ziglua", ziglua.module("ziglua"));
+    exe.linkLibrary(ziglua.artifact("lua"));
+
     //link raylib
     exe.linkSystemLibrary("raylib");
     exe.linkLibC();

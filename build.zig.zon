@@ -7,5 +7,9 @@
             .url = "https://github.com/VisenDev/ztoml/archive/refs/heads/main.tar.gz",
             .hash = "1220b093649934a3ccf0cd8da07a1b25cd37ebd95d8463549c9e1368218531192823",
          },
+         .ziglua = .{
+            .url = "https://github.com/natecraddock/ziglua/archive/refs/tags/0.2.0.tar.gz",
+            .hash = "1220d14df5c57d4c3fafe26191fcc3b32c23ffd319e7f5d839d2ace030372f1f85b4",
+         },
       },
    }

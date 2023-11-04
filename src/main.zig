@@ -3,7 +3,6 @@ const cam = @import("camera.zig");
 const anime = @import("animation.zig");
 const tile = @import("tiles.zig");
 const Arena = std.heap.ArenaAllocator;
-const page_allocator = std.heap.page_allocator;
 const level = @import("level.zig");
 const file = @import("file_utils.zig");
 const menu = @import("menu.zig");
@@ -17,6 +16,7 @@ const sys = @import("systems.zig");
 const animate = @import("animation.zig");
 const debug = @import("debug.zig");
 const cmd = @import("console.zig");
+pub const Lua = @import("ziglua").Lua;
 
 //pub const toml = @import("toml");
 const t2j = @cImport({
@@ -73,6 +73,11 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
         std.debug.print("ERROR: Failed to load {s} due to {}\n", .{ manifest.value.active_level_id, e });
         return err.crashToMainMenu("failed to load selected save");
     };
+
+    var lua = try Lua.init(a);
+    defer lua.deinit();
+
+    lua.openLibs();
 
     defer json_parsed_level.deinit();
     var lvl = json_parsed_level.value;
@@ -136,7 +141,7 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
             try debug.renderEntityCount(lvl.ecs);
         }
 
-        try console.render(keybindings);
+        try console.run(&lua, keybindings);
         ray.EndDrawing();
 
         if (ray.IsKeyPressed('Q')) {
