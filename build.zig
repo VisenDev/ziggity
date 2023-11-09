@@ -95,6 +95,10 @@ pub fn build(b: *std.Build) void {
     unit_tests.addLibraryPath(.{ .path = "toml-to-json/target/release" });
     unit_tests.linkSystemLibrary("toml_to_json");
 
+    //link lua
+    unit_tests.addModule("ziglua", ziglua.module("ziglua"));
+    unit_tests.linkLibrary(ziglua.artifact("lua"));
+
     unit_tests.addCSourceFile(.{
         .file = .{
             .path = "lib/raygui.c",

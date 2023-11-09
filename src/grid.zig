@@ -37,8 +37,8 @@ pub fn Grid(comptime T: type) type {
         pub inline fn set(self: *@This(), a: std.mem.Allocator, x: usize, y: usize, value: T) !void {
             if (x < 0 or y < 0) @panic("negative index given");
             while (!self.isValidIndex(x, y)) {
-                std.debug.print("x: {}, y: {} desired\n", .{ x, y });
-                std.debug.print("resizing: width{}, height{}\n", .{ self.getWidth(), self.getHeight() });
+                //std.debug.print("x: {}, y: {} desired\n", .{ x, y });
+                //std.debug.print("resizing: width{}, height{}\n", .{ self.getWidth(), self.getHeight() });
                 try self.expand(a, 2 * self.getWidth() + 1, 2 * self.getHeight() + 1);
             }
 

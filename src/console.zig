@@ -47,7 +47,7 @@ pub const Console = struct {
 
     pub fn run(self: *@This(), lua: *Lua, keys: key.KeyBindings) !void {
         //console render on or off
-        if (keys.console.pressed()) {
+        if (keys.isPressed("console")) {
             self.rendering = !self.rendering;
         }
 

@@ -1,17 +1,49 @@
-[player_up]
-char = "w"
+#[player_up]
+#char = "w"
+#
+#[player_down]
+#char = "s" 
+#
+#[player_left]
+#char = "a" 
+#
+#[player_right]
+#char = "d" 
+#
+#[zoom_in]
+#char = "+" 
+#
+#[zoom_out]
+#char = "-" 
 
-[player_down]
-char = "s" 
+[[keys]]
+name = "player_up"
+char = "W"
 
-[player_left]
-char = "a" 
+[[keys]]
+name = "player_down"
+char = "S"
 
-[player_right]
-char = "d" 
+[[keys]]
+name = "player_right"
+char = "D"
 
-[zoom_in]
-char = "+" 
+[[keys]]
+name = "player_left"
+char = "A"
 
-[zoom_out]
-char = "-" 
+[[keys]]
+name = "zoom_in"
+char = "+"
+
+[[keys]]
+name = "zoom_out"
+char = "-"
+
+[[keys]]
+name = "console"
+char = "T"
+
+[[keys]]
+name = "debug_mode"
+char = "/"

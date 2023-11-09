@@ -204,7 +204,7 @@ test "ECS" {
     for (0..10) |_| {
         const id = ecs.newEntity(std.testing.allocator).?;
         try ecs.addComponent(std.testing.allocator, id, Component.physics{ .pos = .{ .x = 5, .y = 5 } });
-        try ecs.addComponent(std.testing.allocator, id, Component.collider{});
+        try ecs.addComponent(std.testing.allocator, id, Component.hitbox{});
         //std.debug.print("New Entity: {} \n", .{id});
     }
 

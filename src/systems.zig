@@ -20,7 +20,7 @@ pub usingnamespace @import("movement.zig");
 const moveTowards = @This().moveTowards;
 
 //IMPORTANT, controls the scale of the position cache relative to the map
-pub const position_cache_scale: usize = 2;
+pub const position_cache_scale: usize = 1;
 
 fn distance(a: ray.Vector2, b: ray.Vector2) f32 {
     const dx = a.x - b.x;
@@ -97,19 +97,19 @@ pub fn updatePlayerSystem(
     for (set) |member| {
         var direction = ray.Vector2{ .x = 0, .y = 0 };
 
-        if (keys.player_up.down()) {
+        if (keys.isDown("player_up")) {
             direction.y -= magnitude;
         }
 
-        if (keys.player_down.down()) {
+        if (keys.isDown("player_down")) {
             direction.y += magnitude;
         }
 
-        if (keys.player_left.down()) {
+        if (keys.isDown("player_left")) {
             direction.x -= magnitude;
         }
 
-        if (keys.player_right.down()) {
+        if (keys.isDown("player_right")) {
             direction.x += magnitude;
         }
 

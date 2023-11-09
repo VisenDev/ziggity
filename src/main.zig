@@ -16,7 +16,8 @@ const sys = @import("systems.zig");
 const animate = @import("animation.zig");
 const debug = @import("debug.zig");
 const cmd = @import("console.zig");
-pub const Lua = @import("ziglua").Lua;
+const Lua = @import("ziglua").Lua;
+const api = @import("api.zig");
 
 //pub const toml = @import("toml");
 const t2j = @cImport({
@@ -34,11 +35,8 @@ const raygui = @cImport({
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{ .verbose_log = true, .retain_metadata = true, .enable_memory_limit = true }){};
     defer _ = gpa.detectLeaks();
-    //const a = gpa.allocator();
     var my_arena = Arena.init(gpa.allocator());
     defer my_arena.deinit();
-    //var logger = std.heap.LoggingAllocator(std.log.Level.info, std.log.Level.warn).init(my_arena.allocator());
-    //const a = logger.allocator();
     const a = my_arena.allocator();
 
     ray.SetConfigFlags(ray.FLAG_WINDOW_RESIZABLE);
@@ -74,16 +72,11 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
         return err.crashToMainMenu("failed to load selected save");
     };
 
-    var lua = try Lua.init(a);
-    defer lua.deinit();
-
-    lua.openLibs();
-
     defer json_parsed_level.deinit();
     var lvl = json_parsed_level.value;
 
     var keybindings = try key.KeyBindings.init(a);
-    defer keybindings.deinit(a);
+    defer keybindings.deinit();
 
     var tile_state = try tile.TileState.init(a);
     defer tile_state.deinit();
@@ -94,6 +87,15 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
     var console = try cmd.Console.init(a);
     defer console.deinit();
 
+    var lua_context = api.ApiContext{
+        .allocator = &a,
+        .console = &console,
+        .lvl = &lvl,
+    };
+
+    var lua = try api.initLuaApi(a, &lua_context);
+    defer lua.deinit();
+
     var debug_mode = true;
 
     //const shader = ray.LoadShader(0, ray.TextFormat("game-files/shaders/grayscale.fs", @as(c_int, 330)));
@@ -103,11 +105,15 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
 
     while (!ray.WindowShouldClose()) {
         //debug on or off
-        if (keybindings.debug_mode.pressed()) {
+        if (keybindings.isPressed("debug_mode")) {
             debug_mode = !debug_mode;
         }
 
-        keybindings.update(console.isPlayerTyping());
+        if (console.isPlayerTyping()) {
+            keybindings.mode = .insert;
+        } else {
+            keybindings.mode = .normal;
+        }
 
         //configure update options
         const delta_time = ray.GetFrameTime();
