@@ -47,3 +47,18 @@ char = "T"
 [[keys]]
 name = "debug_mode"
 char = "/"
+
+[[keys]]
+name = "insert_mode"
+char = ";"
+
+[[keys]]
+name = "previous"
+char = "up"
+mode = "insert"
+
+
+[[keys]]
+name = "next"
+char = "down"
+mode = "insert"

@@ -10,11 +10,33 @@ pub const KeyMode = enum { insert, normal };
 
 pub const Key = struct {
     name: []const u8,
-    char: [1]u8,
+    char: u16,
     shift: bool = false,
     control: bool = false,
     mode: KeyMode = .normal,
 };
+
+fn eql(a: []const u8, b: []const u8) bool {
+    return std.mem.eql(u8, a, b);
+}
+
+fn match(a: []const u8, matches: []const []const u8) bool {
+    for (matches) |m| {
+        if (eql(a, m)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+fn getArrowMatches(a: std.mem.Allocator, direction: []const u8) ![]const []const u8 {
+    const patterns = comptime [_][]const u8{ "{s}", "{s}_arrow", "arrow_{s}", "key {s}", "arrow {s}" };
+    var result = try a.alloc([]const u8, patterns.len);
+    inline for (patterns, 0..) |pattern, i| {
+        result[i] = try std.fmt.allocPrint(a, pattern, .{direction});
+    }
+    return result;
+}
 
 pub const KeyBindings = struct {
     keys: std.StringHashMap(Key),
@@ -26,13 +48,42 @@ pub const KeyBindings = struct {
         };
 
         const toml_type = struct {
-            keys: []Key,
+            keys: []struct {
+                name: []const u8,
+                char: []u8,
+                shift: bool = false,
+                control: bool = false,
+                mode: KeyMode = .normal,
+            },
         };
         const json_config = try file.readConfig(toml_type, a, file.FileName.keybindings);
         defer json_config.deinit();
 
+        var arena_value = std.heap.ArenaAllocator.init(a);
+        var arena = arena_value.allocator();
+        defer arena_value.deinit();
+
         for (json_config.value.keys) |key| {
-            try result.insert(key);
+            var resulting_key = Key{
+                .name = key.name,
+                .char = key.char[0],
+                .mode = key.mode,
+                .shift = key.shift,
+                .control = key.control,
+            };
+            if (key.char.len > 1) {
+                if (match(key.char, try getArrowMatches(arena, "up"))) {
+                    resulting_key.char = ray.KEY_UP;
+                } else if (match(key.char, try getArrowMatches(arena, "down"))) {
+                    resulting_key.char = ray.KEY_DOWN;
+                } else if (match(key.char, try getArrowMatches(arena, "left"))) {
+                    resulting_key.char = ray.KEY_LEFT;
+                } else if (match(key.char, try getArrowMatches(arena, "right"))) {
+                    resulting_key.char = ray.KEY_RIGHT;
+                }
+            }
+
+            try result.insert(resulting_key);
         }
 
         return result;
@@ -52,8 +103,7 @@ pub const KeyBindings = struct {
                 return false;
             }
 
-            std.debug.print("key.char, {}\n", .{key.char[0]});
-            if (!ray.IsKeyDown(key.char[0])) {
+            if (!ray.IsKeyDown(key.char)) {
                 return false;
             }
 
@@ -78,7 +128,7 @@ pub const KeyBindings = struct {
                 return false;
             }
 
-            if (!ray.IsKeyPressed(key.char[0])) {
+            if (!ray.IsKeyPressed(key.char)) {
                 return false;
             }
 
