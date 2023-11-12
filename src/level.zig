@@ -58,14 +58,14 @@ pub fn generateLevel(a: std.mem.Allocator, options: LevelGenOptions) !Level {
 
     const player_id = entities.newEntity(a).?;
     try entities.addComponent(a, player_id, ecs.Component.physics{ .pos = .{ .x = 5, .y = 5 } });
-    try entities.addComponent(a, player_id, ecs.Component.sprite{ .player = .{ .animation_name = "player" } });
+    try entities.addComponent(a, player_id, ecs.Component.sprite{ .animation_player = .{ .animation_name = "player" } });
     try entities.addComponent(a, player_id, ecs.Component.movement_particles{});
     try entities.addComponent(a, player_id, ecs.Component.is_player{});
 
     for (0..50) |_| {
         const slime_id = entities.newEntity(a).?;
         try entities.addComponent(a, slime_id, ecs.Component.physics{ .pos = ecs.randomVector2(50, 50) });
-        try entities.addComponent(a, slime_id, ecs.Component.sprite{ .player = .{ .animation_name = "slime" } });
+        try entities.addComponent(a, slime_id, ecs.Component.sprite{ .animation_player = .{ .animation_name = "slime" } });
         try entities.addComponent(a, slime_id, ecs.Component.hitbox{});
         try entities.addComponent(a, slime_id, ecs.Component.wanderer{});
         try entities.addComponent(a, slime_id, ecs.Component.health{});

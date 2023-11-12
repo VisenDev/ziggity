@@ -1,4 +1,5 @@
 const std = @import("std");
+const api = @import("api.zig");
 const key = @import("keybindings.zig");
 const cam = @import("camera.zig");
 pub const Lua = @import("ziglua").Lua;
@@ -13,23 +14,24 @@ const String = std.ArrayList(u8);
 
 pub const Console = struct {
     const max_command_len: usize = 64;
-    command: String,
-    command_log: std.ArrayList(String),
-    command_log_index: usize = 0,
+    commands: std.ArrayList(String),
+    command_index: usize = 0,
     history: std.ArrayList(String),
     allocator: std.mem.Allocator,
 
     //raygui data
     rendering: bool = false,
     editing: bool = false,
+    skip_next_input: bool = false,
 
     pub fn init(a: std.mem.Allocator) !Console {
         var cmd = String.init(a);
         try cmd.appendNTimes(0, max_command_len + 1);
+        var commands = std.ArrayList(String).init(a);
+        try commands.append(cmd);
         return .{
-            .command = cmd,
+            .commands = commands,
             .history = std.ArrayList(String).init(a),
-            .command_log = std.ArrayList(String).init(a),
             .allocator = a,
         };
     }
@@ -39,8 +41,11 @@ pub const Console = struct {
             str.deinit();
         }
         self.history.deinit();
-        self.command.deinit();
-        self.command_log.deinit();
+
+        for (self.commands.items) |str| {
+            str.deinit();
+        }
+        self.commands.deinit();
     }
 
     pub inline fn isPlayerTyping(self: *const @This()) bool {
@@ -55,108 +60,164 @@ pub const Console = struct {
         self.history.clearRetainingCapacity();
     }
 
+    pub inline fn getRecentHistory(self: *@This(), count: usize) []const String {
+        const len = self.history.items.len;
+        if (count >= len) {
+            return self.history.items[0..len];
+        }
+
+        return self.history.items[len - count .. len];
+    }
     ///makes a copy, caller owns memory
     pub inline fn log(self: *@This(), value: [*:0]const u8) !void {
         var len = std.mem.indexOfSentinel(u8, 0, value);
-        std.debug.print("\nlog message in console {s}\n", .{value[0..len]});
-
         var string = String.init(self.allocator);
         try string.appendSlice(value[0 .. len + 1]);
         try self.history.append(string);
     }
 
-    pub fn run(self: *@This(), lua: *Lua, keys: key.KeyBindings) !void {
-        //console render on or off
+    pub fn logFmt(self: *@This(), comptime fmt: []const u8, args: anytype) !void {
+        var stringified = try std.fmt.allocPrintZ(self.allocator, fmt, args);
+        var string = String.init(self.allocator);
+        try string.appendSlice(stringified);
+        try string.append(0);
+        try self.history.append(string);
+    }
+
+    pub fn getTopCommand(self: *@This()) *String {
+        return &self.commands.items[self.commands.items.len - 1];
+    }
+
+    ///clones the string, caller responsible for freeing the str
+    pub fn setTopCommand(self: *@This(), str: String) !void {
+        if (self.commands.items.len == 0) return error.NoTopCommand;
+
+        self.getTopCommand().deinit();
+        self.getTopCommand().* = try str.clone();
+    }
+
+    ///returns the indexed command
+    pub inline fn getIndexedCommand(self: *@This()) String {
+        return self.commands.items[self.command_index];
+    }
+
+    ///resets the index to point at the top item
+    pub inline fn resetIndex(self: *@This()) void {
+        self.command_index = self.commands.items.len - 1;
+    }
+
+    pub inline fn getCommandsLen(self: *@This()) usize {
+        return self.commands.items.len;
+    }
+
+    pub inline fn getHistoryLen(self: *@This()) usize {
+        return self.history.items.len;
+    }
+
+    pub fn update(self: *@This(), l: *Lua, keys: key.KeyBindings) !void {
         if (keys.isPressed("console")) {
             self.rendering = !self.rendering;
         }
 
-        //TODO finish implementing
-        //if (keys.isPressed("previous")) {
-        //    if (self.command_log_index < self.command_log.items.len) {
-        //        self.command.deinit();
-        //        self.command = try self.command_log.items[self.command_log_index].clone();
-        //        self.command_log_index += 1;
-        //    }
-        //}
+        if (keys.isPressed("previous")) {
+            if (self.command_index > 0) {
+                self.command_index -= 1;
+                if (self.command_index != self.commands.items.len - 1) {
+                    try self.setTopCommand(self.getIndexedCommand());
+                }
+            }
+        }
 
-        //if (keys.isPressed("next")) {
-        //    if (self.command_log_index > 0) {
-        //        self.command.deinit();
-        //        self.command = try self.command_log.items[self.command_log_index].clone();
-        //        self.command_log_index -= 1;
-        //    }
-        //}
+        if (keys.isPressed("next")) {
+            if (self.command_index < self.commands.items.len - 1) {
+                self.command_index += 1;
+                if (self.command_index != self.commands.items.len - 1) {
+                    try self.setTopCommand(self.getIndexedCommand());
+                }
+            } else {
+                self.getTopCommand().items[0] = 0;
+            }
+        }
 
-        var keep_active = false;
-
-        //enter insert mode
         if (keys.isPressed("insert_mode")) {
             self.rendering = true;
-            keep_active = true;
-        }
-
-        if (!self.rendering) return;
-
-        const x: f32 = 0;
-        const line_height: f32 = 24;
-        const y: f32 = cam.screenHeight() - line_height;
-        //const height: f32 = cam.screenHeight();
-        const width: f32 = cam.screenWidth();
-        self.rendering = true; //(ray.GuiWindowBox(.{ .x = x, .y = 0, .width = width, .height = height }, "Console") != 0);
-
-        if (self.editing and ray.IsKeyPressed(ray.KEY_ENTER)) {
-            self.command_log_index = 0;
-
-            try self.command_log.append(try self.command.clone());
-            keep_active = true;
-
-            // Compile a line of Lua code
-            const str = self.command.items;
-            const len = max_command_len;
-            lua.loadString(str[0..len :0]) catch {
-                //std.debug.print("{s}\n", .{try lua.toString(-1)});
-                try self.log(try lua.toString(-1));
-                if (lua.getTop() > 1) {
-                    lua.pop(1);
-                }
-            };
-
-            // Execute a line of Lua code
-            lua.protectedCall(0, 0, 0) catch {
-                try self.log(try lua.toString(-1));
-                if (lua.getTop() > 1) {
-                    lua.pop(1);
-                }
-            };
-
-            self.command.items[0] = 0;
-        }
-
-        const input_position = ray.Rectangle{ .x = x, .y = y, .width = width, .height = line_height };
-        if (0 != ray.GuiTextBox(input_position, self.command.items.ptr, @intCast(max_command_len), self.editing)) {
-            self.editing = !self.editing;
-        }
-
-        if (keep_active) {
             self.editing = true;
+            self.skip_next_input = true;
+            self.resetIndex();
         }
 
-        var num_lines_used: usize = 0;
-        const max_lines: usize = 10;
-        for (self.history.items, 0..) |str, i| {
-            if (i > max_lines) break;
-            const len = self.history.items.len;
-            const log_position = ray.Rectangle{
-                .x = 0,
-                .y = cam.screenHeight() - (@as(f32, @floatFromInt(len - (i % max_lines) - num_lines_used)) * line_height) - line_height,
-                .width = 3 * width,
-                .height = line_height,
+        if (keys.isPressed("execute")) {
+            const len = max_command_len;
+            const str = self.commands.items[self.command_index].items[0..len :0];
+
+            var new_command = String.init(self.allocator);
+            try new_command.appendNTimes(0, max_command_len + 1);
+            try self.commands.append(new_command);
+            self.command_index = self.commands.items.len - 1;
+
+            const history_len_before = self.getHistoryLen();
+            l.loadString(str) catch {
+                _ = api.handleLuaError(l);
+                return;
             };
-            num_lines_used = @intCast(ray.GuiLabel(log_position, str.items.ptr));
-            if (num_lines_used > 1) {
-                num_lines_used -= 1;
+            l.protectedCall(0, 0, 0) catch {
+                _ = api.handleLuaError(l);
+                return;
+            };
+
+            if (history_len_before == self.getHistoryLen()) {
+                try self.log("success!");
             }
         }
     }
+
+    pub fn render(self: *@This()) !void {
+        const x: f32 = 0;
+        const line_height: f32 = 24;
+        const y: f32 = cam.screenHeight() - line_height;
+        const width: f32 = cam.screenWidth();
+
+        if (!self.rendering) return;
+
+        const input_position = ray.Rectangle{ .x = x, .y = y, .width = width, .height = line_height };
+        if (!self.skip_next_input and self.editing) {
+            if (0 != ray.GuiTextBox(input_position, self.getTopCommand().items.ptr, @intCast(max_command_len), self.editing)) {
+                self.editing = !self.editing;
+            }
+        }
+        self.skip_next_input = false;
+
+        const len: usize = 10;
+        for (self.getRecentHistory(len), 0..) |str, index| {
+            const size: usize = if (len > self.getHistoryLen())
+                self.getHistoryLen()
+            else
+                len;
+
+            //std.debug.print("size: {}, index: {}\n", .{ size, index });
+            const i: f32 = @floatFromInt(size - index);
+            var line_y: f32 = y - (i * line_height);
+            if (!self.editing) {
+                line_y += line_height;
+            }
+
+            const log_position = ray.Rectangle{ .x = 0, .y = line_y, .width = width, .height = line_height };
+            _ = ray.GuiLabel(log_position, str.items.ptr);
+        }
+    }
 };
+
+//==========Lua wrapper functions=========
+pub fn luaClear(l: *Lua) i32 {
+    var ctx = api.getCtx(l) orelse return 0;
+    ctx.console.clear();
+    return 0;
+}
+
+pub fn luaLog(l: *Lua) i32 {
+    var ctx = api.getCtx(l) orelse return 0;
+
+    const str = l.toString(-1) catch return api.handleLuaError(l);
+    ctx.console.log(str) catch |err| return api.handleZigError(l, err);
+    return 0;
+}

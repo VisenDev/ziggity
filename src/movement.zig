@@ -76,7 +76,7 @@ pub fn updateMovementSystem(
                 }) catch return;
 
                 self.addComponent(a, particle, Component.sprite{
-                    .player = .{ .animation_name = "particle", .tint = ray.ColorAlpha(ray.GRAY, 0.2) },
+                    .animation_player = .{ .animation_name = "particle", .tint = ray.ColorAlpha(ray.GRAY, 0.2) },
                 }) catch return;
                 self.addComponent(a, particle, Component.health_trickle{}) catch return;
             }

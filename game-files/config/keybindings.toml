@@ -57,8 +57,12 @@ name = "previous"
 char = "up"
 mode = "insert"
 
-
 [[keys]]
 name = "next"
 char = "down"
+mode = "insert"
+
+[[keys]]
+name = "execute" #executes a command
+char = "enter"
 mode = "insert"

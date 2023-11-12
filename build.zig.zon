@@ -1,5 +1,5 @@
 .{
-      .name = "ziggity",
+   .name = "ziggity",
       .version = "0.0.1",
       .paths = .{""},
       .dependencies = .{
@@ -12,4 +12,4 @@
             .hash = "1220d14df5c57d4c3fafe26191fcc3b32c23ffd319e7f5d839d2ace030372f1f85b4",
          },
       },
-   }
+}

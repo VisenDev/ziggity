@@ -80,6 +80,8 @@ pub const KeyBindings = struct {
                     resulting_key.char = ray.KEY_LEFT;
                 } else if (match(key.char, try getArrowMatches(arena, "right"))) {
                     resulting_key.char = ray.KEY_RIGHT;
+                } else if (match(key.char, &[_][]const u8{ "enter", "return", "<cr>" })) {
+                    resulting_key.char = ray.KEY_ENTER;
                 }
             }
 

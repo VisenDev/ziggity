@@ -147,7 +147,8 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
             try debug.renderEntityCount(lvl.ecs);
         }
 
-        try console.run(&lua, keybindings);
+        try console.update(&lua, keybindings);
+        try console.render();
         ray.EndDrawing();
 
         if (ray.IsKeyPressed('Q')) {

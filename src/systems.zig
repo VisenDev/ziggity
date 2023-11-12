@@ -129,7 +129,7 @@ pub fn updatePlayerSystem(
                 },
             }) catch return;
             self.addComponent(a, fireball, Component.sprite{
-                .player = .{ .animation_name = "fireball", .tint = ray.ColorAlpha(ray.ORANGE, 0.5) },
+                .animation_player = .{ .animation_name = "fireball", .tint = ray.ColorAlpha(ray.ORANGE, 0.5) },
             }) catch return;
             self.addComponent(a, fireball, Component.damage{
                 .type = "force",
@@ -192,7 +192,7 @@ pub fn updateSpriteSystem(
     const set = self.getSystemDomain(a, &systems);
 
     for (set) |member| {
-        self.components.sprite.get(member).?.player.update(animation_state, opt);
+        self.components.sprite.get(member).?.animation_player.update(animation_state, opt);
     }
 }
 
@@ -212,7 +212,7 @@ pub fn updateDamageSystem(
         for (colliders) |entity| {
             var health = self.getMaybe(Component.health, entity) orelse continue;
 
-            const animation = self.get(Component.sprite, entity).*.player.animation_name;
+            const animation = self.get(Component.sprite, entity).animation_player.animation_name;
             std.debug.print("colliding entity found! {}{s}\n", .{ entity, animation });
 
             if (health.cooldown_remaining <= 0) {
@@ -253,6 +253,6 @@ pub fn renderSprites(self: *ecs.ECS, a: std.mem.Allocator, animation_state: *con
         const sprite = self.components.sprite.get(member).?;
         const physics = self.components.physics.get(member).?;
 
-        sprite.player.render(animation_state, scaleVector(physics.pos, tile_state.resolution));
+        sprite.animation_player.render(animation_state, scaleVector(physics.pos, tile_state.resolution));
     }
 }

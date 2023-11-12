@@ -6,9 +6,12 @@ const options = @import("options.zig");
 const SparseSet = @import("sparse_set.zig").SparseSet;
 const Grid = @import("grid.zig").Grid;
 pub const Component = @import("components.zig");
+const ziglua = @import("ziglua");
+const Lua = ziglua.Lua;
 const ray = @cImport({
     @cInclude("raylib.h");
 });
+const api = @import("api.zig");
 
 pub fn randomFloat() f32 {
     const state = struct {
@@ -137,11 +140,27 @@ pub const ECS = struct {
             if (decl_type == @TypeOf(component)) {
                 try @field(self.components, decl.name).insert(a, id, component);
                 self.bitflags.get(id).?.set(i);
-                //std.debug.print("added {s} to {}\n", .{ decl.name, id });
                 return;
             }
         }
         return error.invalid_component;
+    }
+
+    pub fn addJsonComponent(self: *@This(), a: std.mem.Allocator, id: usize, component_name: []const u8, component_value: ?[]const u8) !void {
+        inline for (sliceComponentNames()) |decl| {
+            if (std.mem.eql(u8, component_name, decl.name)) {
+                const Comp = comptime @field(Component, decl.name);
+                var value: Comp = undefined;
+                if (component_value == null) {
+                    value = Comp{};
+                } else {
+                    const parsed = try std.json.parseFromSlice(Comp, a, component_value.?, .{ .allocate = .alloc_always });
+                    value = parsed.value;
+                }
+                try self.addComponent(a, id, value);
+                return;
+            }
+        }
     }
 
     pub fn deinit(self: *@This(), a: std.mem.Allocator) void {
@@ -193,6 +212,38 @@ pub const ECS = struct {
     }
 };
 
+//=================LUA WRAPPERS=====================
+pub fn luaNewEntity(l: *Lua) i32 {
+    var ctx = api.getCtx(l) orelse return 0;
+
+    const a = ctx.allocator.*;
+    const id = ctx.lvl.ecs.newEntity(a) orelse return 0;
+    l.pushInteger(@intCast(id));
+
+    ctx.console.logFmt("Created new entity with id {}", .{id}) catch |err| return api.handleZigError(l, err);
+    return 1;
+}
+
+pub fn luaAddComponent(l: *Lua) i32 {
+    var ctx = api.getCtx(l) orelse return 0;
+    const a = ctx.allocator.*;
+    const id = l.toInteger(1) catch |err| return api.handleZigError(l, err);
+
+    const name = l.toString(2) catch |err| return api.handleZigError(l, err);
+    const name_slice = name[0..std.mem.indexOfSentinel(u8, 0, name)];
+
+    const value = l.toString(3) catch null;
+    var value_slice: ?[]const u8 = null;
+    if (value) |val| {
+        value_slice = val[0..std.mem.indexOfSentinel(u8, 0, val)];
+    }
+
+    ctx.lvl.ecs.addJsonComponent(a, @intCast(id), name_slice, value_slice) catch |err| return api.handleZigError(l, err);
+    ctx.console.logFmt("Added {s} to {}", .{ name_slice, id }) catch |err| return api.handleZigError(l, err);
+    l.pushBoolean(true);
+    return 1;
+}
+
 test "ECS" {
     var ecs = try ECS.init(std.testing.allocator, 101);
     defer ecs.deinit(std.testing.allocator);
@@ -232,4 +283,12 @@ test "ECS" {
 
     try std.testing.expect(ecs.components.is_player.dense.items.len == 1);
     try std.testing.expect(ecs.components.is_player.dense_ids.items.len == 1);
+}
+
+test "json ecs component" {
+    var ecs = try ECS.init(std.testing.allocator, 101);
+    defer ecs.deinit(std.testing.allocator);
+
+    const player_id = ecs.newEntity(std.testing.allocator).?;
+    try ecs.addJsonComponent(std.testing.allocator, player_id, "physics", null);
 }

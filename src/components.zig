@@ -32,11 +32,11 @@ pub const health = struct {
 };
 pub const sprite = struct {
     pub const name = "sprite";
-    player: anime.AnimationPlayer,
+    animation_player: anime.AnimationPlayer = .{ .animation_name = "default" },
 };
 pub const tracker = struct {
     pub const name = "tracker";
-    tracked: ?usize,
+    tracked: ?usize = null,
 };
 pub const movement_particles = struct {
     pub const name = "movement_particles";
@@ -51,7 +51,7 @@ pub const wanderer = struct {
 };
 pub const patroller = struct {
     pub const name = "patroller";
-    points: []ray.Vector2,
+    points: []ray.Vector2 = &[_]ray.Vector2{},
 };
 pub const mind = struct {
     pub const name = "mind";
@@ -60,15 +60,15 @@ pub const mind = struct {
         attack,
         follow,
         stop,
-    },
+    } = .stop,
 };
 pub const eyesight = struct {
     pub const name = "eyesight";
-    view_range: f32,
+    view_range: f32 = 5,
 };
 pub const loot = struct {
     pub const name = "loot";
-    item_ids: []usize,
+    item_ids: []usize = &[_]usize{},
 };
 pub const hitbox = struct {
     pub const name = "hitbox";
@@ -93,7 +93,7 @@ pub const damage = struct {
 };
 pub const nametag = struct {
     pub const name = "nametag";
-    value: []u8,
+    value: []u8 = "",
 };
 pub const explode_on_death = struct {
     pub const name = "explode_on_death";

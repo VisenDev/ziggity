@@ -15,64 +15,10 @@ pub const ApiContext = struct {
     console: *cmd.Console,
 };
 
-fn spawnSlime(l: *Lua) i32 {
-    var ctx = getCtx(l) orelse return 0;
-
-    for (0..2) |_| {
-        const a = ctx.allocator.*;
-        const slime_id = ctx.lvl.ecs.newEntity(a).?;
-
-        ctx.lvl.ecs.addComponent(a, slime_id, ecs.Component.physics{ .pos = ecs.randomVector2(5, 5) }) catch return 0;
-        ctx.lvl.ecs.addComponent(a, slime_id, ecs.Component.sprite{ .player = .{ .animation_name = "slime" } }) catch return 0;
-        ctx.lvl.ecs.addComponent(a, slime_id, ecs.Component.hitbox{}) catch return 0;
-        ctx.lvl.ecs.addComponent(a, slime_id, ecs.Component.wanderer{}) catch return 0;
-        ctx.lvl.ecs.addComponent(a, slime_id, ecs.Component.health{}) catch return 0;
-        ctx.lvl.ecs.addComponent(a, slime_id, ecs.Component.movement_particles{}) catch return 0;
-    }
-
-    return 0;
-}
-
-fn setFPS(l: *Lua) i32 {
-    var ctx = getCtx(l) orelse return 0;
-
-    const fps = l.toInteger(-1) catch {
-        processError(l, ctx.console);
-        return 0;
-    };
-
-    ray.SetTargetFPS(@intCast(fps));
-    return 0;
-}
-
-fn clear(l: *Lua) i32 {
-    var ctx = getCtx(l) orelse return 0;
-
-    ctx.console.clear();
-    return 0;
-}
-
-fn log(l: *Lua) i32 {
-    var ctx = getCtx(l) orelse return 0;
-
-    const str = l.toString(-1) catch {
-        processError(l, ctx.console);
-        return 0;
-    };
-
-    var len = std.mem.indexOfSentinel(u8, 0, str);
-    std.debug.print("\nlog message {s}\n", .{str[0..len]});
-
-    ctx.console.log(str) catch {
-        processError(l, ctx.console);
-        return 0;
-    };
-
-    return 0;
-}
+//========API UTILITY FUNCTIONS==========
 
 ///gets the ctx upvalue
-fn getCtx(l: *Lua) ?*ApiContext {
+pub fn getCtx(l: *Lua) ?*ApiContext {
     return l.toUserdata(ApiContext, Lua.upvalueIndex(1)) catch ctx: {
         const string = l.toString(-1) catch |err| blk: {
             std.debug.print("{!}\n", .{err});
@@ -84,30 +30,30 @@ fn getCtx(l: *Lua) ?*ApiContext {
 }
 
 ///logs a error
-fn processError(l: *Lua, console: *cmd.Console) void {
-    const string = l.toString(-1) catch |err| blk: {
-        std.debug.print("{!}\n", .{err});
-        break :blk "unknown lua error";
-    };
+pub fn handleLuaError(l: *Lua) i32 {
+    _ = l.getGlobal("api.console.log") catch |err| return handleZigError(l, err);
+    l.protectedCall(1, 0, 0) catch |err| return handleZigError(l, err);
+    return 0;
+}
 
-    console.log(string) catch |err| {
-        std.debug.print("{!}\n", .{err});
-    };
-    if (l.getTop() > 1) {
-        l.pop(1);
-    }
+var buffer: [1024]u8 = undefined;
+pub fn handleZigError(l: *Lua, err: anyerror) i32 {
+    const error_buffer = std.fmt.bufPrintZ(&buffer, "Zig Error: {!}", .{err}) catch @panic("failed buffer print");
+    _ = l.pushString(error_buffer);
+    l.setGlobal("error_buffer");
+    const program = "api.console.log(error_buffer)";
+    l.doString(program) catch std.debug.print("{s}\n", .{&error_buffer});
+    return 0;
 }
 
 const registry = struct {
     pub const lvl = [_]ziglua.FnReg{
-        .{ .name = "spawnSlime", .func = ziglua.wrap(spawnSlime) },
-    };
-    pub const core = [_]ziglua.FnReg{
-        .{ .name = "setFPS", .func = ziglua.wrap(setFPS) },
+        .{ .name = "newEntity", .func = ziglua.wrap(ecs.luaNewEntity) },
+        .{ .name = "addComponent", .func = ziglua.wrap(ecs.luaAddComponent) },
     };
     pub const console = [_]ziglua.FnReg{
-        .{ .name = "clear", .func = ziglua.wrap(clear) },
-        .{ .name = "log", .func = ziglua.wrap(log) },
+        .{ .name = "clear", .func = ziglua.wrap(cmd.luaClear) },
+        .{ .name = "log", .func = ziglua.wrap(cmd.luaLog) },
     };
 };
 
@@ -141,6 +87,18 @@ pub fn initLuaApi(a: std.mem.Allocator, context: *ApiContext) !Lua {
         \\  for key, value in pairs(t) do
         \\      print("Key: " .. key.tostring() .. ", Value: " .. value.tostring())
         \\  end
+        \\end
+        \\
+        \\function test()
+        \\  api.console.log("Attemping to create new entity")
+        \\  id = api.lvl.newEntity()
+        \\  api.console.log("Attemping to add components")
+        \\  api.lvl.addComponent(id, "physics")
+        \\  api.lvl.addComponent(id, "wanderer")
+        \\  api.lvl.addComponent(id, "health")
+        \\  api.lvl.addComponent(id, "movement_particles")
+        \\  api.lvl.addComponent(id, "hitbox")
+        \\  api.lvl.addComponent(id, "sprite", "{\"animation_player\": {\"animation_name\": \"slime\"}}")
         \\end
     ;
     try l.doString(program);
