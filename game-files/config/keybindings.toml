@@ -34,7 +34,7 @@ char = "A"
 
 [[keys]]
 name = "zoom_in"
-char = "+"
+char = "="
 
 [[keys]]
 name = "zoom_out"
