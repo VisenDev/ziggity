@@ -11,5 +11,9 @@
             .url = "https://github.com/natecraddock/ziglua/archive/refs/tags/0.2.0.tar.gz",
             .hash = "1220d14df5c57d4c3fafe26191fcc3b32c23ffd319e7f5d839d2ace030372f1f85b4",
          },
+         .zigtoml = .{
+            .url = "https://github.com/VisenDev/zig-toml-json/archive/refs/heads/master.tar.gz",
+            .hash = "122070f6b17b2f018e4dbf93ba6acd0a40533b82a784f8edd7a9e06e8a966956aec4",
+         }
       },
 }

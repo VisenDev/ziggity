@@ -11,8 +11,11 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    //link guile
-    //exe.linkSystemLibrary("guile-3.0");
+    const zigtoml = b.dependency("zigtoml", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    exe.addModule("toml", zigtoml.module("toml"));
 
     //link lua
     const ziglua = b.dependency("ziglua", .{
