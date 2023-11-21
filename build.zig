@@ -2,7 +2,7 @@ const std = @import("std");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
-    const optimize = .Debug;
+    const optimize = b.standardOptimizeOption(.{});
 
     const exe = b.addExecutable(.{
         .name = "dev",
@@ -49,21 +49,10 @@ pub fn build(b: *std.Build) void {
     });
     b.installArtifact(exe);
 
-    // =============ZTOML LINKING=================
-    const ztoml_dep = b.dependency("ztoml", .{});
-    b.default_step.dependOn(ztoml_dep.builder.default_step);
-    exe.addModule("ztoml", ztoml_dep.module("ztoml"));
-    @import("ztoml").link(ztoml_dep.builder, exe);
-
     //=============INSTALL GAME FILES===========
     b.installDirectory(.{ .source_dir = .{ .path = "game-files" }, .install_dir = .bin, .install_subdir = "game-files" });
 
     const run_cmd = b.addRunArtifact(exe);
-
-    // By making the run step depend on the install step, it will be run from the
-    // installation directory rather than directly from within the cache directory.
-    // This is not necessary, however, if the application depends on other installed
-    // files, this ensures they will be present and in the expected location.
     run_cmd.step.dependOn(b.getInstallStep());
 
     //=================PASS EXTRA ARGS================
@@ -82,10 +71,6 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-
-    unit_tests.step.dependOn(ztoml_dep.builder.default_step);
-    unit_tests.addModule("ztoml", ztoml_dep.module("ztoml"));
-    @import("ztoml").link(ztoml_dep.builder, unit_tests);
 
     unit_tests.linkLibC();
     unit_tests.step.dependOn((b.getInstallStep()));
@@ -111,10 +96,6 @@ pub fn build(b: *std.Build) void {
 
     var run_unit_tests = b.addRunArtifact(unit_tests);
     run_unit_tests.has_side_effects = true;
-
-    // Similar to creating the run step earlier, this exposes a `test` step to
-    // the `zig build --help` menu, providing a way for the user to request
-    // running the unit tests.
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_unit_tests.step);
 }

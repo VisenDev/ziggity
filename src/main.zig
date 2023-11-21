@@ -19,11 +19,6 @@ const cmd = @import("console.zig");
 const Lua = @import("ziglua").Lua;
 const api = @import("api.zig");
 
-//pub const toml = @import("toml");
-const t2j = @cImport({
-    @cInclude("toml-to-json.h");
-});
-
 const ray = @cImport({
     @cInclude("raylib.h");
 });
@@ -45,7 +40,7 @@ pub fn main() !void {
     defer ray.CloseWindow();
 
     raygui.GuiLoadStyleDark();
-    ray.SetTargetFPS(60);
+    ray.SetTargetFPS(1000);
 
     var current_window = menu.Window.main_menu;
     var save_id: []u8 = "";
