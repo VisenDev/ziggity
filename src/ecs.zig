@@ -104,7 +104,7 @@ pub const ECS = struct {
             try ids.append(a, id);
         }
 
-        var buffer = try std.ArrayListUnmanaged(usize).initCapacity(a, capacity);
+        const buffer = try std.ArrayListUnmanaged(usize).initCapacity(a, capacity);
 
         return @This(){
             .availible_ids = ids,
@@ -133,12 +133,12 @@ pub const ECS = struct {
         try self.bitflags.delete(id);
     }
 
-    pub fn addComponent(self: *@This(), a: std.mem.Allocator, id: usize, component: anytype) !void {
+    pub fn setComponent(self: *@This(), a: std.mem.Allocator, id: usize, component: anytype) !void {
         inline for (sliceComponentNames(), 0..) |decl, i| {
             const decl_type = @field(Component, decl.name);
 
             if (decl_type == @TypeOf(component)) {
-                try @field(self.components, decl.name).insert(a, id, component);
+                try @field(self.components, decl.name).set(a, id, component);
                 self.bitflags.get(id).?.set(i);
                 return;
             }
@@ -157,7 +157,7 @@ pub const ECS = struct {
                     const parsed = try std.json.parseFromSlice(Comp, a, component_value.?, .{ .allocate = .alloc_always });
                     value = parsed.value;
                 }
-                try self.addComponent(a, id, value);
+                try self.setComponent(a, id, value);
                 return;
             }
         }

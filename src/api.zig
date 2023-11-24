@@ -57,6 +57,15 @@ const registry = struct {
     };
 };
 
+///Calls a lua spawnEntity function()
+pub fn call(l: *Lua, function_name: [:0]const u8) !usize {
+    _ = l.getGlobal(function_name) catch return error.function_does_not_exist;
+    try l.protectedCall(0, 1, 0);
+    const id = try l.toInteger(-1);
+    l.setTop(0);
+    return @intCast(id);
+}
+
 pub fn initLuaApi(a: std.mem.Allocator, context: *ApiContext) !Lua {
     var l = try Lua.init(a);
     l.openLibs();
@@ -98,10 +107,13 @@ pub fn initLuaApi(a: std.mem.Allocator, context: *ApiContext) !Lua {
         \\  api.lvl.addComponent(id, "health")
         \\  api.lvl.addComponent(id, "movement_particles")
         \\  api.lvl.addComponent(id, "hitbox")
-        \\  api.lvl.addComponent(id, "sprite", "{\"animation_player\": {\"animation_name\": \"slime\"}}")
+        \\  api.lvl.addComponent(id, "sprite", [[
+        \\      {"animation_player": {"animation_name": "slime"}}
+        \\  ]])
         \\end
     ;
     try l.doString(program);
+    try l.doString(@embedFile("scripts/archetypes.lua"));
 
     return l;
 

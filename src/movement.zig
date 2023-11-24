@@ -1,4 +1,7 @@
 const std = @import("std");
+const api = @import("api.zig");
+const ziglua = @import("ziglua");
+const Lua = ziglua.Lua;
 const tile = @import("tiles.zig");
 const anime = @import("animation.zig");
 const map = @import("map.zig");
@@ -33,6 +36,7 @@ pub fn moveTowards(physics: *Component.physics, destination: ray.Vector2, opt: o
 pub fn updateMovementSystem(
     self: *ecs.ECS,
     a: std.mem.Allocator,
+    l: *Lua,
     m: *const map.MapState,
     animations: *const anime.AnimationState,
     opt: options.Update,
@@ -62,9 +66,10 @@ pub fn updateMovementSystem(
 
         if (self.getMaybe(Component.movement_particles, member)) |_| {
             if (physics.pos.x != old_position.x or physics.pos.y != old_position.y) {
-                const particle = self.newEntity(a).?;
-                self.addComponent(a, particle, Component.health{}) catch return;
-                self.addComponent(a, particle, Component.physics{
+                //const particle = self.newEntity(a).?;
+                //self.setComponent(a, particle, Component.health{}) catch return;
+                const particle = try api.call(l, "SpawnMovementParticle"); // catch |err| std.debug.print("Error in movement.zig calling lua: {!}\n", .{err});
+                try self.setComponent(a, particle, Component.physics{
                     .pos = .{
                         .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
                         .y = physics.pos.y + 0.8 * (ecs.randomFloat() - 0.5),
@@ -73,12 +78,12 @@ pub fn updateMovementSystem(
                         .x = (ecs.randomFloat() - 0.5) * opt.dt,
                         .y = (ecs.randomFloat() - 0.5) * opt.dt,
                     },
-                }) catch return;
+                });
 
-                self.addComponent(a, particle, Component.sprite{
-                    .animation_player = .{ .animation_name = "particle", .tint = ray.ColorAlpha(ray.GRAY, 0.2) },
-                }) catch return;
-                self.addComponent(a, particle, Component.health_trickle{}) catch return;
+                //self.setComponent(a, particle, Component.sprite{
+                //.animation_player = .{ .animation_name = "particle", .tint = ray.ColorAlpha(ray.GRAY, 0.2) },
+                //}) catch return;
+                //self.setComponent(a, particle, Component.health_trickle{}) catch return;
             }
         }
     }

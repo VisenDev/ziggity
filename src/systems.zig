@@ -36,8 +36,8 @@ pub fn updateHostileAiSystem(self: *ecs.ECS, a: std.mem.Allocator, opt: options.
     const set = self.getSystemDomain(a, &systems);
 
     for (set) |member| {
-        var mind = self.get(Component.mind, member);
-        var tracker = self.get(Component.mind, member);
+        const mind = self.get(Component.mind, member);
+        const tracker = self.get(Component.mind, member);
         _ = tracker;
 
         switch (mind.activity) {}
@@ -69,7 +69,7 @@ pub fn updateWanderingSystem(self: *ecs.ECS, a: std.mem.Allocator, opt: options.
                 wanderer.cooldown = opt.dt * 300 * ecs.randomFloat();
             },
             .travelling => {
-                var physics = self.get(Component.physics, member);
+                const physics = self.get(Component.physics, member);
                 moveTowards(physics, wanderer.destination, opt);
                 wanderer.cooldown -= opt.dt;
 
@@ -121,21 +121,21 @@ pub fn updatePlayerSystem(
         if (ray.IsMouseButtonDown(ray.MOUSE_BUTTON_LEFT)) {
             const fireball = self.newEntity(a) orelse return;
             const pos = cam.mousePos(camera, tile_state_resolution);
-            self.addComponent(a, fireball, Component.physics{
+            self.setComponent(a, fireball, Component.physics{
                 .pos = pos,
                 .vel = .{
                     .x = (ecs.randomFloat() - 0.5) * opt.dt,
                     .y = (ecs.randomFloat() - 0.5) * opt.dt,
                 },
             }) catch return;
-            self.addComponent(a, fireball, Component.sprite{
+            self.setComponent(a, fireball, Component.sprite{
                 .animation_player = .{ .animation_name = "fireball", .tint = ray.ColorAlpha(ray.ORANGE, 0.5) },
             }) catch return;
-            self.addComponent(a, fireball, Component.damage{
+            self.setComponent(a, fireball, Component.damage{
                 .type = "force",
                 .amount = 10,
             }) catch return;
-            self.addComponent(a, fireball, Component.hitbox{ .top = 0.1, .bottom = 0.1, .left = 0.1, .right = 0.1 }) catch return;
+            self.setComponent(a, fireball, Component.hitbox{ .top = 0.1, .bottom = 0.1, .left = 0.1, .right = 0.1 }) catch return;
         }
     }
 }

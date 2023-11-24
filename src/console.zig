@@ -70,14 +70,14 @@ pub const Console = struct {
     }
     ///makes a copy, caller owns memory
     pub inline fn log(self: *@This(), value: [*:0]const u8) !void {
-        var len = std.mem.indexOfSentinel(u8, 0, value);
+        const len = std.mem.indexOfSentinel(u8, 0, value);
         var string = String.init(self.allocator);
         try string.appendSlice(value[0 .. len + 1]);
         try self.history.append(string);
     }
 
     pub fn logFmt(self: *@This(), comptime fmt: []const u8, args: anytype) !void {
-        var stringified = try std.fmt.allocPrintZ(self.allocator, fmt, args);
+        const stringified = try std.fmt.allocPrintZ(self.allocator, fmt, args);
         var string = String.init(self.allocator);
         try string.appendSlice(stringified);
         try string.append(0);

@@ -94,7 +94,7 @@ pub fn readConfig(comptime T: type, a: std.mem.Allocator, filename: []const u8) 
     const full_path = try std.fmt.allocPrint(a, "{s}{s}", .{ path, filename });
     defer a.free(full_path);
 
-    var string = try std.fs.cwd().readFileAlloc(a, full_path, 2048);
+    const string = try std.fs.cwd().readFileAlloc(a, full_path, 2048);
     //var sentinel_string = try a.dupeZ(u8, string);
     //_ = sentinel_string;
     defer a.free(string);

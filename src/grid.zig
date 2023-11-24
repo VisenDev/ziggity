@@ -8,7 +8,7 @@ pub fn Grid(comptime T: type) type {
         default_value: T,
 
         pub fn init(a: Allocator, width: usize, height: usize, default_value: T) !@This() {
-            var base = try a.alloc([]T, width);
+            const base = try a.alloc([]T, width);
             for (base) |*item| {
                 item.* = try a.alloc(T, height);
                 @memset(item.*, default_value);

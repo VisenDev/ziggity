@@ -60,7 +60,7 @@ pub const KeyBindings = struct {
         defer json_config.deinit();
 
         var arena_value = std.heap.ArenaAllocator.init(a);
-        var arena = arena_value.allocator();
+        const arena = arena_value.allocator();
         defer arena_value.deinit();
 
         for (json_config.value.keys) |key| {

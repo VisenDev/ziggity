@@ -29,12 +29,9 @@ pub fn SparseSet(comptime T: type) type {
             self.dense_ids.deinit(a);
         }
 
-        pub fn insert(self: *@This(), a: std.mem.Allocator, index: usize, val: T) !void {
+        pub fn set(self: *@This(), a: std.mem.Allocator, index: usize, val: T) !void {
             if (index < 0 or index > self.capacity) {
                 return error.index_out_of_bounds;
-            }
-            if (!try self.indexEmpty(index)) {
-                return error.index_not_empty;
             }
 
             const index_in_dense = self.dense.items.len;
@@ -42,8 +39,14 @@ pub fn SparseSet(comptime T: type) type {
             try self.dense.append(a, val);
             try self.dense_ids.append(a, index);
             self.sparse.items[index] = index_in_dense;
+        }
 
-            //            std.debug.print("number of elements: {}\n", .{self.dense.items.len});
+        pub fn insert(self: *@This(), a: std.mem.Allocator, index: usize, val: T) !void {
+            if (!try self.indexEmpty(index)) {
+                return error.index_not_empty;
+            } else {
+                try self.set(a, index, val);
+            }
         }
 
         pub fn delete(self: *@This(), sparse_index_to_delete: usize) !void {

@@ -75,13 +75,14 @@ pub fn build(b: *std.Build) void {
     unit_tests.linkLibC();
     unit_tests.step.dependOn((b.getInstallStep()));
     unit_tests.linkSystemLibrary("raylib");
+
+    unit_tests.addModule("toml", zigtoml.module("toml"));
     //find raygui.h
     unit_tests.addIncludePath(.{ .path = "lib" });
 
     //link unit tests with toml to json
     unit_tests.addIncludePath(.{ .path = "toml-to-json" });
     unit_tests.addLibraryPath(.{ .path = "toml-to-json/target/release" });
-    unit_tests.linkSystemLibrary("toml_to_json");
 
     //link lua
     unit_tests.addModule("ziglua", ziglua.module("ziglua"));

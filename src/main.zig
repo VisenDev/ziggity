@@ -18,6 +18,7 @@ const debug = @import("debug.zig");
 const cmd = @import("console.zig");
 const Lua = @import("ziglua").Lua;
 const api = @import("api.zig");
+const arch = @import("archetype.zig");
 
 const ray = @cImport({
     @cInclude("raylib.h");
@@ -115,7 +116,7 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
         const update_options = options.Update{ .dt = delta_time };
         camera = cam.calculateCameraPosition(camera, lvl, &tile_state, &keybindings);
 
-        try sys.updateMovementSystem(lvl.ecs, a, lvl.map, &animation_state, update_options);
+        try sys.updateMovementSystem(lvl.ecs, a, &lua, lvl.map, &animation_state, update_options);
         sys.updatePlayerSystem(lvl.ecs, a, keybindings, camera, tile_state.resolution, update_options);
         sys.updateWanderingSystem(lvl.ecs, a, update_options);
         try sys.updateDamageSystem(lvl.ecs, a, update_options);
