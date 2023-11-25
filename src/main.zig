@@ -117,11 +117,11 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
         camera = cam.calculateCameraPosition(camera, lvl, &tile_state, &keybindings);
 
         try sys.updateMovementSystem(lvl.ecs, a, &lua, lvl.map, &animation_state, update_options);
-        sys.updatePlayerSystem(lvl.ecs, a, keybindings, camera, tile_state.resolution, update_options);
+        try sys.updatePlayerSystem(lvl.ecs, a, &lua, keybindings, camera, tile_state.resolution, update_options);
         sys.updateWanderingSystem(lvl.ecs, a, update_options);
-        try sys.updateDamageSystem(lvl.ecs, a, update_options);
-        sys.updateHealthCooldownSystem(lvl.ecs, a, update_options);
         sys.updateDeathSystem(lvl.ecs, a, update_options);
+        sys.updateHealthCooldownSystem(lvl.ecs, a, update_options);
+        try sys.updateDamageSystem(lvl.ecs, a, update_options);
         sys.updateSpriteSystem(lvl.ecs, a, &animation_state, update_options);
 
         ray.BeginDrawing();

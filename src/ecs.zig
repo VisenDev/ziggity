@@ -51,6 +51,19 @@ inline fn sliceComponentNames() []const std.builtin.Type.Declaration {
     return @typeInfo(Component).Struct.decls;
 }
 
+pub fn intFromComponent(comptime Component_T: type) usize {
+    inline for (sliceComponentNames(), 0..) |val, i| {
+        if (std.mem.eql(u8, val.name, Component_T.name)) {
+            return i;
+        }
+    }
+    unreachable;
+}
+
+pub fn componentFromInt(component_int: usize) []const u8 {
+    sliceComponentNames()[component_int];
+}
+
 pub fn EcsComponent() type {
     const len = @typeInfo(Component).Struct.decls.len;
     var fields: [len]std.builtin.Type.StructField = undefined;
@@ -75,7 +88,8 @@ pub const ECS = struct {
     components: EcsComponent(),
     capacity: usize,
     bitflags: SparseSet(std.bit_set.StaticBitSet(sliceComponentNames().len)),
-    id_buffer: std.ArrayListUnmanaged(usize), //used by system domain calculations
+    domain_id_buffer: std.ArrayListUnmanaged(usize), //used by system domain calculations
+    collision_id_buffer: std.ArrayListUnmanaged(usize), //used by system domain calculations
     position_cache: Grid(std.ArrayListUnmanaged(usize)),
 
     //0s remainding capacities to avoid errors when parsing from json
@@ -88,7 +102,8 @@ pub const ECS = struct {
         }
         self.availible_ids.capacity = 0;
         self.bitflags.dense.capacity = 0;
-        self.id_buffer.capacity = 0;
+        self.domain_id_buffer.capacity = 0;
+        self.collision_id_buffer.capacity = 0;
         self.position_cache = .{ .default_value = .{} };
     }
 
@@ -104,14 +119,16 @@ pub const ECS = struct {
             try ids.append(a, id);
         }
 
-        const buffer = try std.ArrayListUnmanaged(usize).initCapacity(a, capacity);
+        var domain_id_buffer = try std.ArrayListUnmanaged(usize).initCapacity(a, capacity);
+        var collision_id_buffer = try std.ArrayListUnmanaged(usize).initCapacity(a, capacity);
 
         return @This(){
             .availible_ids = ids,
             .components = res,
             .capacity = capacity,
             .bitflags = try SparseSet(std.bit_set.StaticBitSet(sliceComponentNames().len)).init(a, capacity),
-            .id_buffer = buffer,
+            .domain_id_buffer = domain_id_buffer,
+            .collision_id_buffer = collision_id_buffer,
             .position_cache = try Grid(std.ArrayListUnmanaged(usize)).init(a, 32, 32, .{}),
         };
     }
@@ -134,16 +151,9 @@ pub const ECS = struct {
     }
 
     pub fn setComponent(self: *@This(), a: std.mem.Allocator, id: usize, component: anytype) !void {
-        inline for (sliceComponentNames(), 0..) |decl, i| {
-            const decl_type = @field(Component, decl.name);
-
-            if (decl_type == @TypeOf(component)) {
-                try @field(self.components, decl.name).set(a, id, component);
-                self.bitflags.get(id).?.set(i);
-                return;
-            }
-        }
-        return error.invalid_component;
+        try @field(self.components, @TypeOf(component).name).set(a, id, component);
+        const bitflag = intFromComponent(@TypeOf(component));
+        self.bitflags.get(id).?.set(bitflag);
     }
 
     pub fn addJsonComponent(self: *@This(), a: std.mem.Allocator, id: usize, component_name: []const u8, component_value: ?[]const u8) !void {
@@ -175,7 +185,22 @@ pub const ECS = struct {
 
     ///Get component, asserts component exists
     pub inline fn get(self: *const ECS, comptime component_T: type, id: usize) *component_T {
-        return self.getMaybe(component_T, id).?;
+        const maybe = self.getMaybe(component_T, id);
+        if (maybe) |comp| {
+            return comp;
+        } else {
+            const meta = self.getMaybe(Component.metadata, id) orelse &Component.metadata{};
+            std.debug.print("\nFailed to find component {} on entity {} with archetype {s}\n", .{ component_T, id, meta.archetype });
+
+            const components = self.listComponents(std.heap.c_allocator, id) catch unreachable;
+            defer components.deinit();
+            std.debug.print("All components of {}: {s}\n", .{ id, components.items });
+            unreachable;
+        }
+    }
+
+    pub inline fn hasComponent(self: *const @This(), comptime Component_T: type, id: usize) bool {
+        return self.bitflags.get(id).?.isSet(intFromComponent(Component_T));
     }
 
     ///Gets component if it exists;
@@ -184,31 +209,79 @@ pub const ECS = struct {
         return @field(self.components, name).get(id);
     }
 
+    pub fn listComponents(self: *const ECS, a: std.mem.Allocator, id: usize) !std.ArrayList([]const u8) {
+        var result = std.ArrayList([]const u8).init(a);
+        inline for (sliceComponentNames()) |decl| {
+            if (self.getMaybe(@field(Component, decl.name), id)) |_| {
+                try result.append(@field(Component, decl.name).name);
+            }
+        }
+        return result;
+    }
+
     //==================SYSTEMS===============
+    ///Beware: This function changes the contents of domain_id_buffer
     pub fn getSystemDomain(self: *ECS, a: std.mem.Allocator, comptime components: []const type) []usize {
         comptime var bit_mask = std.bit_set.StaticBitSet(sliceComponentNames().len).initEmpty();
         comptime for (components) |comp| {
-            for (sliceComponentNames(), 0..) |decl, i| {
-                if (std.mem.eql(u8, decl.name, comp.name)) {
-                    bit_mask.set(i);
-                }
-            }
+            bit_mask.set(intFromComponent(comp));
         };
 
-        self.id_buffer.clearRetainingCapacity();
+        self.domain_id_buffer.clearRetainingCapacity();
 
         //std.debug.print("bit mask {b}\n", .{bit_mask.mask});
         for (self.bitflags.dense.items, 0..) |component_mask, i| {
             if (bit_mask.mask & component_mask.mask == bit_mask.mask) {
                 const id = (self.bitflags.dense_ids.items[i]);
-                //std.debug.print("found {s} for {}\n", .{ sliceComponentNames()[i].name, id });
+
+                inline for (components) |comp| {
+                    std.debug.assert(self.getMaybe(comp, id) != null);
+                }
 
                 //check if capacity remains
-                self.id_buffer.append(a, id) catch return self.id_buffer.items;
+                self.domain_id_buffer.append(a, id) catch unreachable;
             }
         }
 
-        return self.id_buffer.items;
+        return self.domain_id_buffer.items;
+
+        //find shortest list of ids
+        //var shortest: []const u8 = undefined;
+        //var shortest_len: usize = 10000000;
+        //inline for (components) |comp| {
+        //    const set = @field(self.components, comp.name);
+        //    if (set.dense_ids.items.len < shortest_len) {
+        //        shortest = comp.name;
+        //        shortest_len = set.dense_ids.items.len;
+        //    }
+        //}
+        //const shortest = components[0].name;
+
+        //self.domain_id_buffer.clearRetainingCapacity();
+        //for (@field(self.components, shortest).dense_ids.items) |id| {
+        //    var in_set = true;
+        //    inline for (components) |comp| {
+        //        const set = @field(self.components, comp.name);
+        //        if (set.indexEmpty(id) catch unreachable) {
+        //            in_set = false;
+        //            break;
+        //        }
+        //    }
+        //    if (in_set) {
+        //        self.domain_id_buffer.append(a, id) catch unreachable;
+        //    }
+        //}
+
+        //std.debug.print("\nFinding\n", .{});
+        //for (self.domain_id_buffer.items) |id| {
+        //    inline for (components) |comp| {
+        //        std.debug.assert(self.getMaybe(comp, id) != null);
+        //        std.debug.print("{} has {}\n", .{ id, comp });
+        //    }
+        //    std.debug.print("\n", .{});
+        //}
+        //std.debug.print("\nDone. Total found: {}\n", .{self.domain_id_buffer.items.len});
+        //return self.domain_id_buffer.items;
     }
 };
 
@@ -249,13 +322,13 @@ test "ECS" {
     defer ecs.deinit(std.testing.allocator);
 
     const player_id = ecs.newEntity(std.testing.allocator).?;
-    try ecs.addComponent(std.testing.allocator, player_id, Component.physics{ .pos = .{ .x = 5, .y = 5 } });
-    try ecs.addComponent(std.testing.allocator, player_id, Component.is_player{});
+    try ecs.setComponent(std.testing.allocator, player_id, Component.physics{ .pos = .{ .x = 5, .y = 5 } });
+    try ecs.setComponent(std.testing.allocator, player_id, Component.is_player{});
 
     for (0..10) |_| {
         const id = ecs.newEntity(std.testing.allocator).?;
-        try ecs.addComponent(std.testing.allocator, id, Component.physics{ .pos = .{ .x = 5, .y = 5 } });
-        try ecs.addComponent(std.testing.allocator, id, Component.hitbox{});
+        try ecs.setComponent(std.testing.allocator, id, Component.physics{ .pos = .{ .x = 5, .y = 5 } });
+        try ecs.setComponent(std.testing.allocator, id, Component.hitbox{});
         //std.debug.print("New Entity: {} \n", .{id});
     }
 
@@ -292,3 +365,65 @@ test "json ecs component" {
     const player_id = ecs.newEntity(std.testing.allocator).?;
     try ecs.addJsonComponent(std.testing.allocator, player_id, "physics", null);
 }
+
+test "system domain" {
+    var ecs = try ECS.init(std.testing.allocator, 101);
+    defer ecs.deinit(std.testing.allocator);
+    const a = std.testing.allocator;
+
+    var list: [50]usize = undefined;
+    for (0..50) |i| {
+        const slime_id = ecs.newEntity(a).?;
+        list[i] = slime_id;
+        try ecs.setComponent(a, slime_id, Component.physics{ .pos = randomVector2(50, 50) });
+        try ecs.setComponent(a, slime_id, Component.sprite{ .animation_player = .{ .animation_name = "slime" } });
+        try ecs.setComponent(a, slime_id, Component.wanderer{});
+        try ecs.setComponent(a, slime_id, Component.health{});
+    }
+
+    for (0..24) |i| {
+        try ecs.deleteEntity(a, list[i * 2]);
+    }
+
+    for (0..12) |i| {
+        const slime_id = ecs.newEntity(a).?;
+        list[i] = slime_id;
+        try ecs.setComponent(a, slime_id, Component.sprite{ .animation_player = .{ .animation_name = "slime" } });
+        try ecs.setComponent(a, slime_id, Component.wanderer{});
+        try ecs.setComponent(a, slime_id, Component.health{});
+        try ecs.setComponent(a, slime_id, Component.damage{});
+    }
+
+    list = undefined;
+    for (0..50) |i| {
+        const slime_id = ecs.newEntity(a).?;
+        list[i] = slime_id;
+        try ecs.setComponent(a, slime_id, Component.physics{ .pos = randomVector2(50, 50) });
+        try ecs.setComponent(a, slime_id, Component.sprite{ .animation_player = .{ .animation_name = "slime" } });
+        try ecs.setComponent(a, slime_id, Component.wanderer{});
+        try ecs.setComponent(a, slime_id, Component.health{});
+        try ecs.setComponent(a, slime_id, Component.hitbox{});
+        try ecs.setComponent(a, slime_id, Component.damage{});
+    }
+
+    const domain = ecs.getSystemDomain(a, &[_]type{ Component.physics, Component.damage });
+    try std.testing.expect(domain.len == list.len);
+
+    for (domain) |id| {
+        var found = false;
+        for (list) |list_id| {
+            if (id == list_id) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            std.debug.print("list: {any}\n domain: {any}\n", .{ list, domain });
+            std.debug.print("Failed to find id {} in list {any}\n", .{ id, list });
+            unreachable;
+        }
+    }
+}
+
+//list:   { 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 }
+//domain: { 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 }

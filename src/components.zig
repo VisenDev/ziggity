@@ -107,3 +107,11 @@ pub const health_trickle = struct {
     pub const name = "health_trickle";
     decrease_per_tick: f32 = 10,
 };
+pub const invulnerable = struct {
+    pub const name = "invulnerable";
+    filler: u8 = 0, //this field is here because zig does not like when the struct is empty
+};
+pub const metadata = struct {
+    pub const name = "metadata";
+    archetype: []const u8 = "unknown",
+};

@@ -1,4 +1,5 @@
 const std = @import("std");
+const api = @import("api.zig");
 const tile = @import("tiles.zig");
 const anime = @import("animation.zig");
 const map = @import("map.zig");
@@ -10,6 +11,7 @@ const SparseSet = @import("sparse_set.zig").SparseSet;
 const Grid = @import("grid.zig").Grid;
 const coll = @import("collisions.zig");
 const cam = @import("camera.zig");
+const Lua = @import("ziglua").Lua;
 pub const Component = @import("components.zig");
 const intersection = @import("sparse_set.zig").intersection;
 const ray = @cImport({
@@ -84,11 +86,12 @@ pub fn updateWanderingSystem(self: *ecs.ECS, a: std.mem.Allocator, opt: options.
 pub fn updatePlayerSystem(
     self: *ecs.ECS,
     a: std.mem.Allocator,
+    l: *Lua,
     keys: key.KeyBindings,
     camera: ray.Camera2D,
     tile_state_resolution: usize,
     opt: options.Update,
-) void {
+) !void {
     const systems = [_]type{ Component.is_player, Component.physics };
     const set = self.getSystemDomain(a, &systems);
 
@@ -119,7 +122,7 @@ pub fn updatePlayerSystem(
 
         //let player shoot projectiles
         if (ray.IsMouseButtonDown(ray.MOUSE_BUTTON_LEFT)) {
-            const fireball = self.newEntity(a) orelse return;
+            const fireball = api.call(l, "SpawnFireball") catch break;
             const pos = cam.mousePos(camera, tile_state_resolution);
             self.setComponent(a, fireball, Component.physics{
                 .pos = pos,
@@ -127,15 +130,16 @@ pub fn updatePlayerSystem(
                     .x = (ecs.randomFloat() - 0.5) * opt.dt,
                     .y = (ecs.randomFloat() - 0.5) * opt.dt,
                 },
-            }) catch return;
-            self.setComponent(a, fireball, Component.sprite{
-                .animation_player = .{ .animation_name = "fireball", .tint = ray.ColorAlpha(ray.ORANGE, 0.5) },
-            }) catch return;
-            self.setComponent(a, fireball, Component.damage{
-                .type = "force",
-                .amount = 10,
-            }) catch return;
-            self.setComponent(a, fireball, Component.hitbox{ .top = 0.1, .bottom = 0.1, .left = 0.1, .right = 0.1 }) catch return;
+            }) catch |err| std.debug.print("error adding component to entity when spawning fireball {!}", .{err});
+        }
+
+        //spawnSlimes
+        if (ray.IsMouseButtonDown(ray.MOUSE_BUTTON_RIGHT)) {
+            const slime = api.call(l, "SpawnSlime") catch break;
+            const pos = cam.mousePos(camera, tile_state_resolution);
+            self.setComponent(a, slime, Component.physics{
+                .pos = pos,
+            }) catch |err| std.debug.print("error spawning slime {!}", .{err});
         }
     }
 }
@@ -192,7 +196,13 @@ pub fn updateSpriteSystem(
     const set = self.getSystemDomain(a, &systems);
 
     for (set) |member| {
-        self.components.sprite.get(member).?.animation_player.update(animation_state, opt);
+        var sprite_maybe = self.getMaybe(Component.sprite, member);
+        if (sprite_maybe) |sprite| {
+            sprite.animation_player.update(animation_state, opt);
+        } else {
+            std.debug.print("{} id has flags {b}", .{ member, self.bitflags.get(member).?.*.mask });
+            @panic("Get system domain failed");
+        }
     }
 }
 
@@ -202,21 +212,18 @@ pub fn updateDamageSystem(
     opt: options.Update,
 ) !void {
     _ = opt;
-    const systems = [_]type{ Component.physics, Component.hitbox, Component.damage };
+    const systems = [_]type{ Component.hitbox, Component.damage, Component.physics };
     const set = self.getSystemDomain(a, &systems);
 
     for (set) |member| {
-        const colliders = try coll.findCollidingEntities(self, a, member);
         const damage = self.get(Component.damage, member);
 
+        const colliders = try coll.findCollidingEntities(self, a, member);
         for (colliders) |entity| {
+            if (self.getMaybe(Component.invulnerable, entity)) |_| continue;
             var health = self.getMaybe(Component.health, entity) orelse continue;
 
-            const animation = self.get(Component.sprite, entity).animation_player.animation_name;
-            std.debug.print("colliding entity found! {}{s}\n", .{ entity, animation });
-
             if (health.cooldown_remaining <= 0) {
-                std.debug.print("damage dealt", .{});
                 health.hp -= damage.amount;
                 health.cooldown_remaining = Component.health.damage_cooldown;
             }

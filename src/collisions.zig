@@ -23,15 +23,16 @@ pub fn checkCollision(
     );
 }
 
+///Beware: This function changes the contents of collision_id_buffer
 pub fn findCollidingEntities(
     self: *ecs.ECS,
     a: std.mem.Allocator,
     id: usize,
 ) ![]usize {
-    self.id_buffer.clearRetainingCapacity();
+    self.collision_id_buffer.clearRetainingCapacity();
 
-    const physics = self.getMaybe(Component.physics, id) orelse return self.id_buffer.items;
-    const hitbox = self.getMaybe(Component.hitbox, id) orelse return self.id_buffer.items;
+    const physics = self.getMaybe(Component.physics, id) orelse return self.collision_id_buffer.items;
+    const hitbox = self.getMaybe(Component.hitbox, id) orelse return self.collision_id_buffer.items;
 
     const pos = physics.getCachePosition();
     const neighbor_list = self.position_cache.findNeighbors(a, pos.x, pos.y);
@@ -41,13 +42,10 @@ pub fn findCollidingEntities(
             const neighbor_hitbox = self.getMaybe(Component.hitbox, neighbor_id) orelse continue;
 
             if (checkCollision(physics.*, hitbox.*, neighbor_physics.*, neighbor_hitbox.*)) {
-                try self.id_buffer.append(a, neighbor_id);
+                try self.collision_id_buffer.append(a, neighbor_id);
             }
         }
     }
 
-    if (self.id_buffer.items.len > 0) {
-        //std.debug.print("collisions detected", .{});
-    }
-    return self.id_buffer.items;
+    return self.collision_id_buffer.items;
 }

@@ -68,7 +68,7 @@ pub fn updateMovementSystem(
             if (physics.pos.x != old_position.x or physics.pos.y != old_position.y) {
                 //const particle = self.newEntity(a).?;
                 //self.setComponent(a, particle, Component.health{}) catch return;
-                const particle = try api.call(l, "SpawnMovementParticle"); // catch |err| std.debug.print("Error in movement.zig calling lua: {!}\n", .{err});
+                const particle = api.call(l, "SpawnMovementParticle") catch continue;
                 try self.setComponent(a, particle, Component.physics{
                     .pos = .{
                         .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),

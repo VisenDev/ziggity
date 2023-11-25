@@ -48,7 +48,7 @@ pub fn generateLevel(a: std.mem.Allocator, options: LevelGenOptions) !Level {
     defer tile_state.deinit();
 
     var entities = try a.create(ecs.ECS);
-    entities.* = try ecs.ECS.init(a, 8000);
+    entities.* = try ecs.ECS.init(a, 10000);
 
     const world_map = try a.create(map.MapState);
     world_map.* = try map.MapState.generate(a, tile_state, options);
@@ -59,18 +59,16 @@ pub fn generateLevel(a: std.mem.Allocator, options: LevelGenOptions) !Level {
     const player_id = entities.newEntity(a).?;
     try entities.setComponent(a, player_id, ecs.Component.physics{ .pos = .{ .x = 5, .y = 5 } });
     try entities.setComponent(a, player_id, ecs.Component.sprite{ .animation_player = .{ .animation_name = "player" } });
-    try entities.setComponent(a, player_id, ecs.Component.movement_particles{});
     try entities.setComponent(a, player_id, ecs.Component.is_player{});
 
-    for (0..50) |_| {
-        const slime_id = entities.newEntity(a).?;
-        try entities.setComponent(a, slime_id, ecs.Component.physics{ .pos = ecs.randomVector2(50, 50) });
-        try entities.setComponent(a, slime_id, ecs.Component.sprite{ .animation_player = .{ .animation_name = "slime" } });
-        try entities.setComponent(a, slime_id, ecs.Component.hitbox{});
-        try entities.setComponent(a, slime_id, ecs.Component.wanderer{});
-        try entities.setComponent(a, slime_id, ecs.Component.health{});
-        try entities.setComponent(a, slime_id, ecs.Component.movement_particles{});
-    }
+    //    for (0..50) |_| {
+    //        const slime_id = entities.newEntity(a).?;
+    //        try entities.setComponent(a, slime_id, ecs.Component.physics{ .pos = ecs.randomVector2(50, 50) });
+    //        try entities.setComponent(a, slime_id, ecs.Component.sprite{ .animation_player = .{ .animation_name = "slime" } });
+    //        try entities.setComponent(a, slime_id, ecs.Component.hitbox{});
+    //        try entities.setComponent(a, slime_id, ecs.Component.wanderer{});
+    //        try entities.setComponent(a, slime_id, ecs.Component.health{});
+    //    }
 
     return Level{ .name = "harry truman", .ecs = entities, .map = world_map, .exits = exits, .player_id = player_id };
 }
