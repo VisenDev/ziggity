@@ -139,7 +139,7 @@ pub fn updatePlayerSystem(
             const pos = cam.mousePos(camera, tile_state_resolution);
             self.setComponent(a, slime, Component.physics{
                 .pos = pos,
-            }) catch |err| std.debug.print("error spawning slime {!}", .{err});
+            }) catch unreachable;
         }
     }
 }
@@ -196,7 +196,7 @@ pub fn updateSpriteSystem(
     const set = self.getSystemDomain(a, &systems);
 
     for (set) |member| {
-        var sprite_maybe = self.getMaybe(Component.sprite, member);
+        const sprite_maybe = self.getMaybe(Component.sprite, member);
         if (sprite_maybe) |sprite| {
             sprite.animation_player.update(animation_state, opt);
         } else {

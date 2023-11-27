@@ -108,7 +108,7 @@ pub fn readConfig(comptime T: type, a: std.mem.Allocator, filename: []const u8) 
         var table = try parser.parse();
         defer table.deinit();
 
-        var json = try table.stringify();
+        var json = try table.toJson();
         defer json.deinit();
 
         return try std.json.parseFromSlice(T, a, json.items, .{ .allocate = .alloc_always });

@@ -119,8 +119,8 @@ pub const ECS = struct {
             try ids.append(a, id);
         }
 
-        var domain_id_buffer = try std.ArrayListUnmanaged(usize).initCapacity(a, capacity);
-        var collision_id_buffer = try std.ArrayListUnmanaged(usize).initCapacity(a, capacity);
+        const domain_id_buffer = try std.ArrayListUnmanaged(usize).initCapacity(a, capacity);
+        const collision_id_buffer = try std.ArrayListUnmanaged(usize).initCapacity(a, capacity);
 
         return @This(){
             .availible_ids = ids,
@@ -179,7 +179,8 @@ pub const ECS = struct {
         }
         self.availible_ids.deinit(a);
         self.bitflags.deinit(a);
-        self.id_buffer.deinit(a);
+        self.collision_id_buffer.deinit(a);
+        self.domain_id_buffer.deinit(a);
         self.position_cache.deinit(a);
     }
 

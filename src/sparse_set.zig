@@ -34,6 +34,10 @@ pub fn SparseSet(comptime T: type) type {
                 return error.index_out_of_bounds;
             }
 
+            if (self.get(index) != null) {
+                try self.delete(index);
+            }
+
             const index_in_dense = self.dense.items.len;
 
             try self.dense.append(a, val);

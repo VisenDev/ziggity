@@ -2,7 +2,9 @@ local api = api
 
 function SpawnSlime()
    local id = api.lvl.newEntity()
-   api.lvl.addComponent(id, "physics")
+   api.lvl.addComponent(id, "physics", [[{
+   "pos": {"x": 3, "y": 3}
+   }]])
    api.lvl.addComponent(id, "wanderer")
    api.lvl.addComponent(id, "health")
    api.lvl.addComponent(id, "hitbox")
