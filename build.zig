@@ -27,26 +27,17 @@ pub fn build(b: *std.Build) void {
     exe.addModule("ziglua", ziglua.module("ziglua"));
     exe.linkLibrary(ziglua.artifact("lua"));
 
-    //link raylib
-    exe.linkSystemLibrary("raylib");
-    exe.linkLibC();
+    const ray = b.dependency("raylib", .{ .target = target, .optimize = optimize });
+    exe.linkLibrary(ray.artifact("raylib"));
 
     //find raygui.h
     exe.addIncludePath(.{ .path = "lib" });
 
     //flags to find raylib correctly
-    const cflags = [_][]const u8{
-        "-D RAYGUI_IMPLEMENTATION",
-        "-I/usr/local/Cellar/raylib/4.5.0/include",
-        "-L/usr/local/Cellar/raylib/4.5.0/lib",
-        "-lraylib",
-    };
-    exe.addCSourceFile(.{
-        .file = .{
-            .path = "lib/raygui.c",
-        },
-        .flags = &cflags,
-    });
+    const cflags = [_][]const u8{ "-D RAYGUI_IMPLEMENTATION", "-lraylib" };
+    exe.addCSourceFile(.{ .file = .{
+        .path = "lib/raygui.c",
+    }, .flags = &cflags });
     b.installArtifact(exe);
 
     //=============INSTALL GAME FILES===========
@@ -74,26 +65,20 @@ pub fn build(b: *std.Build) void {
 
     unit_tests.linkLibC();
     unit_tests.step.dependOn((b.getInstallStep()));
-    unit_tests.linkSystemLibrary("raylib");
+    unit_tests.linkLibrary(ray.artifact("raylib"));
 
     unit_tests.addModule("toml", zigtoml.module("toml"));
+
     //find raygui.h
     unit_tests.addIncludePath(.{ .path = "lib" });
-
-    //link unit tests with toml to json
-    unit_tests.addIncludePath(.{ .path = "toml-to-json" });
-    unit_tests.addLibraryPath(.{ .path = "toml-to-json/target/release" });
 
     //link lua
     unit_tests.addModule("ziglua", ziglua.module("ziglua"));
     unit_tests.linkLibrary(ziglua.artifact("lua"));
 
-    unit_tests.addCSourceFile(.{
-        .file = .{
-            .path = "lib/raygui.c",
-        },
-        .flags = &cflags,
-    });
+    unit_tests.addCSourceFile(.{ .file = .{
+        .path = "lib/raygui.c",
+    }, .flags = &cflags });
 
     var run_unit_tests = b.addRunArtifact(unit_tests);
     run_unit_tests.has_side_effects = true;

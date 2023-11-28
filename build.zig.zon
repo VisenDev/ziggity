@@ -12,5 +12,9 @@
             .url = "https://github.com/VisenDev/zig-toml-json/archive/refs/heads/master.tar.gz",
             .hash = "1220cccb7852ce87568738b14b87d42f51cf751b1d162e3ba4a8f7cd74e096603e7d",
          },
+         .raylib = .{
+            .url = "https://github.com/raysan5/raylib/archive/refs/heads/master.tar.gz",
+            .hash = "1220650937ffcc4b8404c8d35f55a0be7ba9ce61e5a37306dfafe7ffaead4d1f2621",
+         }
       },
 }

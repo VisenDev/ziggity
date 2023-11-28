@@ -28,6 +28,21 @@ const raygui = @cImport({
     @cInclude("style_dark.h");
 });
 
+fn playSound() void {
+    ray.InitAudioDevice();
+    defer ray.CloseAudioDevice();
+    const music = ray.LoadMusicStream("game-files/audio/LittleFugue.mp3");
+    ray.SetMusicVolume(music, 0.3);
+    defer ray.UnloadMusicStream(music);
+    ray.PlayMusicStream(music);
+    std.debug.assert(ray.IsMusicStreamPlaying(music));
+
+    while (!ray.WindowShouldClose()) {
+        ray.UpdateMusicStream(music);
+        std.time.sleep(@intFromFloat((1.0 / 60.0) * std.time.ns_per_s));
+    }
+}
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{ .verbose_log = true, .retain_metadata = true, .enable_memory_limit = true }){};
     defer _ = gpa.detectLeaks();
@@ -39,6 +54,9 @@ pub fn main() !void {
     ray.SetConfigFlags(ray.FLAG_VSYNC_HINT);
     ray.InitWindow(800, 450, "ziggity");
     defer ray.CloseWindow();
+
+    const music_player = try std.Thread.spawn(.{}, playSound, .{});
+    defer music_player.detach();
 
     raygui.GuiLoadStyleDark();
     ray.SetTargetFPS(1000);
@@ -94,8 +112,8 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
 
     var debug_mode = true;
 
-    //const shader = ray.LoadShader(0, ray.TextFormat("game-files/shaders/grayscale.fs", @as(c_int, 330)));
-    //defer ray.UnloadShader(shader);
+    const shader = ray.LoadShader(0, ray.TextFormat("game-files/shaders/crosshatch.fs", @as(c_int, 330)));
+    defer ray.UnloadShader(shader);
 
     var camera = cam.initCamera();
 
@@ -126,6 +144,7 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
 
         ray.BeginDrawing();
         ray.BeginMode2D(camera); // Begin 2D mode with custom camera (2D)
+        ray.BeginShaderMode(shader);
         ray.ClearBackground(ray.RAYWHITE);
 
         lvl.map.render(&animation_state, &tile_state);
@@ -136,6 +155,7 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
         }
 
         sys.renderSprites(lvl.ecs, a, &animation_state, &tile_state);
+        ray.EndShaderMode();
         ray.EndMode2D();
 
         if (debug_mode) {

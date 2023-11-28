@@ -25,6 +25,35 @@ fn tof32(input: anytype) f32 {
 //    len: u32 = 0,
 //};
 
+pub const proto = enum(u8) {
+    natural_wall = '#',
+    natural_floor = '.',
+    pit = ':',
+    structure_wall = '%',
+    structure_floor = '-',
+    liquid = '~',
+    bridge = '=',
+    door = '+',
+    treasure = '$',
+    boss = 'B',
+};
+
+const lvl1 = [_][]const u8{
+    "#########",
+    "#....####",
+    "##.....##",
+    "###.....#",
+    "#%%%%+%%%",
+    "#%------%",
+    "#%---B--%",
+    "#%------%",
+    "#%------%",
+    "#%%%%+%%%",
+    "###..$.##",
+    "####..###",
+    "#########",
+};
+
 pub const MapState = struct {
     tile_grid: Grid(tile.Tile),
     animation_grid: Grid(anime.AnimationPlayer),
