@@ -83,72 +83,12 @@ pub fn updateWanderingSystem(self: *ecs.ECS, a: std.mem.Allocator, opt: options.
     }
 }
 
-pub fn updatePlayerSystem(
-    self: *ecs.ECS,
-    a: std.mem.Allocator,
-    l: *Lua,
-    keys: key.KeyBindings,
-    camera: ray.Camera2D,
-    tile_state_resolution: usize,
-    opt: options.Update,
-) !void {
-    const systems = [_]type{ Component.is_player, Component.physics };
-    const set = self.getSystemDomain(a, &systems);
-
-    const magnitude: f32 = 100;
-
-    for (set) |member| {
-        var direction = ray.Vector2{ .x = 0, .y = 0 };
-
-        if (keys.isDown("player_up")) {
-            direction.y -= magnitude;
-        }
-
-        if (keys.isDown("player_down")) {
-            direction.y += magnitude;
-        }
-
-        if (keys.isDown("player_left")) {
-            direction.x -= magnitude;
-        }
-
-        if (keys.isDown("player_right")) {
-            direction.x += magnitude;
-        }
-
-        var physics = self.get(Component.physics, member);
-        physics.vel.x += direction.x * physics.acceleration * opt.dt;
-        physics.vel.y += direction.y * physics.acceleration * opt.dt;
-
-        //let player shoot projectiles
-        if (ray.IsMouseButtonDown(ray.MOUSE_BUTTON_LEFT)) {
-            const fireball = api.call(l, "SpawnFireball") catch break;
-            const pos = cam.mousePos(camera, tile_state_resolution);
-            self.setComponent(a, fireball, Component.physics{
-                .pos = pos,
-                .vel = .{
-                    .x = (ecs.randomFloat() - 0.5) * opt.dt,
-                    .y = (ecs.randomFloat() - 0.5) * opt.dt,
-                },
-            }) catch |err| std.debug.print("error adding component to entity when spawning fireball {!}", .{err});
-        }
-
-        //spawnSlimes
-        if (ray.IsMouseButtonDown(ray.MOUSE_BUTTON_RIGHT)) {
-            const slime = api.call(l, "SpawnSlime") catch break;
-            const pos = cam.mousePos(camera, tile_state_resolution);
-            self.setComponent(a, slime, Component.physics{
-                .pos = pos,
-            }) catch unreachable;
-        }
-    }
-}
-
 pub fn updateDeathSystem(
     self: *ecs.ECS,
     a: std.mem.Allocator,
+    l: *Lua,
     opt: options.Update,
-) void {
+) !void {
     const systems = [_]type{Component.health};
     const set = self.getSystemDomain(a, &systems);
 
@@ -161,6 +101,33 @@ pub fn updateDeathSystem(
 
         if (health.hp <= 0) {
             health.is_dead = true;
+
+            if (self.getMaybe(Component.loot, member)) |loot| {
+                const physics = self.getMaybe(Component.physics, member) orelse continue;
+                for (loot.items) |item_script| {
+                    const item = try api.call(l, item_script);
+                    try self.setComponent(a, item, Component.physics{
+                        .pos = .{
+                            .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
+                            .y = physics.pos.y + 0.8 * (ecs.randomFloat() - 0.5),
+                        },
+                    });
+                }
+            }
+
+            if (self.getMaybe(Component.death_particles, member)) |particle| {
+                _ = particle;
+                const physics = self.get(Component.physics, member);
+                for (0..5) |_| {
+                    const blood = api.call(l, "SpawnBloodParticle") catch unreachable;
+                    try self.setComponent(a, blood, Component.physics{
+                        .pos = .{
+                            .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
+                            .y = physics.pos.y + 0.8 * (ecs.randomFloat() - 0.5),
+                        },
+                    });
+                }
+            }
         }
 
         if (health.is_dead) {
@@ -252,13 +219,24 @@ pub inline fn scaleRectangle(a: ray.Rectangle, scalar: anytype) ray.Rectangle {
     return .{ .x = a.x * floated, .y = a.y * floated, .width = a.width * floated, .height = a.height * floated };
 }
 
-pub fn renderSprites(self: *ecs.ECS, a: std.mem.Allocator, animation_state: *const anime.AnimationState, tile_state: *const tile.TileState) void {
+pub fn renderSprites(
+    self: *ecs.ECS,
+    a: std.mem.Allocator,
+    animation_state: *const anime.AnimationState,
+    tile_state: *const tile.TileState,
+) void {
     const systems = [_]type{ Component.physics, Component.sprite };
     const set = self.getSystemDomain(a, &systems);
 
     for (set) |member| {
         const sprite = self.components.sprite.get(member).?;
         const physics = self.components.physics.get(member).?;
+
+        if (self.getMaybe(Component.item, member)) |item| {
+            if (item.status == .in_inventory) {
+                continue;
+            }
+        }
 
         sprite.animation_player.render(animation_state, scaleVector(physics.pos, tile_state.resolution));
     }

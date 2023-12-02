@@ -1,4 +1,5 @@
 const anime = @import("animation.zig");
+const inv = @import("inventory.zig");
 const sys = @import("systems.zig");
 const ray = @cImport({
     @cInclude("raylib.h");
@@ -68,7 +69,7 @@ pub const eyesight = struct {
 };
 pub const loot = struct {
     pub const name = "loot";
-    item_ids: []usize = &[_]usize{},
+    items: []const [:0]const u8 = &[_][:0]const u8{""},
 };
 pub const hitbox = struct {
     pub const name = "hitbox";
@@ -114,4 +115,21 @@ pub const invulnerable = struct {
 pub const metadata = struct {
     pub const name = "metadata";
     archetype: []const u8 = "unknown",
+};
+pub const item = inv.ItemComponent;
+pub const inventory = inv.InventoryComponent;
+//Should I possibly rename this to "useable?" so that more entities than the player can use it?
+//or actions?
+pub const left_clickable = struct {
+    pub const name = "left_clickable";
+    function_name: []const u8 = "",
+};
+pub const right_clickable = struct {
+    pub const name = "right_clickable";
+    function_name: []const u8 = "",
+};
+pub const death_particles = struct {
+    pub const name = "death_particles";
+    color: ray.Color = ray.RED,
+    quantity: usize = 20,
 };

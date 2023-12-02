@@ -4,9 +4,8 @@
       .paths = .{""},
       .dependencies = .{
          .ziglua = .{
-            .url = "https://github.com/davidgranstrom/ziglua/archive/refs/heads/master.tar.gz",
-            .hash = "1220a6d76924a2336b1c8adaa1c40952806140101ebd0a4f0d9e2978d7ae48874b70",
-            //.url = "https://github.com/natecraddock/ziglua/archive/refs/tags/0.2.0.tar.gz",
+            .url = "https://github.com/natecraddock/ziglua/archive/refs/tags/0.2.0.tar.gz",
+            .hash = "1220d14df5c57d4c3fafe26191fcc3b32c23ffd319e7f5d839d2ace030372f1f85b4",
          },
          .zigtoml = .{
             .url = "https://github.com/VisenDev/zig-toml-json/archive/refs/heads/master.tar.gz",

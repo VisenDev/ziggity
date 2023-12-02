@@ -88,6 +88,14 @@ pub fn updateMovementSystem(
         }
     }
 
+    //const static = struct {
+    //    var i: usize = 0;
+    //};
+    //static.i += 1;
+    //static.i %= 5;
+
+    //if (static.i != 0) return;
+
     //clear position cache
     for (0..self.position_cache.getWidth()) |x| {
         for (0..self.position_cache.getHeight()) |y| {

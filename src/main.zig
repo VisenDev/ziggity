@@ -1,4 +1,5 @@
 const std = @import("std");
+const inv = @import("inventory.zig");
 const cam = @import("camera.zig");
 const anime = @import("animation.zig");
 const tile = @import("tiles.zig");
@@ -19,6 +20,7 @@ const cmd = @import("console.zig");
 const Lua = @import("ziglua").Lua;
 const api = @import("api.zig");
 const arch = @import("archetype.zig");
+const play = @import("player.zig");
 
 const ray = @cImport({
     @cInclude("raylib.h");
@@ -55,8 +57,8 @@ pub fn main() !void {
     ray.InitWindow(800, 450, "ziggity");
     defer ray.CloseWindow();
 
-    const music_player = try std.Thread.spawn(.{}, playSound, .{});
-    defer music_player.detach();
+    //const music_player = try std.Thread.spawn(.{}, playSound, .{});
+    //defer music_player.detach();
 
     raygui.GuiLoadStyleDark();
     ray.SetTargetFPS(1000);
@@ -135,9 +137,10 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
         camera = cam.calculateCameraPosition(camera, lvl, &tile_state, &keybindings);
 
         try sys.updateMovementSystem(lvl.ecs, a, &lua, lvl.map, &animation_state, update_options);
-        try sys.updatePlayerSystem(lvl.ecs, a, &lua, keybindings, camera, tile_state.resolution, update_options);
+        try play.updatePlayerSystem(lvl.ecs, a, &lua, keybindings, camera, tile_state.resolution, update_options);
+        try inv.updateInventorySystem(lvl.ecs, a, update_options);
         sys.updateWanderingSystem(lvl.ecs, a, update_options);
-        sys.updateDeathSystem(lvl.ecs, a, update_options);
+        try sys.updateDeathSystem(lvl.ecs, a, &lua, update_options);
         sys.updateHealthCooldownSystem(lvl.ecs, a, update_options);
         try sys.updateDamageSystem(lvl.ecs, a, update_options);
         sys.updateSpriteSystem(lvl.ecs, a, &animation_state, update_options);
@@ -158,10 +161,9 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
         ray.EndShaderMode();
         ray.EndMode2D();
 
-        if (debug_mode) {
-            ray.DrawFPS(15, 15);
-            try debug.renderEntityCount(lvl.ecs);
-        }
+        ray.DrawFPS(15, 15);
+        try debug.renderEntityCount(lvl.ecs);
+        inv.renderPlayerInventory(lvl.ecs, a, &animation_state);
 
         try console.update(&lua, keybindings);
         try console.render();

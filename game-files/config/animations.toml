@@ -53,3 +53,22 @@ origin = {x = 0, y = 0}
 frames = [
    { subrect = {x = 0, y = 0, width = 8, height = 8}, milliseconds = 1000 }
 ]
+
+[[animations]]
+name = "blood_particle"
+rotation_speed = 10 
+filepath = "blood.png"
+origin = {x = 2, y = 2}
+frames = [
+   { subrect = {x = 0, y = 0, width = 4, height = 4}, milliseconds = 100 }
+]
+
+
+[[animations]]
+name = "coin"
+rotation_speed = 10 
+filepath = "coin.png"
+origin = {x = 3, y = 3}
+frames = [
+   { subrect = {x = 0, y = 0, width = 6, height = 6}, milliseconds = 100 }
+]
