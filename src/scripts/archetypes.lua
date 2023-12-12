@@ -99,12 +99,13 @@ end
 
 
 function SpawnBloodParticle()
+--   print("spawning blood particle")
    local id = api.lvl.newEntity()
    api.lvl.addComponent(id, "health")
    api.lvl.addComponent(id, "sprite", [[{
       "animation_player": {
-         "animation_name": "blood_particle",
-         "tint": {"r": 100, "g": 100, "b": 100, "a": 50}
+         "animation_name": "particle",
+         "tint": {"r": 50, "g": 250, "b": 20, "a": 200}
       }
    }]])
    api.lvl.addComponent(id, "health_trickle")

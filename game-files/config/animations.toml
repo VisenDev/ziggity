@@ -12,7 +12,7 @@ frames = [ #this contains every frame of the animation, and how many millisecond
 name = "player"
 rotation_speed = 0
 filepath = "player.png"
-origin = {x = 0, y = 0}
+origin = {x = 8, y = 8}
 frames = [
    { subrect = {x = 0, y = 0, width = 16, height = 32}, milliseconds = 250 }
 ]
@@ -57,10 +57,10 @@ frames = [
 [[animations]]
 name = "blood_particle"
 rotation_speed = 10 
-filepath = "blood.png"
-origin = {x = 2, y = 2}
+filepath = "particle_default.png"
+origin = {x = 4, y = 4}
 frames = [
-   { subrect = {x = 0, y = 0, width = 4, height = 4}, milliseconds = 100 }
+   { subrect = {x = 0, y = 0, width = 8, height = 8}, milliseconds = 5000 }
 ]
 
 
@@ -68,7 +68,7 @@ frames = [
 name = "coin"
 rotation_speed = 10 
 filepath = "coin.png"
-origin = {x = 3, y = 3}
+origin = {x = 0, y = 0}
 frames = [
-   { subrect = {x = 0, y = 0, width = 6, height = 6}, milliseconds = 100 }
+   { subrect = {x = 2, y = 2, width = 1, height = 1}, milliseconds = 100 }
 ]

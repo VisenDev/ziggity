@@ -19,6 +19,7 @@ pub const Animation = struct {
     texture: ?ray.Texture2D = null,
     filepath: []const u8,
     name: []const u8,
+    loop: bool = true,
     rotation_speed: f32 = 0, //scalar to be multiplied by dt when rotating
     origin: ray.Vector2 = .{ .x = 0, .y = 0 },
     render_style: enum { pixel_perfect, scaled } = .pixel_perfect,
@@ -39,11 +40,14 @@ pub const AnimationPlayer = struct {
     remaining_frame_time: f32 = 0,
     rotation: f32 = 0,
     tint: ray.Color = ray.WHITE,
+    done: bool = false,
 
     //renders the animation
     pub fn render(self: *@This(), state: *const AnimationState, position: ray.Vector2) void {
+        if (self.done) return;
         const animation = state.animations.get(self.animation_name).?;
         const frame = animation.frames[self.current_frame];
+
         ray.DrawTexturePro(
             animation.texture.?,
             frame.subrect,
@@ -66,6 +70,10 @@ pub const AnimationPlayer = struct {
         self.rotation += animation.rotation_speed * opt.dt;
 
         if (self.remaining_frame_time <= 0) {
+            if (animation.loop == false and self.current_frame == animation.frames.len - 1) {
+                self.done = true;
+            }
+
             self.current_frame = animation.nextFrame(self.current_frame);
             self.remaining_frame_time = animation.frames[self.current_frame].milliseconds;
         }
