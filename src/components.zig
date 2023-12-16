@@ -33,7 +33,12 @@ pub const health = struct {
 };
 pub const sprite = struct {
     pub const name = "sprite";
+
+    //z level constants
+    pub const ZLevels = enum { background, middleground, foreground };
     animation_player: anime.AnimationPlayer = .{ .animation_name = "default" },
+    z_level: ZLevels = .middleground, //0 is the lowest
+    disabled: bool = false,
 };
 pub const tracker = struct {
     pub const name = "tracker";

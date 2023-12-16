@@ -42,7 +42,8 @@ function SpawnMovementParticle()
       "animation_player": {
          "animation_name": "particle",
          "tint": {"r": 100, "g": 100, "b": 100, "a": 50}
-      }
+      },
+      "z_level": "foreground"
    }]])
    api.lvl.addComponent(id, "health_trickle")
    api.lvl.addComponent(id, "metadata", [[{
@@ -78,7 +79,7 @@ function SpawnCoin()
 
    local id = api.lvl.newEntity()
    api.lvl.addComponent(id, "sprite", [[
-      {"animation_player": {"animation_name": "coin"}}
+      {"animation_player": {"animation_name": "coin"}, "z_level": "background"}
    ]])
    api.lvl.addComponent(id, "hitbox", [[{
       "top": 0.1, "bottom": 0.1, "left": 0.1, "right": 0.1
@@ -99,14 +100,14 @@ end
 
 
 function SpawnBloodParticle()
---   print("spawning blood particle")
    local id = api.lvl.newEntity()
    api.lvl.addComponent(id, "health")
    api.lvl.addComponent(id, "sprite", [[{
       "animation_player": {
          "animation_name": "particle",
          "tint": {"r": 50, "g": 250, "b": 20, "a": 200}
-      }
+      },
+      "z_level": "background"
    }]])
    api.lvl.addComponent(id, "health_trickle")
    api.lvl.addComponent(id, "metadata", [[{

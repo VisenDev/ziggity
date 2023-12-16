@@ -228,16 +228,16 @@ pub fn renderSprites(
     const systems = [_]type{ Component.physics, Component.sprite };
     const set = self.getSystemDomain(a, &systems);
 
-    for (set) |member| {
-        const sprite = self.components.sprite.get(member).?;
-        const physics = self.components.physics.get(member).?;
+    inline for (@typeInfo(Component.sprite.ZLevels).Enum.fields) |current_z_level_decl| {
+        for (set) |member| {
+            const current_z_level = @field(Component.sprite.ZLevels, current_z_level_decl.name);
+            const sprite = self.components.sprite.get(member).?;
+            const physics = self.components.physics.get(member).?;
 
-        if (self.getMaybe(Component.item, member)) |item| {
-            if (item.status == .in_inventory) {
-                continue;
-            }
+            if (sprite.disabled) continue;
+            if (sprite.z_level != current_z_level) continue;
+
+            sprite.animation_player.render(animation_state, scaleVector(physics.pos, tile_state.resolution));
         }
-
-        sprite.animation_player.render(animation_state, scaleVector(physics.pos, tile_state.resolution));
     }
 }
