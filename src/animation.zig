@@ -66,12 +66,14 @@ pub const AnimationPlayer = struct {
     //updates animation frame and rotation
     pub fn update(self: *@This(), state: *const AnimationState, opt: options.Update) void {
         const animation = state.animations.get(self.animation_name).?;
-        self.remaining_frame_time -= opt.dt;
+        self.remaining_frame_time -= opt.dtInMs();
+        //TODO fix rotation_speed
         self.rotation += animation.rotation_speed * opt.dt;
 
         if (self.remaining_frame_time <= 0) {
             if (animation.loop == false and self.current_frame == animation.frames.len - 1) {
                 self.done = true;
+                //std.debug.print("animation is done: {s}", .{self.animation_name});
             }
 
             self.current_frame = animation.nextFrame(self.current_frame);
@@ -97,7 +99,7 @@ pub const AnimationState = struct {
 
             const texture = ray.LoadTextureFromImage(image);
             if (!ray.IsTextureReady(texture)) {
-                std.debug.print("path: {any}\n", .{path.ptr});
+                std.debug.print("path: {*}\n", .{path.ptr});
                 @panic("failed to load texture");
             }
             animation.texture = texture;

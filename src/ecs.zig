@@ -191,7 +191,10 @@ pub const ECS = struct {
             return comp;
         } else {
             const meta = self.getMaybe(Component.metadata, id) orelse &Component.metadata{};
-            std.debug.print("\nFailed to find component {} on entity {} with archetype {s}\n", .{ component_T, id, meta.archetype });
+            std.debug.print(
+                "\nFailed to find component {} on entity {} with archetype {s}\n",
+                .{ component_T, id, meta.archetype },
+            );
 
             const components = self.listComponents(std.heap.c_allocator, id) catch unreachable;
             defer components.deinit();

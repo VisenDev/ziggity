@@ -72,6 +72,9 @@ function SpawnFireball()
    api.lvl.addComponent(id, "metadata", [[{
       "archetype": "fireball"
    }]])
+   api.lvl.addComponent(id, "death_animation", [[
+      {"animation_name": "fireball_explosion"}
+   ]])
    return id
 end
 
@@ -105,7 +108,7 @@ function SpawnBloodParticle()
    api.lvl.addComponent(id, "sprite", [[{
       "animation_player": {
          "animation_name": "particle",
-         "tint": {"r": 50, "g": 250, "b": 20, "a": 200}
+         "tint": {"r": 143, "g": 201, "b": 218, "a": 0}
       },
       "z_level": "background"
    }]])
@@ -113,5 +116,14 @@ function SpawnBloodParticle()
    api.lvl.addComponent(id, "metadata", [[{
       "archetype": "particle"
    }]])
+   return id
+end
+
+function SpawnAnimation()
+   local id = api.lvl.newEntity()
+   api.lvl.addComponent(id, "metadata", [[{
+      "archetype": "animation"
+   }]])
+   api.lvl.addComponent(id, "is_animation")
    return id
 end

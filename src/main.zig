@@ -19,7 +19,6 @@ const debug = @import("debug.zig");
 const cmd = @import("console.zig");
 const Lua = @import("ziglua").Lua;
 const api = @import("api.zig");
-const arch = @import("archetype.zig");
 const play = @import("player.zig");
 
 const ray = @cImport({
@@ -120,6 +119,7 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
     var camera = cam.initCamera();
 
     while (!ray.WindowShouldClose()) {
+
         //debug on or off
         if (keybindings.isPressed("debug_mode")) {
             debug_mode = !debug_mode;
@@ -144,6 +144,7 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
         sys.updateHealthCooldownSystem(lvl.ecs, a, update_options);
         try sys.updateDamageSystem(lvl.ecs, a, update_options);
         sys.updateSpriteSystem(lvl.ecs, a, &animation_state, update_options);
+        try sys.trimAnimationEntitySystem(lvl.ecs, a, update_options);
 
         ray.BeginDrawing();
         ray.BeginMode2D(camera); // Begin 2D mode with custom camera (2D)

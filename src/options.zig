@@ -4,7 +4,11 @@ const ray = @cImport({
 
 ///Standard Update options
 pub const Update = struct {
+    //delta time is in milliseconds;
     dt: f32,
+    pub inline fn dtInMs(self: Update) f32 {
+        return self.dt * 1000.0;
+    }
 };
 
 ///Standard Rendering Options

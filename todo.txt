@@ -1,4 +1,4 @@
-[DONE] add flag to animations for animations to play just a single time
+[WORK] add flag to animations for animations to play just a single time
 [TODO] add death animation component
 [DONE] add death particle component 
 [TODO] revamp particle system
@@ -10,8 +10,8 @@
 [TODO] design music system
 [TODO] finish ascii prototyping for level generation
 [TODO] add init.lua to be configurable by the user
-[TODO] z_levels: add different rendering layers for sprites - implement using rendertextures in animations
-[TODO] add enabled flag to animation component
+[DONE] z_levels: add different rendering layers for sprites - implement using rendertextures in animations
+[DONE] add enabled flag to animation component
 [TODO] add procedural animations
 [TODO] add minetest inspired mod directory system - rogue engine
 [TODO] add deinit method to animations

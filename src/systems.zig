@@ -119,7 +119,7 @@ pub fn updateDeathSystem(
                 _ = particle;
                 const physics = self.get(Component.physics, member);
                 for (0..5) |_| {
-                    const blood = api.call(l, "SpawnBloodParticle") catch unreachable;
+                    const blood = api.call(l, "SpawnBloodParticle") catch continue;
                     try self.setComponent(a, blood, Component.physics{
                         .pos = .{
                             .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
@@ -127,6 +127,20 @@ pub fn updateDeathSystem(
                         },
                     });
                 }
+            }
+
+            if (self.getMaybe(Component.death_animation, member)) |animation| {
+                const physics = self.getMaybe(Component.physics, member) orelse continue;
+                const death_animation_entity = api.call(l, "SpawnAnimation") catch continue;
+                try self.setComponent(a, death_animation_entity, Component.physics{
+                    .pos = .{
+                        .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
+                        .y = physics.pos.y + 0.8 * (ecs.randomFloat() - 0.5),
+                    },
+                });
+                try self.setComponent(a, death_animation_entity, Component.sprite{
+                    .animation_player = .{ .animation_name = try a.dupeZ(u8, animation.animation_name) },
+                });
             }
         }
 
@@ -194,6 +208,23 @@ pub fn updateDamageSystem(
                 health.hp -= damage.amount;
                 health.cooldown_remaining = Component.health.damage_cooldown;
             }
+        }
+    }
+}
+
+pub fn trimAnimationEntitySystem(
+    self: *ecs.ECS,
+    a: std.mem.Allocator,
+    opt: options.Update,
+) !void {
+    _ = opt;
+    const systems = [_]type{ Component.is_animation, Component.sprite };
+    const set = self.getSystemDomain(a, &systems);
+
+    for (set) |member| {
+        const sprite = self.get(Component.sprite, member);
+        if (sprite.animation_player.done) {
+            try self.deleteEntity(a, member);
         }
     }
 }

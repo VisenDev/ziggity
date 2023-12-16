@@ -138,3 +138,13 @@ pub const death_particles = struct {
     color: ray.Color = ray.RED,
     quantity: usize = 20,
 };
+pub const death_animation = struct {
+    pub const name = "death_animation";
+    animation_name: []const u8 = "",
+};
+
+//if an entity has this component it will die whenever its animation stops looping
+pub const is_animation = struct {
+    pub const name = "is_animation";
+    filler: u8 = 0, //this field is here because zig does not like when the struct is empty
+};
