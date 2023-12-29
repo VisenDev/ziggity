@@ -112,24 +112,16 @@ pub fn initLuaApi(a: std.mem.Allocator, context: *ApiContext) !Lua {
         \\  ]])
         \\end
     ;
+
+    const new =
+        \\function spawnSlime(allocator, ecs) 
+        \\  game.level.addComponent(ecs, allocator, id, "physics")
+        \\end
+    ;
+    _ = new;
+
     try l.doString(program);
     try l.doString(@embedFile("scripts/archetypes.lua"));
 
     return l;
-
-    //try l.newMetatable("api");
-    //l.pushLightUserdata(context);
-    //_ = try l.setUpvalue(-2, -1);
-    //l.setGlobal("api");
-    ////l.setFuncs(&[_]ziglua.FnReg{}, 1);
-
-    //// Create 'lvl' and 'core' subtables under 'api'
-    //l.newTable();
-    //l.setFuncs(&registry.lvl, 0);
-    //l.setField(1, "lvl");
-
-    //l.newTable();
-    //l.setFuncs(&registry.core, 0);
-    //l.setField(1, "core");
-
 }

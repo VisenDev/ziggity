@@ -25,34 +25,34 @@ fn tof32(input: anytype) f32 {
 //    len: u32 = 0,
 //};
 
-pub const proto = enum(u8) {
-    natural_wall = '#',
-    natural_floor = '.',
-    pit = ':',
-    structure_wall = '%',
-    structure_floor = '-',
-    liquid = '~',
-    bridge = '=',
-    door = '+',
-    treasure = '$',
-    boss = 'B',
+pub const char = struct {
+    pub const natural_wall = '#';
+    pub const natural_floor = '.';
+    pub const pit = ':';
+    pub const structure_wall = '%';
+    pub const structure_floor = '-';
+    pub const liquid = '~';
+    pub const bridge = '=';
+    pub const door = '+';
+    pub const treasure = '$';
+    pub const boss = 'B';
 };
 
-const lvl1 = [_][]const u8{
-    "#########",
-    "#....####",
-    "##.....##",
-    "###.....#",
-    "#%%%%+%%%",
-    "#%------%",
-    "#%---B--%",
-    "#%------%",
-    "#%------%",
-    "#%%%%+%%%",
-    "###..$.##",
-    "####..###",
-    "#########",
-};
+const lvl1 =
+    \\#########
+    \\#....####
+    \\##.....##
+    \\###.....#
+    \\#%%%%+%%%
+    \\#%------%
+    \\#%---B--%
+    \\#%------%
+    \\#%------%
+    \\#%%%%+%%%
+    \\###..$.##
+    \\####..###
+    \\#########
+;
 
 pub const MapState = struct {
     tile_grid: Grid(tile.Tile),
@@ -88,6 +88,42 @@ pub const MapState = struct {
             .animation_grid = animation_grid,
             .width = opt.width,
             .height = opt.height,
+        };
+    }
+
+    pub fn generateFromString(a: std.mem.Allocator, tile_state: tile.TileState, string: []const u8) !@This() {
+        const height = std.mem.count(u8, string, '\n');
+        const width = std.mem.indexOfScalar(u8, string, '\n');
+
+        var tile_grid = try Grid(tile.Tile).init(a, width, height, undefined);
+        var collision_grid = try Grid(bool).init(a, width, height, false);
+        var animation_grid = try Grid(anime.AnimationPlayer).init(a, width, height, undefined);
+
+        for (0..width) |x| {
+            for (0..height) |y| {
+                switch (string[x * width + y]) {
+                    char.natural_wall => {
+                        tile_grid.items[x][y] = tile_state.get("cave_floor").?;
+                        collision_grid.items[x][y] = false;
+
+                        animation_grid.items[x][y] = .{ .animation_name = "cave_floor" };
+                    },
+                    else => {
+                        tile_grid.items[x][y] = tile_state.get("cave_wall").?;
+                        collision_grid.items[x][y] = true;
+
+                        animation_grid.items[x][y] = .{ .animation_name = "cave_wall" };
+                    },
+                }
+            }
+        }
+
+        return .{
+            .tile_grid = tile_grid,
+            .collision_grid = collision_grid,
+            .animation_grid = animation_grid,
+            .width = width,
+            .height = height,
         };
     }
 

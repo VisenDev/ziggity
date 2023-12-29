@@ -179,4 +179,5 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
 
 test "unit tests" {
     @import("std").testing.refAllDecls(@This());
+    std.testing.refAllDecls(@import("lua_helpers.zig"));
 }
