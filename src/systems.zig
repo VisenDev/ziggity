@@ -105,7 +105,8 @@ pub fn updateDeathSystem(
             if (self.getMaybe(Component.loot, member)) |loot| {
                 const physics = self.getMaybe(Component.physics, member) orelse continue;
                 for (loot.items) |item_script| {
-                    const item = try api.call(l, item_script);
+                    var copy = a;
+                    const item = try l.autoCall(?usize, item_script, .{ self, &copy }) orelse continue;
                     try self.setComponent(a, item, Component.physics{
                         .pos = .{
                             .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
@@ -119,7 +120,8 @@ pub fn updateDeathSystem(
                 _ = particle;
                 const physics = self.get(Component.physics, member);
                 for (0..5) |_| {
-                    const blood = api.call(l, "SpawnBloodParticle") catch continue;
+                    var copy = a;
+                    const blood = try l.autoCall(?usize, "SpawnBloodParticle", .{ self, &copy }) orelse continue;
                     try self.setComponent(a, blood, Component.physics{
                         .pos = .{
                             .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
@@ -131,7 +133,9 @@ pub fn updateDeathSystem(
 
             if (self.getMaybe(Component.death_animation, member)) |animation| {
                 const physics = self.getMaybe(Component.physics, member) orelse continue;
-                const death_animation_entity = api.call(l, "SpawnAnimation") catch continue;
+                //const death_animation_entity = api.call(l, "SpawnAnimation") catch continue;
+                var copy = a;
+                const death_animation_entity = try l.autoCall(?usize, "SpawnSlime", .{ self, &copy }) orelse continue;
                 try self.setComponent(a, death_animation_entity, Component.physics{
                     .pos = .{
                         .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),

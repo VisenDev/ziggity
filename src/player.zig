@@ -55,9 +55,11 @@ pub fn updatePlayerSystem(
         physics.vel.x += direction.x * physics.acceleration * opt.dt;
         physics.vel.y += direction.y * physics.acceleration * opt.dt;
 
+        var copy = a; //mutable copy of the allocator parameter
+
         //let player shoot projectiles
         if (ray.IsMouseButtonDown(ray.MOUSE_BUTTON_LEFT)) {
-            const fireball = api.call(l, "SpawnFireball") catch break;
+            const fireball = try l.autoCall(?usize, "SpawnFireball", .{ self, &copy }) orelse break;
             const pos = cam.mousePos(camera, tile_state_resolution);
             self.setComponent(a, fireball, Component.physics{
                 .pos = pos,
@@ -70,7 +72,7 @@ pub fn updatePlayerSystem(
 
         //spawnSlimes
         if (ray.IsMouseButtonDown(ray.MOUSE_BUTTON_RIGHT)) {
-            const slime = api.call(l, "SpawnSlime") catch break;
+            const slime = try l.autoCall(?usize, "SpawnSlime", .{ self, &copy }) orelse break;
             const pos = cam.mousePos(camera, tile_state_resolution);
             self.setComponent(a, slime, Component.physics{
                 .pos = pos,

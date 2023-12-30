@@ -102,13 +102,13 @@ fn runGame(a: std.mem.Allocator, current_save: []const u8) !menu.Window {
     var console = try cmd.Console.init(a);
     defer console.deinit();
 
-    var lua_context = api.ApiContext{
-        .allocator = &a,
-        .console = &console,
-        .lvl = &lvl,
-    };
+    //var lua_context = api.ApiContext{
+    //    .allocator = &a,
+    //    .console = &console,
+    //    .lvl = &lvl,
+    //};
 
-    var lua = try api.initLuaApi(a, &lua_context);
+    var lua = try api.initLuaApi(a);
     defer lua.deinit();
 
     var debug_mode = true;

@@ -142,6 +142,10 @@ pub const ECS = struct {
         return id;
     }
 
+    pub fn newEntityPtr(self: *@This(), a: *std.mem.Allocator) ?usize {
+        return self.newEntity(a.*);
+    }
+
     pub fn deleteEntity(self: *@This(), a: std.mem.Allocator, id: usize) !void {
         try self.availible_ids.append(a, id);
         inline for (sliceComponentNames()) |decl| {
@@ -156,7 +160,7 @@ pub const ECS = struct {
         self.bitflags.get(id).?.set(bitflag);
     }
 
-    pub fn addJsonComponent(self: *@This(), a: std.mem.Allocator, id: usize, component_name: []const u8, component_value: ?[]const u8) !void {
+    pub fn addJsonComponent(self: *@This(), a: *const std.mem.Allocator, id: usize, component_name: []const u8, component_value: ?[]const u8) !void {
         inline for (sliceComponentNames()) |decl| {
             if (std.mem.eql(u8, component_name, decl.name)) {
                 const Comp = comptime @field(Component, decl.name);
@@ -164,10 +168,10 @@ pub const ECS = struct {
                 if (component_value == null) {
                     value = Comp{};
                 } else {
-                    const parsed = try std.json.parseFromSlice(Comp, a, component_value.?, .{ .allocate = .alloc_always });
+                    const parsed = try std.json.parseFromSlice(Comp, a.*, component_value.?, .{ .allocate = .alloc_always });
                     value = parsed.value;
                 }
-                try self.setComponent(a, id, value);
+                try self.setComponent(a.*, id, value);
                 return;
             }
         }

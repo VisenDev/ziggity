@@ -115,6 +115,7 @@ pub const Console = struct {
     }
 
     pub fn update(self: *@This(), l: *Lua, keys: key.KeyBindings) !void {
+        _ = l;
         if (keys.isPressed("console")) {
             self.rendering = !self.rendering;
         }
@@ -149,6 +150,7 @@ pub const Console = struct {
         if (keys.isPressed("execute")) {
             const len = max_command_len;
             const str = self.commands.items[self.command_index].items[0..len :0];
+            _ = str;
 
             var new_command = String.init(self.allocator);
             try new_command.appendNTimes(0, max_command_len + 1);
@@ -156,14 +158,15 @@ pub const Console = struct {
             self.command_index = self.commands.items.len - 1;
 
             const history_len_before = self.getHistoryLen();
-            l.loadString(str) catch {
-                _ = api.handleLuaError(l);
-                return;
-            };
-            l.protectedCall(0, 0, 0) catch {
-                _ = api.handleLuaError(l);
-                return;
-            };
+            //TODO reimplement
+            //l.loadString(str) catch {
+            //    _ = api.handleLuaError(l);
+            //    return;
+            //};
+            //l.protectedCall(0, 0, 0) catch {
+            //    _ = api.handleLuaError(l);
+            //    return;
+            //};
 
             if (history_len_before == self.getHistoryLen()) {
                 try self.log("success!");

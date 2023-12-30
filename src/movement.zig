@@ -68,7 +68,8 @@ pub fn updateMovementSystem(
             if (physics.pos.x != old_position.x or physics.pos.y != old_position.y) {
                 //const particle = self.newEntity(a).?;
                 //self.setComponent(a, particle, Component.health{}) catch return;
-                const particle = api.call(l, "SpawnMovementParticle") catch continue;
+                var copy = a;
+                const particle =  try l.autoCall(?usize, "SpawnMovementParticle", .{ self, &copy }) orelse continue;
                 try self.setComponent(a, particle, Component.physics{
                     .pos = .{
                         .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
