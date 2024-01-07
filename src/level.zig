@@ -1,4 +1,5 @@
 const std = @import("std");
+const Lua = @import("ziglua").Lua;
 const anime = @import("animation.zig");
 const map = @import("map.zig");
 const texture = @import("textures.zig");
@@ -43,7 +44,7 @@ pub const Level = struct {
     player_id: usize = 0,
 };
 
-pub fn generateLevel(a: std.mem.Allocator, options: LevelGenOptions) !Level {
+pub fn generateLevel(a: std.mem.Allocator, lua: *Lua, options: LevelGenOptions) !Level {
     var tile_state = try tile.TileState.init(a);
     defer tile_state.deinit();
 
@@ -56,21 +57,9 @@ pub fn generateLevel(a: std.mem.Allocator, options: LevelGenOptions) !Level {
     var exits = try a.alloc(Exit, 1);
     exits[0] = Exit{ .x = 5, .y = 5, .destination_id = "first_level" };
 
-    const player_id = entities.newEntity(a).?;
-    try entities.setComponent(a, player_id, ecs.Component.physics{ .pos = .{ .x = 5, .y = 5 } });
-    try entities.setComponent(a, player_id, ecs.Component.sprite{ .animation_player = .{ .animation_name = "player" } });
-    try entities.setComponent(a, player_id, ecs.Component.is_player{});
-    try entities.setComponent(a, player_id, ecs.Component.inventory{});
-    try entities.setComponent(a, player_id, ecs.Component.hitbox{});
-
-    //    for (0..50) |_| {
-    //        const slime_id = entities.newEntity(a).?;
-    //        try entities.setComponent(a, slime_id, ecs.Component.physics{ .pos = ecs.randomVector2(50, 50) });
-    //        try entities.setComponent(a, slime_id, ecs.Component.sprite{ .animation_player = .{ .animation_name = "slime" } });
-    //        try entities.setComponent(a, slime_id, ecs.Component.hitbox{});
-    //        try entities.setComponent(a, slime_id, ecs.Component.wanderer{});
-    //        try entities.setComponent(a, slime_id, ecs.Component.health{});
-    //    }
+    var copy = a;
+    const player_id = try lua.autoCall(?usize, "SpawnPlayer", .{ entities, &copy }) orelse return error.failed_to_create_player;
+    try entities.setComponent(a, player_id, ecs.Component.physics{ .pos = .{ .x = 3, .y = 5 } });
 
     return Level{ .name = "harry truman", .ecs = entities, .map = world_map, .exits = exits, .player_id = player_id };
 }

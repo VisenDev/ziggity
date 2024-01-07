@@ -41,7 +41,6 @@ pub fn updateMovementSystem(
     animations: *const anime.AnimationState,
     opt: options.Update,
 ) !void {
-    _ = m;
     _ = animations;
     const systems = [_]type{Component.physics};
     const set = self.getSystemDomain(a, &systems);
@@ -50,26 +49,30 @@ pub fn updateMovementSystem(
         var physics = self.get(Component.physics, member);
 
         const old_position = physics.pos;
-
         physics.pos.x += physics.vel.x;
+
+        //undo if the entity collides
+        if (self.getMaybe(Component.hitbox, member)) |hitbox| {
+            if (self.getMaybe(Component.wall_collisions, member) != null and
+                m.checkCollision(hitbox.getCollisionRect(physics.pos)))
+                physics.pos.x = old_position.x;
+        }
+
         physics.pos.y += physics.vel.y;
+
+        if (self.getMaybe(Component.hitbox, member)) |hitbox| {
+            if (self.getMaybe(Component.wall_collisions, member) != null and
+                m.checkCollision(hitbox.getCollisionRect(physics.pos)))
+                physics.pos.y = old_position.y;
+        }
 
         physics.vel.x *= physics.friction;
         physics.vel.y *= physics.friction;
 
-        //undo if the entity collides
-        if (self.getMaybe(Component.hitbox, member)) |hitbox| {
-            _ = hitbox;
-            //TODO add collision with map detection
-            //physics.pos = old_position;
-        }
-
         if (self.getMaybe(Component.movement_particles, member)) |_| {
             if (physics.pos.x != old_position.x or physics.pos.y != old_position.y) {
-                //const particle = self.newEntity(a).?;
-                //self.setComponent(a, particle, Component.health{}) catch return;
                 var copy = a;
-                const particle =  try l.autoCall(?usize, "SpawnMovementParticle", .{ self, &copy }) orelse continue;
+                const particle = try l.autoCall(?usize, "SpawnMovementParticle", .{ self, &copy }) orelse continue;
                 try self.setComponent(a, particle, Component.physics{
                     .pos = .{
                         .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
@@ -80,22 +83,9 @@ pub fn updateMovementSystem(
                         .y = (ecs.randomFloat() - 0.5) * opt.dt,
                     },
                 });
-
-                //self.setComponent(a, particle, Component.sprite{
-                //.animation_player = .{ .animation_name = "particle", .tint = ray.ColorAlpha(ray.GRAY, 0.2) },
-                //}) catch return;
-                //self.setComponent(a, particle, Component.health_trickle{}) catch return;
             }
         }
     }
-
-    //const static = struct {
-    //    var i: usize = 0;
-    //};
-    //static.i += 1;
-    //static.i %= 5;
-
-    //if (static.i != 0) return;
 
     //clear position cache
     for (0..self.position_cache.getWidth()) |x| {

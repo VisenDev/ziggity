@@ -1,5 +1,8 @@
-local api = api
+---@source ~/zig/dev/src/api.zig
 
+---@param ecs userdata
+---@param allocator userdata
+---@return integer
 function SpawnPlayer(ecs, allocator)
    local a = allocator
    local id = api.lvl.newEntity(ecs, a)
@@ -11,9 +14,14 @@ function SpawnPlayer(ecs, allocator)
       {"animation_player": {"animation_name": "player"}}
    ]])
    api.lvl.addComponent(ecs, a, id, "inventory", nil)
+   api.lvl.addComponent(ecs, a, id, "hitbox", nil)
+   api.lvl.addComponent(ecs, a, id, "wall_collisions", nil)
    return id
 end
 
+---@param ecs userdata
+---@param allocator userdata
+---@return integer
 function SpawnSlime(ecs, allocator)
    local a = allocator
    local id = api.lvl.newEntity(ecs, a)
@@ -33,10 +41,13 @@ function SpawnSlime(ecs, allocator)
    api.lvl.addComponent(ecs, a, id, "loot", [[{
       "items": ["SpawnCoin"]
    }]])
+   api.lvl.addComponent(ecs, a, id, "wall_collisions", nil)
    return id
 end
 
-
+---@param ecs userdata
+---@param allocator userdata
+---@return integer
 function SpawnMovementParticle(ecs, allocator)
    local a = allocator
    local id = api.lvl.newEntity(ecs, a)
@@ -55,6 +66,9 @@ function SpawnMovementParticle(ecs, allocator)
    return id
 end
 
+---@param ecs userdata
+---@param allocator userdata
+---@return integer
 function SpawnFireball(ecs, allocator)
       local a = allocator
       local id = api.lvl.newEntity(ecs, a)
@@ -82,13 +96,20 @@ function SpawnFireball(ecs, allocator)
       return id
 end
 
+---@param ecs userdata
+---@param allocator userdata
+---@return integer
 function SpawnCoin(ecs, allocator)
 
    local a = allocator
    local id = api.lvl.newEntity(ecs, a)
-   api.lvl.addComponent(ecs, a, id, "sprite", [[
-      {"animation_player": {"animation_name": "coin"}, "z_level": "background"}
-   ]])
+   api.lvl.addComponent(ecs, a, id, "sprite", [[{
+      "animation_player": {
+         "animation_name": "coin",
+         "tint": {"r": 143, "g": 201, "b": 218, "a": 250}
+      },
+      "z_level": "background"
+   }]])
    api.lvl.addComponent(ecs, a, id, "hitbox", [[{
       "top": 0.1, "bottom": 0.1, "left": 0.1, "right": 0.1
    }]])
@@ -100,13 +121,13 @@ function SpawnCoin(ecs, allocator)
    api.lvl.addComponent(ecs, a, id, "metadata", [[{
       "archetype": "item"
    }]])
-   api.lvl.addComponent(ecs, a, id, "hitbox", [[{
-      "top": 0.1, "bottom": 0.1, "left": 0.1, "right": 0.1
-   }]])
    return id;
 end
 
 
+---@param ecs userdata
+---@param allocator userdata
+---@return integer
 function SpawnBloodParticle(ecs, allocator)
    local a = allocator
    local id = api.lvl.newEntity(ecs, a)
@@ -114,7 +135,7 @@ function SpawnBloodParticle(ecs, allocator)
    api.lvl.addComponent(ecs, a, id, "sprite", [[{
       "animation_player": {
          "animation_name": "particle",
-         "tint": {"r": 143, "g": 201, "b": 218, "a": 0}
+         "tint": {"r": 143, "g": 0, "b": 0, "a": 50}
       },
       "z_level": "background"
    }]])
@@ -125,6 +146,9 @@ function SpawnBloodParticle(ecs, allocator)
    return id
 end
 
+---@param ecs userdata
+---@param allocator userdata
+---@return integer
 function SpawnAnimation (ecs, allocator)
    local a = allocator
    local id = api.lvl.newEntity(ecs, a)

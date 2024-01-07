@@ -4,12 +4,13 @@ const tile = @import("tiles.zig");
 const file = @import("file_utils.zig");
 const level = @import("level.zig");
 const err = @import("error.zig");
+const Lua = @import("ziglua").Lua;
 
 pub const NewSaveOptions = struct {
     name: []const u8,
 };
 
-pub fn createNewSave(a: std.mem.Allocator, options: NewSaveOptions) !void {
+pub fn createNewSave(a: std.mem.Allocator, lua: *Lua, options: NewSaveOptions) !void {
 
     //Create directories
     const save_path = try file.getSavePath(a, options.name);
@@ -23,7 +24,7 @@ pub fn createNewSave(a: std.mem.Allocator, options: NewSaveOptions) !void {
     const first_level_id = "level_1";
 
     const biomes = [_]level.Record{.{ .name = "cave", .weight = 10 }};
-    const first_level = try level.generateLevel(a, .{ .name = first_level_id, .biomes = &biomes });
+    const first_level = try level.generateLevel(a, lua, .{ .name = first_level_id, .biomes = &biomes });
     //TODO add a deinit method to level
     try file.writeLevel(a, first_level, options.name, first_level_id);
 

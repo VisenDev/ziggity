@@ -115,6 +115,7 @@ pub const health_trickle = struct {
 };
 pub const invulnerable = struct {
     pub const name = "invulnerable";
+
     filler: u8 = 0, //this field is here because zig does not like when the struct is empty
 };
 pub const metadata = struct {
@@ -146,5 +147,10 @@ pub const death_animation = struct {
 //if an entity has this component it will die whenever its animation stops looping
 pub const is_animation = struct {
     pub const name = "is_animation";
+    filler: u8 = 0, //this field is here because zig does not like when the struct is empty
+};
+
+pub const wall_collisions = struct {
+    pub const name = "wall_collisions";
     filler: u8 = 0, //this field is here because zig does not like when the struct is empty
 };

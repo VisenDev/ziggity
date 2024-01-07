@@ -135,7 +135,7 @@ pub fn updateDeathSystem(
                 const physics = self.getMaybe(Component.physics, member) orelse continue;
                 //const death_animation_entity = api.call(l, "SpawnAnimation") catch continue;
                 var copy = a;
-                const death_animation_entity = try l.autoCall(?usize, "SpawnSlime", .{ self, &copy }) orelse continue;
+                const death_animation_entity = try l.autoCall(?usize, "SpawnAnimation", .{ self, &copy }) orelse continue;
                 try self.setComponent(a, death_animation_entity, Component.physics{
                     .pos = .{
                         .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),

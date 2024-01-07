@@ -1,4 +1,5 @@
 const std = @import("std");
+const Component = @import("components.zig");
 const anime = @import("animation.zig");
 const texture = @import("textures.zig");
 const tile = @import("tiles.zig");
@@ -54,12 +55,38 @@ const lvl1 =
     \\#########
 ;
 
+inline fn getCorners(r: ray.Rectangle) [4]ray.Vector2 {
+    return [4]ray.Vector2{
+        .{ .x = r.x, .y = r.y },
+        .{ .x = r.x + r.width, .y = r.y },
+        .{ .x = r.x, .y = r.y + r.height },
+        .{ .x = r.x + r.width, .y = r.y + r.height },
+    };
+}
+
 pub const MapState = struct {
     tile_grid: Grid(tile.Tile),
     animation_grid: Grid(anime.AnimationPlayer),
     collision_grid: Grid(bool),
     width: usize,
     height: usize,
+
+    pub fn checkCollision(self: *const @This(), hitbox: ray.Rectangle) bool {
+        for (getCorners(hitbox)) |point| {
+            if (self.checkPointCollision(point)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    pub fn checkPointCollision(self: *const @This(), point: ray.Vector2) bool {
+        const x: usize = @intFromFloat(@max(@floor(point.x), 0));
+        const y: usize = @intFromFloat(@max(@floor(point.y), 0));
+        if (self.collision_grid.get(x, y)) |collision| {
+            return collision.*;
+        } else return false;
+    }
 
     pub fn generate(a: std.mem.Allocator, tile_state: tile.TileState, opt: level.LevelGenOptions) !@This() {
         var tile_grid = try Grid(tile.Tile).init(a, opt.width, opt.height, undefined);
