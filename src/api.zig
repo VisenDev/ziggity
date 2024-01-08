@@ -51,6 +51,7 @@ pub fn initLuaApi(a: std.mem.Allocator) !Lua {
     }
 
     try l.doString(@embedFile("scripts/archetypes.lua"));
+    try l.doString(@embedFile("scripts/procgen.lua"));
 
     return l;
 }

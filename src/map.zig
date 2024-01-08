@@ -26,7 +26,8 @@ fn tof32(input: anytype) f32 {
 //    len: u32 = 0,
 //};
 
-pub const char = struct {
+pub const Char = struct {
+    pub const empty = ' ';
     pub const natural_wall = '#';
     pub const natural_floor = '.';
     pub const pit = ':';
@@ -119,27 +120,35 @@ pub const MapState = struct {
     }
 
     pub fn generateFromString(a: std.mem.Allocator, tile_state: tile.TileState, string: []const u8) !@This() {
-        const height = std.mem.count(u8, string, '\n');
-        const width = std.mem.indexOfScalar(u8, string, '\n');
+        std.debug.print("string: \n\n{s}\n", .{string});
 
+        const width: usize = 0;
+        const height: usize = 0;
         var tile_grid = try Grid(tile.Tile).init(a, width, height, undefined);
         var collision_grid = try Grid(bool).init(a, width, height, false);
         var animation_grid = try Grid(anime.AnimationPlayer).init(a, width, height, undefined);
 
-        for (0..width) |x| {
-            for (0..height) |y| {
-                switch (string[x * width + y]) {
-                    char.natural_wall => {
-                        tile_grid.items[x][y] = tile_state.get("cave_floor").?;
-                        collision_grid.items[x][y] = false;
+        const filtered = try std.mem.replaceOwned(u8, a, string, " ", "");
+        defer a.free(filtered);
+        std.debug.print("filtered: \n\n{s}\n", .{filtered});
 
-                        animation_grid.items[x][y] = .{ .animation_name = "cave_floor" };
+        var iter = std.mem.splitScalar(u8, filtered, '\n');
+
+        var x: usize = 0;
+        while (iter.next()) |row| : (x += 1) {
+            std.debug.print("row {}:{s}", .{ x, row });
+            for (0..height) |y| {
+                if (row.len <= 0) continue;
+                switch (row[y]) {
+                    Char.natural_wall => {
+                        try tile_grid.set(a, x, y, tile_state.get("cave_wall").?);
+                        try collision_grid.set(a, x, y, true);
+                        try animation_grid.set(a, x, y, .{ .animation_name = "cave_wall" });
                     },
                     else => {
-                        tile_grid.items[x][y] = tile_state.get("cave_wall").?;
-                        collision_grid.items[x][y] = true;
-
-                        animation_grid.items[x][y] = .{ .animation_name = "cave_wall" };
+                        try tile_grid.set(a, x, y, tile_state.get("cave_floor").?);
+                        try collision_grid.set(a, x, y, false);
+                        try animation_grid.set(a, x, y, .{ .animation_name = "cave_floor" });
                     },
                 }
             }

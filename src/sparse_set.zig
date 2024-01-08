@@ -19,8 +19,7 @@ pub fn SparseSet(comptime T: type) type {
         }
 
         pub fn increaseCapacity(self: *@This(), a: std.mem.Allocator, new_capacity: usize) !void {
-            try self.sparse.ensureTotalCapacity(a, new_capacity);
-            //TODO append null to array
+            self.sparse.appendNTimes(a, null, new_capacity - self.capacity);
         }
 
         pub fn deinit(self: *@This(), a: std.mem.Allocator) void {

@@ -51,7 +51,7 @@ pub fn getImageDirPath(a: std.mem.Allocator) ![]const u8 {
 pub fn getLevelPath(a: std.mem.Allocator, save_id: []const u8, level_id: []const u8) ![]const u8 {
     const save_path = try getSavePath(a, save_id);
     defer a.free(save_path);
-    return try std.fmt.allocPrint(a, "{s}levels/{s}.json", .{ save_path, level_id });
+    return try std.fmt.allocPrint(a, "{s}levels/{s}.json.zlib", .{ save_path, level_id });
 }
 
 pub fn getSavePath(a: std.mem.Allocator, save_id: []const u8) ![]const u8 {
@@ -63,10 +63,13 @@ pub fn getSavePath(a: std.mem.Allocator, save_id: []const u8) ![]const u8 {
 //========LEVEL IO========
 pub fn readLevel(a: std.mem.Allocator, save_id: []const u8, level_id: []const u8) !std.json.Parsed(level.Level) {
     const path = try getLevelPath(a, save_id, level_id);
-    const max_bytes = 10000000; //maximum bytes in a level save file
-    const string = try std.fs.cwd().readFileAlloc(a, path, max_bytes);
+    const file = try std.fs.openFileAbsolute(path, .{ .mode = .read_write });
+    var decompressor = try std.compress.zlib.decompressStream(a, file.reader());
+    defer decompressor.deinit();
+    const string = try decompressor.reader().readAllAlloc(a, 10_000_000);
 
     if (!try std.json.validate(a, string)) {
+        std.debug.print("Invalid_Json:\n {s}\n", .{string});
         return error.invalid_json;
     }
 
@@ -74,11 +77,16 @@ pub fn readLevel(a: std.mem.Allocator, save_id: []const u8, level_id: []const u8
 }
 
 pub fn writeLevel(a: std.mem.Allocator, l: level.Level, save_id: []const u8, level_id: []const u8) !void {
-    l.ecs.prepForStringify(a);
-    const string = try std.json.stringifyAlloc(a, l, .{});
     const path = try getLevelPath(a, save_id, level_id);
     var file = try std.fs.createFileAbsolute(path, .{});
-    try file.writeAll(string);
+    var stream = try std.compress.zlib.compressStream(a, file.writer(), .{});
+    defer stream.deinit();
+
+    l.ecs.prepForStringify(a);
+    const string = try std.json.stringifyAlloc(a, l, .{ .emit_null_optional_fields = false });
+    defer a.free(string);
+    try stream.writer().writeAll(string);
+    try stream.finish();
 }
 
 //========CONFIG IO========

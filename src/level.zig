@@ -51,7 +51,10 @@ pub fn generateLevel(a: std.mem.Allocator, lua: *Lua, options: LevelGenOptions) 
     var entities = try a.create(ecs.ECS);
     entities.* = try ecs.ECS.init(a, 10000);
 
+    const map_string = try lua.autoCall([]const u8, "Generate", .{});
+    _ = map_string;
     const world_map = try a.create(map.MapState);
+    //world_map.* = try map.MapState.generateFromString(a, tile_state, map_string);
     world_map.* = try map.MapState.generate(a, tile_state, options);
 
     var exits = try a.alloc(Exit, 1);
