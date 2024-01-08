@@ -45,6 +45,8 @@ pub const Level = struct {
 };
 
 pub fn generateLevel(a: std.mem.Allocator, lua: *Lua, options: LevelGenOptions) !Level {
+    _ = options;
+
     var tile_state = try tile.TileState.init(a);
     defer tile_state.deinit();
 
@@ -52,10 +54,9 @@ pub fn generateLevel(a: std.mem.Allocator, lua: *Lua, options: LevelGenOptions) 
     entities.* = try ecs.ECS.init(a, 10000);
 
     const map_string = try lua.autoCall([]const u8, "Generate", .{});
-    _ = map_string;
     const world_map = try a.create(map.MapState);
-    //world_map.* = try map.MapState.generateFromString(a, tile_state, map_string);
-    world_map.* = try map.MapState.generate(a, tile_state, options);
+    world_map.* = try map.MapState.generateFromString(a, tile_state, map_string);
+    //world_map.* = try map.MapState.generate(a, tile_state, options);
 
     var exits = try a.alloc(Exit, 1);
     exits[0] = Exit{ .x = 5, .y = 5, .destination_id = "first_level" };

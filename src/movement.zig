@@ -55,7 +55,10 @@ pub fn updateMovementSystem(
         if (self.getMaybe(Component.hitbox, member)) |hitbox| {
             if (self.getMaybe(Component.wall_collisions, member) != null and
                 m.checkCollision(hitbox.getCollisionRect(physics.pos)))
+            {
                 physics.pos.x = old_position.x;
+                physics.vel.x *= 0.5;
+            }
         }
 
         physics.pos.y += physics.vel.y;
@@ -63,7 +66,10 @@ pub fn updateMovementSystem(
         if (self.getMaybe(Component.hitbox, member)) |hitbox| {
             if (self.getMaybe(Component.wall_collisions, member) != null and
                 m.checkCollision(hitbox.getCollisionRect(physics.pos)))
+            {
                 physics.pos.y = old_position.y;
+                physics.vel.y *= 0.5;
+            }
         }
 
         physics.vel.x *= physics.friction;

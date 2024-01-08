@@ -65,6 +65,30 @@ inline fn getCorners(r: ray.Rectangle) [4]ray.Vector2 {
     };
 }
 
+inline fn split(a: std.mem.Allocator, str: []const u8) !std.ArrayList([]const u8) {
+    const trimmed = std.mem.trim(u8, std.mem.trim(u8, std.mem.trim(u8, str, "\n"), " "), "\n");
+    var iter = std.mem.splitScalar(u8, trimmed, '\n');
+
+    var result = std.ArrayList([]const u8).init(a);
+
+    var len: ?usize = null;
+
+    while (iter.next()) |row| {
+        const truncated = std.mem.trim(u8, row, " ");
+        std.debug.print("row: {s}\n", .{truncated});
+
+        if (len == null) {
+            len = truncated.len;
+        } else if (truncated.len != len.?) {
+            std.debug.print("len: {?}\ntrunclen: {}\ntrunc: {s}\n\n", .{ len, truncated.len, truncated });
+            return error.inconsistent_substr_lengths;
+        }
+        try result.append(truncated);
+    }
+
+    return result;
+}
+
 pub const MapState = struct {
     tile_grid: Grid(tile.Tile),
     animation_grid: Grid(anime.AnimationPlayer),
@@ -122,24 +146,18 @@ pub const MapState = struct {
     pub fn generateFromString(a: std.mem.Allocator, tile_state: tile.TileState, string: []const u8) !@This() {
         std.debug.print("string: \n\n{s}\n", .{string});
 
-        const width: usize = 0;
-        const height: usize = 0;
+        const strs = try split(a, string);
+
+        const height = strs.items.len;
+        const width = strs.items[0].len;
+
         var tile_grid = try Grid(tile.Tile).init(a, width, height, undefined);
         var collision_grid = try Grid(bool).init(a, width, height, false);
         var animation_grid = try Grid(anime.AnimationPlayer).init(a, width, height, undefined);
 
-        const filtered = try std.mem.replaceOwned(u8, a, string, " ", "");
-        defer a.free(filtered);
-        std.debug.print("filtered: \n\n{s}\n", .{filtered});
-
-        var iter = std.mem.splitScalar(u8, filtered, '\n');
-
-        var x: usize = 0;
-        while (iter.next()) |row| : (x += 1) {
-            std.debug.print("row {}:{s}", .{ x, row });
-            for (0..height) |y| {
-                if (row.len <= 0) continue;
-                switch (row[y]) {
+        for (strs.items, 0..) |row, y| {
+            for (row, 0..) |ch, x| {
+                switch (ch) {
                     Char.natural_wall => {
                         try tile_grid.set(a, x, y, tile_state.get("cave_wall").?);
                         try collision_grid.set(a, x, y, true);
