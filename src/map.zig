@@ -25,6 +25,7 @@ fn tof32(input: anytype) f32 {
 //    ids: [cap]u32 = [1]u32{0} ** cap,
 //    len: u32 = 0,
 //};
+//const Borders = [3][3]bool;
 
 pub const Char = struct {
     pub const empty = ' ';
@@ -91,7 +92,7 @@ inline fn split(a: std.mem.Allocator, str: []const u8) !std.ArrayList([]const u8
 
 pub const MapState = struct {
     tile_grid: Grid(tile.Tile),
-    animation_grid: Grid(anime.AnimationPlayer),
+    animation_grid: Grid(tile.TileRenderer),
     collision_grid: Grid(bool),
     width: usize,
     height: usize,
@@ -112,36 +113,36 @@ pub const MapState = struct {
             return collision.*;
         } else return false;
     }
-
-    pub fn generate(a: std.mem.Allocator, tile_state: tile.TileState, opt: level.LevelGenOptions) !@This() {
-        var tile_grid = try Grid(tile.Tile).init(a, opt.width, opt.height, undefined);
-        var collision_grid = try Grid(bool).init(a, opt.width, opt.height, false);
-        var animation_grid = try Grid(anime.AnimationPlayer).init(a, opt.width, opt.height, undefined);
-
-        for (0..opt.width) |x| {
-            for (0..opt.height) |y| {
-                if (perlin.perlin2d(@floatFromInt(x), @floatFromInt(y), 0.1, 4) > 0.5) {
-                    tile_grid.items[x][y] = tile_state.get("cave_floor").?;
-                    collision_grid.items[x][y] = false;
-
-                    animation_grid.items[x][y] = .{ .animation_name = "cave_floor" };
-                } else {
-                    tile_grid.items[x][y] = tile_state.get("cave_wall").?;
-                    collision_grid.items[x][y] = true;
-
-                    animation_grid.items[x][y] = .{ .animation_name = "cave_wall" };
-                }
-            }
-        }
-
-        return .{
-            .tile_grid = tile_grid,
-            .collision_grid = collision_grid,
-            .animation_grid = animation_grid,
-            .width = opt.width,
-            .height = opt.height,
-        };
-    }
+    //
+    //    pub fn generate(a: std.mem.Allocator, tile_state: tile.TileState, opt: level.LevelGenOptions) !@This() {
+    //        var tile_grid = try Grid(tile.Tile).init(a, opt.width, opt.height, undefined);
+    //        var collision_grid = try Grid(bool).init(a, opt.width, opt.height, false);
+    //        var animation_grid = try Grid(anime.AnimationPlayer).init(a, opt.width, opt.height, undefined);
+    //
+    //        for (0..opt.width) |x| {
+    //            for (0..opt.height) |y| {
+    //                if (perlin.perlin2d(@floatFromInt(x), @floatFromInt(y), 0.1, 4) > 0.5) {
+    //                    tile_grid.items[x][y] = tile_state.get("cave_floor").?;
+    //                    collision_grid.items[x][y] = false;
+    //
+    //                    animation_grid.items[x][y] = .{ .animation_name = "cave_floor" };
+    //                } else {
+    //                    tile_grid.items[x][y] = tile_state.get("cave_wall").?;
+    //                    collision_grid.items[x][y] = true;
+    //
+    //                    animation_grid.items[x][y] = .{ .animation_name = "cave_wall" };
+    //                }
+    //            }
+    //        }
+    //
+    //        return .{
+    //            .tile_grid = tile_grid,
+    //            .collision_grid = collision_grid,
+    //            .animation_grid = animation_grid,
+    //            .width = opt.width,
+    //            .height = opt.height,
+    //        };
+    //    }
 
     pub fn generateFromString(a: std.mem.Allocator, tile_state: tile.TileState, string: []const u8) !@This() {
         std.debug.print("string: \n\n{s}\n", .{string});
@@ -153,22 +154,30 @@ pub const MapState = struct {
 
         var tile_grid = try Grid(tile.Tile).init(a, width, height, undefined);
         var collision_grid = try Grid(bool).init(a, width, height, false);
-        var animation_grid = try Grid(anime.AnimationPlayer).init(a, width, height, undefined);
+        var animation_grid = try Grid(tile.TileRenderer).init(a, width, height, undefined);
 
+        //set tiles
         for (strs.items, 0..) |row, y| {
             for (row, 0..) |ch, x| {
-                switch (ch) {
-                    Char.natural_wall => {
-                        try tile_grid.set(a, x, y, tile_state.get("cave_wall").?);
-                        try collision_grid.set(a, x, y, true);
-                        try animation_grid.set(a, x, y, .{ .animation_name = "cave_wall" });
-                    },
-                    else => {
-                        try tile_grid.set(a, x, y, tile_state.get("cave_floor").?);
-                        try collision_grid.set(a, x, y, false);
-                        try animation_grid.set(a, x, y, .{ .animation_name = "cave_floor" });
-                    },
-                }
+                try tile_grid.set(a, x, y, switch (ch) {
+                    Char.natural_wall => tile_state.get("cave_wall").?,
+                    else => tile_state.get("cave_floor").?,
+                });
+            }
+        }
+
+        //set collisions
+        //TODO remove collision grid
+        for (0..tile_grid.getWidth()) |x| {
+            for (0..tile_grid.getHeight()) |y| {
+                try collision_grid.set(a, x, y, tile_grid.get(x, y).?.category == .wall);
+            }
+        }
+
+        for (0..tile_grid.getWidth()) |x| {
+            for (0..tile_grid.getHeight()) |y| {
+                const animation = tile.TileRenderer.init(tile_grid.getNeighborhood(x, y));
+                try animation_grid.set(a, x, y, animation);
             }
         }
 

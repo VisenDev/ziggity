@@ -1,4 +1,7 @@
 const std = @import("std");
+const Grid = @import("grid.zig").Grid;
+const options = @import("options.zig");
+const anime = @import("animation.zig");
 const ray = @cImport({
     @cInclude("raylib.h");
 });
@@ -6,12 +9,70 @@ const json = std.json;
 const tex = @import("textures.zig");
 const file = @import("file_utils.zig");
 
+const Borders = struct {
+    const Row = struct { left: bool = false, middle: bool = false, right: bool = false };
+    top: Row,
+    center: Row,
+    bottom: Row,
+};
+
+//pub const TileRenderConfig = struct {
+//    wall_top: bool = false,
+//    wall_side_left: bool = false,
+//    wall_side_right: bool = false,
+//    main: bool = false,
+//
+//    pub fn generate(b: Borders) TileRenderConfig {
+//        if (!b.center.middle) return .{ .main = true };
+//
+//        var result = TileRenderConfig{};
+//        if (!b.top.middle) result.wall_top = true;
+//        if (b.bottom.middle) result.wall_top = false;
+//
+//        if (b.bottom.left and b.bottom.right and b.bottom.middle and b.top.middle) {
+//            return TileRenderConfig{ .wall_top = true };
+//        }
+//
+//        return result;
+//    }
+//};
+
 const Category = enum { wall, floor };
 
 pub const Tile = struct {
     name: []const u8 = "",
     animation: []const u8 = "",
     category: Category = .floor,
+};
+
+pub const TileRenderer = struct {
+    main: ?anime.AnimationPlayer = null,
+    border_left: ?anime.AnimationPlayer = null,
+    border_right: ?anime.AnimationPlayer = null,
+    border_top: ?anime.AnimationPlayer = null,
+    border_bottom: ?anime.AnimationPlayer = null,
+
+    pub fn init(neighbors: Grid(Tile).Neighborhood) TileRenderer {
+        //TODO take into account neighbors
+        var result = TileRenderer{};
+        if (neighbors.center.middle) |self| {
+            result.main = .{ .animation_name = self.name };
+        }
+        return result;
+    }
+
+    pub fn render(self: *const TileRenderer, state: *const anime.AnimationState, pos: ray.Vector2) void {
+        //TODO add border rendering
+        if (self.main) |main| {
+            main.render(state, pos);
+        }
+    }
+
+    pub fn update(self: *TileRenderer, opt: options.Update) void {
+        //TODO update animations if appllicable
+        _ = self;
+        _ = opt;
+    }
 };
 
 pub const TileState = struct {

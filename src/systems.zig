@@ -227,7 +227,7 @@ pub fn trimAnimationEntitySystem(
 
     for (set) |member| {
         const sprite = self.get(Component.sprite, member);
-        if (sprite.animation_player.done) {
+        if (sprite.animation_player.disabled) {
             try self.deleteEntity(a, member);
         }
     }

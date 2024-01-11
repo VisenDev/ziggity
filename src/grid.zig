@@ -121,6 +121,58 @@ pub fn Grid(comptime T: type) type {
 
             return self.neighbor_list.items[0..len];
         }
+
+        pub const Neighborhood = struct {
+            const Row = struct { left: ?*T, middle: ?*T, right: ?*T };
+            top: Row = .{},
+            center: Row = .{},
+            bottom: Row = .{},
+        };
+
+        pub fn getNeighborhood(self: *const @This(), raw_x: usize, raw_y: usize) Neighborhood {
+            var result: Neighborhood = undefined;
+            const x: i128 = @intCast(raw_x);
+            const y: i128 = @intCast(raw_y);
+            result.top.left = self.get(@intCast(@max(x - 1, 0)), @intCast(@max(y - 1, 0)));
+            result.top.middle = self.get(@intCast(@max(x, 0)), @intCast(@max(y - 1, 0)));
+            result.top.right = self.get(@intCast(@max(x + 1, 0)), @intCast(@max(y - 1, 0)));
+
+            result.center.left = self.get(@intCast(@max(x - 1, 0)), @intCast(@max(y, 0)));
+            result.center.middle = self.get(@intCast(@max(x, 0)), @intCast(@max(y, 0)));
+            result.center.right = self.get(@intCast(@max(x + 1, 0)), @intCast(@max(y, 0)));
+
+            result.bottom.left = self.get(@intCast(@max(x - 1, 0)), @intCast(@max(y + 1, 0)));
+            result.bottom.middle = self.get(@intCast(@max(x, 0)), @intCast(@max(y + 1, 0)));
+            result.bottom.right = self.get(@intCast(@max(x + 1, 0)), @intCast(@max(y + 1, 0)));
+
+            return result;
+        }
+
+        pub const Iterator = struct {
+            items: [][]?T,
+            x: usize = 0,
+            y: usize = 0,
+
+            pub fn next(self: *Iterator) ?T {
+                if (self.x >= self.items.len) {
+                    return null;
+                }
+
+                const result = self.items[self.x][self.y];
+
+                self.y += 1;
+                if (self.y >= self.items[self.x].len) {
+                    self.y = 0;
+                    self.x += 1;
+                }
+
+                return result;
+            }
+        };
+
+        pub fn iterator(self: *const @This()) Iterator {
+            return .{ .items = self.items };
+        }
     };
 }
 

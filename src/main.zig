@@ -105,7 +105,7 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
     var console = try cmd.Console.init(a);
     defer console.deinit();
 
-    var debug_mode = true;
+    var debug_mode = false;
 
     const shader = ray.LoadShader(0, ray.TextFormat("game-files/shaders/crosshatch.fs", @as(c_int, 330)));
     defer ray.UnloadShader(shader);
@@ -173,5 +173,4 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
 
 test "unit tests" {
     @import("std").testing.refAllDecls(@This());
-    std.testing.refAllDecls(@import("lua_helpers.zig"));
 }

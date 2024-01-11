@@ -40,11 +40,11 @@ pub const AnimationPlayer = struct {
     remaining_frame_time: f32 = 0,
     rotation: f32 = 0,
     tint: ray.Color = ray.WHITE,
-    done: bool = false,
+    disabled: bool = false,
 
     //renders the animation
-    pub fn render(self: *@This(), state: *const AnimationState, position: ray.Vector2) void {
-        if (self.done) return;
+    pub fn render(self: *const @This(), state: *const AnimationState, position: ray.Vector2) void {
+        if (self.disabled) return;
         const animation = state.animations.get(self.animation_name).?;
         const frame = animation.frames[self.current_frame];
 
@@ -72,8 +72,8 @@ pub const AnimationPlayer = struct {
 
         if (self.remaining_frame_time <= 0) {
             if (animation.loop == false and self.current_frame == animation.frames.len - 1) {
-                self.done = true;
-                //std.debug.print("animation is done: {s}", .{self.animation_name});
+                self.disabled = true;
+                //std.debug.print("animation is disabled: {s}", .{self.animation_name});
             }
 
             self.current_frame = animation.nextFrame(self.current_frame);
