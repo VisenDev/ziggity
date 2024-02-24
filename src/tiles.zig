@@ -8,6 +8,7 @@ const ray = @cImport({
 const json = std.json;
 const tex = @import("textures.zig");
 const file = @import("file_utils.zig");
+const Lua = @import("ziglua").Lua;
 
 const Borders = struct {
     const Row = struct { left: bool = false, middle: bool = false, right: bool = false };
@@ -79,11 +80,13 @@ pub const TileState = struct {
     tiles: std.StringHashMap(Tile),
     resolution: usize,
 
-    pub fn init(a: std.mem.Allocator) !@This() {
+    pub fn init(a: std.mem.Allocator, lua: *Lua) !@This() {
         var result = std.StringHashMap(Tile).init(a);
 
         const json_type = struct { resolution: u32, tiles: []Tile };
-        const tile_json = file.readConfig(json_type, a, file.FileName.tiles) catch return .{ .tiles = result, .resolution = 32 };
+        const tile_json = file.readConfig(json_type, lua, .tiles) catch
+            return .{ .tiles = result, .resolution = 32 };
+        defer tile_json.deinit();
 
         for (tile_json.value.tiles) |tile| {
             try result.put(tile.name, tile);

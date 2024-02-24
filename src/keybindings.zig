@@ -1,4 +1,5 @@
 const std = @import("std");
+const Lua = @import("ziglua").Lua;
 const file = @import("file_utils.zig");
 const ray = @cImport({
     @cInclude("raylib.h");
@@ -42,7 +43,7 @@ pub const KeyBindings = struct {
     keys: std.StringHashMap(Key),
     mode: KeyMode = .normal,
 
-    pub fn init(a: std.mem.Allocator) !@This() {
+    pub fn init(a: std.mem.Allocator, lua: *Lua) !@This() {
         var result = KeyBindings{
             .keys = std.StringHashMap(Key).init(a),
         };
@@ -50,13 +51,13 @@ pub const KeyBindings = struct {
         const toml_type = struct {
             keys: []struct {
                 name: []const u8,
-                char: []u8,
+                char: []const u8,
                 shift: bool = false,
                 control: bool = false,
                 mode: KeyMode = .normal,
             },
         };
-        const json_config = try file.readConfig(toml_type, a, file.FileName.keybindings);
+        const json_config = try file.readConfig(toml_type, lua, .keybindings);
         defer json_config.deinit();
 
         var arena_value = std.heap.ArenaAllocator.init(a);

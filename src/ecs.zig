@@ -371,7 +371,7 @@ test "json ecs component" {
     defer ecs.deinit(std.testing.allocator);
 
     const player_id = ecs.newEntity(std.testing.allocator).?;
-    try ecs.addJsonComponent(std.testing.allocator, player_id, "physics", null);
+    try ecs.addJsonComponent(&std.testing.allocator, player_id, "physics", null);
 }
 
 test "system domain" {

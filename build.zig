@@ -11,11 +11,11 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    const zigtoml = b.dependency("zigtoml", .{
-        .target = target,
-        .optimize = optimize,
-    });
-    exe.addModule("toml", zigtoml.module("toml"));
+    //const zigtoml = b.dependency("zigtoml", .{
+    //    .target = target,
+    //    .optimize = optimize,
+    //});
+    //exe.addModule("toml", zigtoml.module("toml"));
 
     //link lua
     const ziglua = b.dependency("ziglua", .{
@@ -24,8 +24,8 @@ pub fn build(b: *std.Build) void {
     });
 
     // add the ziglua module and lua artifact
-    exe.addModule("ziglua", ziglua.module("ziglua"));
-    exe.linkLibrary(ziglua.artifact("lua"));
+    exe.root_module.addImport("ziglua", ziglua.module("ziglua"));
+    //exe.linkLibrary(ziglua.artifact("lua"));
 
     const ray = b.dependency("raylib", .{ .target = target, .optimize = optimize });
     exe.linkLibrary(ray.artifact("raylib"));
@@ -67,14 +67,14 @@ pub fn build(b: *std.Build) void {
     unit_tests.step.dependOn((b.getInstallStep()));
     unit_tests.linkLibrary(ray.artifact("raylib"));
 
-    unit_tests.addModule("toml", zigtoml.module("toml"));
+    //unit_tests.addModule("toml", zigtoml.module("toml"));
 
     //find raygui.h
     unit_tests.addIncludePath(.{ .path = "lib" });
 
     //link lua
-    unit_tests.addModule("ziglua", ziglua.module("ziglua"));
-    unit_tests.linkLibrary(ziglua.artifact("lua"));
+    //
+    unit_tests.root_module.addImport("ziglua", ziglua.module("ziglua"));
 
     unit_tests.addCSourceFile(.{ .file = .{
         .path = "lib/raygui.c",

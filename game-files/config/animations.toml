@@ -29,19 +29,19 @@ frames = [
 [[animations]]
 name = "cave_floor"
 rotation_speed = 0
-filepath = "tilemap.png"
+filepath = "cave.png"
 origin = {x = 0, y = 0}
 frames = [
-   { subrect = {x = 0, y = 0, width = 32, height = 32}, milliseconds = 1000 }
+   { subrect = {x = 0, y = 0, width = 8, height = 8}, milliseconds = 1000 }
 ]
 
 [[animations]]
 name = "cave_wall"
 rotation_speed = 0
-filepath = "tilemap.png"
+filepath = "cave.png"
 origin = {x = 0, y = 0}
 frames = [
-   { subrect = {x = 32, y = 0, width = 32, height = 32}, milliseconds = 1000 }
+   { subrect = {x = 8, y = 0, width = 8, height = 8}, milliseconds = 1000 }
 ]
 
 

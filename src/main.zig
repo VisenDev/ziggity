@@ -59,7 +59,7 @@ pub fn main() !void {
     //const music_player = try std.Thread.spawn(.{}, playSound, .{});
     //defer music_player.detach();
 
-    var lua = try api.initLuaApi(a);
+    var lua = try api.initLuaApi(&a);
     defer lua.deinit();
 
     raygui.GuiLoadStyleDark();
@@ -93,13 +93,13 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
     defer json_parsed_level.deinit();
     var lvl = json_parsed_level.value;
 
-    var keybindings = try key.KeyBindings.init(a);
+    var keybindings = try key.KeyBindings.init(a, lua);
     defer keybindings.deinit();
 
-    var tile_state = try tile.TileState.init(a);
+    var tile_state = try tile.TileState.init(a, lua);
     defer tile_state.deinit();
 
-    var animation_state = try anime.AnimationState.init(a);
+    var animation_state = try anime.AnimationState.init(a, lua);
     defer animation_state.animations.deinit();
 
     var console = try cmd.Console.init(a);

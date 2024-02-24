@@ -9,7 +9,7 @@ const ray = @cImport({
     @cInclude("raylib.h");
 });
 
-pub fn initLuaApi(a: std.mem.Allocator) !Lua {
+pub fn initLuaApi(a: *const std.mem.Allocator) !Lua {
     var l = try Lua.init(a);
     l.openLibs();
 

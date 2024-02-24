@@ -59,7 +59,7 @@ pub fn updatePlayerSystem(
 
         //let player shoot projectiles
         if (ray.IsMouseButtonDown(ray.MOUSE_BUTTON_LEFT)) {
-            const fireball = try l.autoCall(?usize, "SpawnFireball", .{ self, &copy }) orelse break;
+            const fireball = try l.autoCallLeaky(?usize, "SpawnFireball", .{ self, &copy }) orelse break;
             const pos = cam.mousePos(camera, tile_state_resolution);
             self.setComponent(a, fireball, Component.physics{
                 .pos = pos,
@@ -72,7 +72,7 @@ pub fn updatePlayerSystem(
 
         //spawnSlimes
         if (ray.IsMouseButtonDown(ray.MOUSE_BUTTON_RIGHT)) {
-            const slime = try l.autoCall(?usize, "SpawnSlime", .{ self, &copy }) orelse break;
+            const slime = try l.autoCallLeaky(?usize, "SpawnSlime", .{ self, &copy }) orelse break;
             const pos = cam.mousePos(camera, tile_state_resolution);
             self.setComponent(a, slime, Component.physics{
                 .pos = pos,

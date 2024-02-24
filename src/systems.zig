@@ -106,7 +106,7 @@ pub fn updateDeathSystem(
                 const physics = self.getMaybe(Component.physics, member) orelse continue;
                 for (loot.items) |item_script| {
                     var copy = a;
-                    const item = try l.autoCall(?usize, item_script, .{ self, &copy }) orelse continue;
+                    const item = try l.autoCallLeaky(?usize, item_script, .{ self, &copy }) orelse continue;
                     try self.setComponent(a, item, Component.physics{
                         .pos = .{
                             .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
@@ -121,7 +121,7 @@ pub fn updateDeathSystem(
                 const physics = self.get(Component.physics, member);
                 for (0..5) |_| {
                     var copy = a;
-                    const blood = try l.autoCall(?usize, "SpawnBloodParticle", .{ self, &copy }) orelse continue;
+                    const blood = try l.autoCallLeaky(?usize, "SpawnBloodParticle", .{ self, &copy }) orelse continue;
                     try self.setComponent(a, blood, Component.physics{
                         .pos = .{
                             .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
@@ -135,7 +135,7 @@ pub fn updateDeathSystem(
                 const physics = self.getMaybe(Component.physics, member) orelse continue;
                 //const death_animation_entity = api.call(l, "SpawnAnimation") catch continue;
                 var copy = a;
-                const death_animation_entity = try l.autoCall(?usize, "SpawnAnimation", .{ self, &copy }) orelse continue;
+                const death_animation_entity = try l.autoCallLeaky(?usize, "SpawnAnimation", .{ self, &copy }) orelse continue;
                 try self.setComponent(a, death_animation_entity, Component.physics{
                     .pos = .{
                         .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),

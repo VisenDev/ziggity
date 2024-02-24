@@ -1,4 +1,5 @@
 const std = @import("std");
+const Lua = @import("ziglua").Lua;
 const file = @import("file_utils.zig");
 const options = @import("options.zig");
 const SparseSet = @import("sparse_set.zig").SparseSet;
@@ -85,9 +86,10 @@ pub const AnimationPlayer = struct {
 pub const AnimationState = struct {
     animations: std.StringHashMap(Animation),
 
-    pub fn init(a: std.mem.Allocator) !@This() {
+    pub fn init(a: std.mem.Allocator, lua: *Lua) !@This() {
         const json_type = struct { animations: []Animation };
-        const animations_json = try file.readConfig(json_type, a, file.FileName.animations);
+        const animations_json = try file.readConfig(json_type, lua, .animations);
+        defer animations_json.deinit();
         var animations = std.StringHashMap(Animation).init(a);
 
         for (animations_json.value.animations) |*animation| {

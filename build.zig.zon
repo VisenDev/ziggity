@@ -4,16 +4,16 @@
       .paths = .{""},
       .dependencies = .{
          .ziglua = .{
-            .url = "https://github.com/VisenDev/ziglua/archive/refs/heads/master.tar.gz",
-            .hash = "122088743e75fc16ad7ee2404d16a1fff15275390757dd3a63da693662dd5a89d7d0",
+            .url = "https://github.com/VisenDev/ziglua/archive/refs/heads/parsing-memory-fixes.tar.gz",
+            .hash = "122002b487671dd7af1ab4416a1d4bbfe72530de158d4d47fa9b2e0a6b6a0e08728e"
          },
-         .zigtoml = .{
-            .url = "https://github.com/VisenDev/zig-toml-json/archive/refs/heads/master.tar.gz",
-            .hash = "1220cccb7852ce87568738b14b87d42f51cf751b1d162e3ba4a8f7cd74e096603e7d",
-         },
+         //.zigtoml = .{
+         //   .url = "https://github.com/VisenDev/zig-toml-json/archive/refs/heads/master.tar.gz",
+         //   .hash = "1220cccb7852ce87568738b14b87d42f51cf751b1d162e3ba4a8f7cd74e096603e7d",
+         //},
          .raylib = .{
             .url = "https://github.com/raysan5/raylib/archive/refs/heads/master.tar.gz",
-            .hash = "1220650937ffcc4b8404c8d35f55a0be7ba9ce61e5a37306dfafe7ffaead4d1f2621",
+            .hash = "12201b30d2fc6e0965fdaad30961e80e007947e93ca56704163422875f0c968dc71a",
          }
       },
 }
