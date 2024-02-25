@@ -128,10 +128,10 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
         //configure update options
         const delta_time = ray.GetFrameTime();
         const update_options = options.Update{ .dt = delta_time };
-        camera = cam.calculateCameraPosition(camera, lvl, &tile_state, &keybindings);
+        camera = cam.calculateCameraPosition(camera, lvl, &keybindings);
 
         try sys.updateMovementSystem(lvl.ecs, a, lua, lvl.map, &animation_state, update_options);
-        try play.updatePlayerSystem(lvl.ecs, a, lua, keybindings, camera, tile_state.resolution, update_options);
+        try play.updatePlayerSystem(lvl.ecs, a, lua, keybindings, camera, update_options);
         try inv.updateInventorySystem(lvl.ecs, a, update_options);
         sys.updateWanderingSystem(lvl.ecs, a, update_options);
         try sys.updateDeathSystem(lvl.ecs, a, lua, update_options);
@@ -148,8 +148,8 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
         lvl.map.render(&animation_state, &tile_state);
 
         if (debug_mode) {
-            debug.renderPositionCache(lvl.ecs, a, tile_state.resolution);
-            debug.renderHitboxes(lvl.ecs, a, tile_state.resolution);
+            //debug.renderPositionCache(lvl.ecs, a, tile_state.resolution);
+            //debug.renderHitboxes(lvl.ecs, a, tile_state.resolution);
         }
 
         sys.renderSprites(lvl.ecs, a, &animation_state, &tile_state);

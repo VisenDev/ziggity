@@ -42,16 +42,26 @@ const Category = enum { wall, floor };
 
 pub const Tile = struct {
     name: []const u8 = "",
-    animation: []const u8 = "",
+    animations: ?struct {
+        main: ?[]const u8 = null,
+        border: ?struct {
+            left: ?[]const u8 = null,
+            right: ?[]const u8 = null,
+            top: ?[]const u8 = null,
+            bottom: ?[]const u8 = null,
+        } = null,
+    } = null,
     category: Category = .floor,
 };
 
 pub const TileRenderer = struct {
     main: ?anime.AnimationPlayer = null,
-    border_left: ?anime.AnimationPlayer = null,
-    border_right: ?anime.AnimationPlayer = null,
-    border_top: ?anime.AnimationPlayer = null,
-    border_bottom: ?anime.AnimationPlayer = null,
+    border: struct {
+        left: ?anime.AnimationPlayer = null,
+        right: ?anime.AnimationPlayer = null,
+        top: ?anime.AnimationPlayer = null,
+        bottom: ?anime.AnimationPlayer = null,
+    } = .{},
 
     pub fn init(neighbors: Grid(Tile).Neighborhood) TileRenderer {
         //TODO take into account neighbors
@@ -78,21 +88,25 @@ pub const TileRenderer = struct {
 
 pub const TileState = struct {
     tiles: std.StringHashMap(Tile),
-    resolution: usize,
 
     pub fn init(a: std.mem.Allocator, lua: *Lua) !@This() {
         var result = std.StringHashMap(Tile).init(a);
+        errdefer result.deinit();
 
-        const json_type = struct { resolution: u32, tiles: []Tile };
-        const tile_json = file.readConfig(json_type, lua, .tiles) catch
-            return .{ .tiles = result, .resolution = 32 };
-        defer tile_json.deinit();
+        var parsed = try file.readConfig([]Tile, lua, .tiles);
+        defer parsed.deinit();
 
-        for (tile_json.value.tiles) |tile| {
-            try result.put(tile.name, tile);
+        for (parsed.value) |*tile| {
+
+            //if no animations are provided, assume there is an animation that goes by the tile name
+            if (tile.animations == null) {
+                tile.animations = .{};
+                tile.animations.?.main = tile.name;
+            }
+            try result.put(tile.name, tile.*);
         }
 
-        return .{ .tiles = result, .resolution = tile_json.value.resolution };
+        return .{ .tiles = result };
     }
 
     pub fn deinit(self: *@This()) void {

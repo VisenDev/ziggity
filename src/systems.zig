@@ -1,4 +1,5 @@
 const std = @import("std");
+const camera = @import("camera.zig");
 const api = @import("api.zig");
 const tile = @import("tiles.zig");
 const anime = @import("animation.zig");
@@ -260,6 +261,7 @@ pub fn renderSprites(
     animation_state: *const anime.AnimationState,
     tile_state: *const tile.TileState,
 ) void {
+    _ = tile_state;
     const systems = [_]type{ Component.physics, Component.sprite };
     const set = self.getSystemDomain(a, &systems);
 
@@ -272,7 +274,7 @@ pub fn renderSprites(
             if (sprite.disabled) continue;
             if (sprite.z_level != current_z_level) continue;
 
-            sprite.animation_player.render(animation_state, scaleVector(physics.pos, tile_state.resolution));
+            sprite.animation_player.render(animation_state, scaleVector(physics.pos, camera.render_resolution));
         }
     }
 }

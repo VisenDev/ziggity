@@ -6,27 +6,24 @@ const level = @import("level.zig");
 const Lua = @import("ziglua").Lua;
 const ziglua = @import("ziglua");
 
-pub const FileName = struct {
-    pub const tiles = "tiles.toml";
-    pub const keybindings = "keybindings.toml";
-    pub const animations = "animations.toml";
-};
+pub fn getLuaEntryFile(a: std.mem.Allocator) ![:0]const u8 {
+    const lua_entry_file = "lua/init.lua";
+    return try combineAppendSentinel(a, try getCWD(a), lua_entry_file);
+}
 
 //combines two paths
 pub fn combine(a: std.mem.Allocator, str1: []const u8, str2: []const u8) ![]const u8 {
     return try std.fmt.allocPrint(a, "{s}{s}", .{ str1, str2 });
 }
 
-pub fn combineAppendSentinel(a: std.mem.Allocator, str1: []const u8, str2: []const u8) ![]const u8 {
-    var str = try std.fmt.allocPrint(a, "{s}{s}#", .{ str1, str2 });
-    str[str.len - 1] = 0;
-    return str;
+pub fn combineAppendSentinel(a: std.mem.Allocator, str1: []const u8, str2: []const u8) ![:0]const u8 {
+    return try std.fmt.allocPrintZ(a, "{s}{s}", .{ str1, str2 });
 }
 
 //========DIR PATHS========
 pub fn getCWD(a: std.mem.Allocator) ![]const u8 {
     const cwd: []u8 = try std.fs.selfExeDirPathAlloc(a);
-    const folder = "/game-files/";
+    const folder = "/data/";
     const result: []const u8 = try std.fmt.allocPrint(a, "{s}{s}", .{ cwd, folder });
     return result;
 }
@@ -132,25 +129,13 @@ pub const ConfigType = enum {
 };
 
 pub fn readConfig(comptime ReturnType: type, lua: *Lua, config: ConfigType) !ziglua.Parsed(ReturnType) {
-    const ConfigDescriptor = struct {
-        file_name: [:0]const u8,
-        function_name: [:0]const u8,
+    const function_name = switch (config) {
+        .animations => "Animations",
+        .tiles => "Tiles",
+        .keybindings => "keybindings",
     };
 
-    const config_data: ConfigDescriptor = switch (config) {
-        .animations => .{ .file_name = "animations.lua", .function_name = "animations" },
-        .tiles => .{ .file_name = "keybindings.lua", .function_name = "keybindings" },
-        .keybindings => .{ .file_name = "tiles.lua", .function_name = "tiles" },
-    };
-
-    const dirpath = try getConfigDirPath(lua.allocator());
-    defer lua.allocator().free(dirpath);
-
-    const complete_filepath = try std.fmt.allocPrintZ(lua.allocator(), "{s}{s}", .{ dirpath, config_data.file_name });
-    defer lua.allocator().free(complete_filepath);
-
-    try lua.doFile(complete_filepath);
-    return try lua.autoCall(ReturnType, config_data.function_name, .{});
+    return try lua.autoCall(ReturnType, function_name, .{});
 }
 
 //pub fn readConfig(comptime T: type, a: std.mem.Allocator, filename: []const u8) !std.json.Parsed(T) {

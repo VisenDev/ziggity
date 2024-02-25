@@ -195,11 +195,13 @@ pub const MapState = struct {
     }
 
     pub fn render(self: *const @This(), animation_state: *const anime.AnimationState, tile_state: *const tile.TileState) void {
+        _ = tile_state;
+
         for (0..self.animation_grid.items.len) |x| {
             for (0..self.animation_grid.items[x].len) |y| {
-                const grid_x = tof32(x * tile_state.resolution);
-                const grid_y = tof32(y * tile_state.resolution);
-                self.animation_grid.items[x][y].render(animation_state, .{ .x = grid_x, .y = grid_y });
+                //const grid_x = tof32(x * tile_state.resolution);
+                //const grid_y = tof32(y * tile_state.resolution);
+                self.animation_grid.items[x][y].render(animation_state, .{ .x = @floatFromInt(x), .y = @floatFromInt(y) });
             }
         }
     }

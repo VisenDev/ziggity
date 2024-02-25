@@ -28,11 +28,13 @@ pub inline fn initCamera() ray.Camera2D {
     };
 }
 
+//every tile is scaled up to this resolution before rendering
+pub const render_resolution = 256;
+
 //TODO update camera offset
 pub fn calculateCameraPosition(
     camera: ray.Camera2D,
     l: level.Level,
-    tile_state: *const tile.TileState,
     keybindings: *const key.KeyBindings,
 ) ray.Camera2D {
     var zoom = camera.zoom;
@@ -42,8 +44,8 @@ pub fn calculateCameraPosition(
     const player_id = l.player_id;
     var player_position: ray.Vector2 = l.ecs.components.physics.get(player_id).?.pos;
 
-    player_position.x *= tof32(tile_state.resolution);
-    player_position.y *= tof32(tile_state.resolution);
+    player_position.x *= tof32(render_resolution);
+    player_position.y *= tof32(render_resolution);
 
     const min_camera_x: f32 = (screenWidth() / 2) / zoom;
     const min_camera_y: f32 = (screenHeight() / 2) / zoom;
@@ -56,8 +58,8 @@ pub fn calculateCameraPosition(
         player_position.y = min_camera_y;
     }
 
-    const map_width: f32 = (tof32(l.map.width * tile_state.resolution));
-    const map_height: f32 = (tof32(l.map.height * tile_state.resolution));
+    const map_width: f32 = (tof32(l.map.width * render_resolution));
+    const map_height: f32 = (tof32(l.map.height * render_resolution));
     const max_camera_x: f32 = (map_width - min_camera_x);
     const max_camera_y: f32 = (map_height - min_camera_y);
 
@@ -77,10 +79,10 @@ pub fn calculateCameraPosition(
     };
 }
 
-pub fn mousePos(camera: ray.Camera2D, tile_state_resolution: usize) ray.Vector2 {
+pub fn mousePos(camera: ray.Camera2D) ray.Vector2 {
     return sys.scaleVector(
         ray.GetScreenToWorld2D(ray.GetMousePosition(), camera),
-        1.0 / @as(f32, @floatFromInt(tile_state_resolution)),
+        1.0 / @as(f32, @floatFromInt(render_resolution)),
     );
 }
 

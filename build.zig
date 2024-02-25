@@ -41,7 +41,7 @@ pub fn build(b: *std.Build) void {
     b.installArtifact(exe);
 
     //=============INSTALL GAME FILES===========
-    b.installDirectory(.{ .source_dir = .{ .path = "game-files" }, .install_dir = .bin, .install_subdir = "game-files" });
+    b.installDirectory(.{ .source_dir = .{ .path = "data" }, .install_dir = .bin, .install_subdir = "data" });
 
     const run_cmd = b.addRunArtifact(exe);
     run_cmd.step.dependOn(b.getInstallStep());
