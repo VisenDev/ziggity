@@ -78,7 +78,7 @@ pub fn updateMovementSystem(
         if (self.getMaybe(Component.movement_particles, member)) |_| {
             if (physics.pos.x != old_position.x or physics.pos.y != old_position.y) {
                 var copy = a;
-                const particle = try l.autoCallLeaky(?usize, "SpawnMovementParticle", .{ self, &copy }) orelse continue;
+                const particle = try l.autoCall(?usize, "SpawnMovementParticle", .{ self, &copy }) orelse continue;
                 try self.setComponent(a, particle, Component.physics{
                     .pos = .{
                         .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),

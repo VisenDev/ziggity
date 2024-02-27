@@ -5,7 +5,7 @@
       .dependencies = .{
          .ziglua = .{
             .url = "https://github.com/VisenDev/ziglua/archive/refs/heads/parsing-memory-fixes.tar.gz",
-            .hash = "122002b487671dd7af1ab4416a1d4bbfe72530de158d4d47fa9b2e0a6b6a0e08728e"
+            .hash = "12204dcea36acd1b626290b4d5bc69d5336c7935fb8d2707e5bedf62dad2a09978a0"
          },
          //.zigtoml = .{
          //   .url = "https://github.com/VisenDev/zig-toml-json/archive/refs/heads/master.tar.gz",

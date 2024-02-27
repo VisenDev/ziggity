@@ -48,40 +48,38 @@ pub const KeyBindings = struct {
             .keys = std.StringHashMap(Key).init(a),
         };
 
-        const toml_type = struct {
-            keys: []struct {
-                name: []const u8,
-                char: []const u8,
-                shift: bool = false,
-                control: bool = false,
-                mode: KeyMode = .normal,
-            },
+        const ConfigType = struct {
+            name: []const u8,
+            key: []const u8,
+            shift: bool = false,
+            control: bool = false,
+            mode: KeyMode = .normal,
         };
-        const json_config = try file.readConfig(toml_type, lua, .keybindings);
-        defer json_config.deinit();
+        const config = try file.readConfig([]ConfigType, lua, .keybindings);
+        defer config.deinit();
 
         var arena_value = std.heap.ArenaAllocator.init(a);
         const arena = arena_value.allocator();
         defer arena_value.deinit();
 
-        for (json_config.value.keys) |key| {
+        for (config.value) |key_config| {
             var resulting_key = Key{
-                .name = key.name,
-                .char = key.char[0],
-                .mode = key.mode,
-                .shift = key.shift,
-                .control = key.control,
+                .name = key_config.name,
+                .char = key_config.key[0],
+                .mode = key_config.mode,
+                .shift = key_config.shift,
+                .control = key_config.control,
             };
-            if (key.char.len > 1) {
-                if (match(key.char, try getArrowMatches(arena, "up"))) {
+            if (key_config.key.len > 1) {
+                if (match(key_config.key, try getArrowMatches(arena, "up"))) {
                     resulting_key.char = ray.KEY_UP;
-                } else if (match(key.char, try getArrowMatches(arena, "down"))) {
+                } else if (match(key_config.key, try getArrowMatches(arena, "down"))) {
                     resulting_key.char = ray.KEY_DOWN;
-                } else if (match(key.char, try getArrowMatches(arena, "left"))) {
+                } else if (match(key_config.key, try getArrowMatches(arena, "left"))) {
                     resulting_key.char = ray.KEY_LEFT;
-                } else if (match(key.char, try getArrowMatches(arena, "right"))) {
+                } else if (match(key_config.key, try getArrowMatches(arena, "right"))) {
                     resulting_key.char = ray.KEY_RIGHT;
-                } else if (match(key.char, &[_][]const u8{ "enter", "return", "<cr>" })) {
+                } else if (match(key_config.key, &[_][]const u8{ "enter", "return", "<cr>" })) {
                     resulting_key.char = ray.KEY_ENTER;
                 }
             }

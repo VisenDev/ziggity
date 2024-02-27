@@ -53,7 +53,7 @@ pub fn generateLevel(a: std.mem.Allocator, lua: *Lua, options: LevelGenOptions) 
     var entities = try a.create(ecs.ECS);
     entities.* = try ecs.ECS.init(a, 10000);
 
-    const map_string = try lua.autoCallLeaky([]const u8, "Generate", .{});
+    const map_string = try lua.autoCall([]const u8, "Generate", .{});
 
     const world_map = try a.create(map.MapState);
     world_map.* = try map.MapState.generateFromString(a, tile_state, map_string);
@@ -63,7 +63,7 @@ pub fn generateLevel(a: std.mem.Allocator, lua: *Lua, options: LevelGenOptions) 
     exits[0] = Exit{ .x = 5, .y = 5, .destination_id = "first_level" };
 
     var copy = a;
-    const player_id = try lua.autoCallLeaky(?usize, "SpawnPlayer", .{ entities, &copy }) orelse return error.failed_to_create_player;
+    const player_id = try lua.autoCall(?usize, "SpawnPlayer", .{ entities, &copy }) orelse return error.failed_to_create_player;
     try entities.setComponent(a, player_id, ecs.Component.physics{ .pos = .{ .x = 3, .y = 5 } });
 
     return Level{ .name = "harry truman", .ecs = entities, .map = world_map, .exits = exits, .player_id = player_id };

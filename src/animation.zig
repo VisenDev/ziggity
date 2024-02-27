@@ -24,7 +24,7 @@ pub const Animation = struct {
     rotation_speed: f32 = 0, //scalar to be multiplied by dt when rotating
     origin: ray.Vector2 = .{ .x = 0, .y = 0 },
     render_style: enum { pixel_perfect, scaled } = .pixel_perfect,
-    frames: []const AnimationFrame,
+    frames: []const AnimationFrame = &.{},
 
     pub inline fn length(self: *const @This()) usize {
         return self.frames.len;
@@ -47,27 +47,52 @@ pub const AnimationPlayer = struct {
     pub fn render(self: *const @This(), state: *const AnimationState, position: ray.Vector2) void {
         if (self.disabled) return;
         const animation = state.animations.get(self.animation_name).?;
-        const frame = animation.frames[self.current_frame];
+        if (animation.frames.len > 0) {
+            const frame = animation.frames[self.current_frame];
 
-        ray.DrawTexturePro(
-            animation.texture.?,
-            frame.subrect,
-            ray.Rectangle{
-                .x = position.x,
-                .y = position.y,
-                .width = frame.subrect.width + 0.1,
-                .height = frame.subrect.height + 0.1,
-            },
-            animation.origin,
-            self.rotation,
-            self.tint,
-        );
+            ray.DrawTexturePro(
+                animation.texture.?,
+                frame.subrect,
+                ray.Rectangle{
+                    .x = position.x,
+                    .y = position.y,
+                    .width = frame.subrect.width + 0.1,
+                    .height = frame.subrect.height + 0.1,
+                },
+                animation.origin,
+                self.rotation,
+                self.tint,
+            );
+        } else {
+            const subrect = ray.Rectangle{
+                .x = 0,
+                .y = 0,
+                .width = @floatFromInt(animation.texture.?.width),
+                .height = @floatFromInt(animation.texture.?.height),
+            };
+            ray.DrawTexturePro(
+                animation.texture.?,
+                subrect,
+                ray.Rectangle{
+                    .x = position.x,
+                    .y = position.y,
+                    .width = subrect.width + 0.1,
+                    .height = subrect.height + 0.1,
+                },
+                animation.origin,
+                self.rotation,
+                self.tint,
+            );
+        }
     }
 
     //updates animation frame and rotation
     pub fn update(self: *@This(), state: *const AnimationState, opt: options.Update) void {
         const animation = state.animations.get(self.animation_name).?;
+        if (animation.frames.len == 0) return;
+
         self.remaining_frame_time -= opt.dtInMs();
+
         //TODO fix rotation_speed
         self.rotation += animation.rotation_speed * opt.dt;
 
@@ -85,31 +110,46 @@ pub const AnimationPlayer = struct {
 
 pub const AnimationState = struct {
     animations: std.StringHashMap(Animation),
+    textures: std.StringHashMap(ray.Texture2D),
+
+    pub fn deinit(self: *@This()) void {
+        _ = self;
+
+        //TODO implement
+    }
 
     pub fn init(a: std.mem.Allocator, lua: *Lua) !@This() {
-        const json_type = struct { animations: []Animation };
-        const animations_json = try file.readConfig(json_type, lua, .animations);
-        defer animations_json.deinit();
-        var animations = std.StringHashMap(Animation).init(a);
+        var self = .{
+            .animations = std.StringHashMap(Animation).init(a),
+            .textures = std.StringHashMap(ray.Texture2D).init(a),
+        };
+        errdefer self.animations.deinit();
+        errdefer self.textures.deinit();
 
-        for (animations_json.value.animations) |*animation| {
-            const path = try file.combineAppendSentinel(a, try file.getImageDirPath(a), animation.filepath);
-            defer a.free(path);
+        const config = try file.readConfig([]Animation, lua, .animations);
+        defer config.deinit();
 
-            const image = ray.LoadImage(path.ptr);
-            defer ray.UnloadImage(image);
+        for (config.value) |*animation| {
+            if (!self.textures.contains(animation.filepath)) {
+                const path = try file.combineAppendSentinel(a, try file.getImageDirPath(a), animation.filepath);
+                defer a.free(path);
 
-            const texture = ray.LoadTextureFromImage(image);
-            if (!ray.IsTextureReady(texture)) {
-                std.debug.print("path: {*}\n", .{path.ptr});
-                @panic("failed to load texture");
+                const image = ray.LoadImage(path.ptr);
+                defer ray.UnloadImage(image);
+
+                const texture = ray.LoadTextureFromImage(image);
+                if (!ray.IsTextureReady(texture)) {
+                    std.debug.print("path: {*}\n", .{path.ptr});
+                    @panic("failed to load texture");
+                }
+                try self.textures.put(animation.filepath, texture);
             }
-            animation.texture = texture;
+            animation.texture = self.textures.get(animation.filepath).?;
 
-            try animations.put(animation.name, animation.*);
+            try self.animations.put(animation.name, animation.*);
         }
 
-        return .{ .animations = animations };
+        return self;
     }
 };
 

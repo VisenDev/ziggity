@@ -132,10 +132,10 @@ pub fn readConfig(comptime ReturnType: type, lua: *Lua, config: ConfigType) !zig
     const function_name = switch (config) {
         .animations => "Animations",
         .tiles => "Tiles",
-        .keybindings => "keybindings",
+        .keybindings => "KeyBindings",
     };
 
-    return try lua.autoCall(ReturnType, function_name, .{});
+    return try lua.autoCallAlloc(ReturnType, function_name, .{});
 }
 
 //pub fn readConfig(comptime T: type, a: std.mem.Allocator, filename: []const u8) !std.json.Parsed(T) {
