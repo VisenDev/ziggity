@@ -1,4 +1,5 @@
 const std = @import("std");
+const camera = @import("camera.zig");
 const Component = @import("components.zig");
 const anime = @import("animation.zig");
 const texture = @import("textures.zig");
@@ -199,9 +200,10 @@ pub const MapState = struct {
 
         for (0..self.animation_grid.items.len) |x| {
             for (0..self.animation_grid.items[x].len) |y| {
-                //const grid_x = tof32(x * tile_state.resolution);
-                //const grid_y = tof32(y * tile_state.resolution);
-                self.animation_grid.items[x][y].render(animation_state, .{ .x = @floatFromInt(x), .y = @floatFromInt(y) });
+                self.animation_grid.items[x][y].render(animation_state, .{
+                    .x = @floatFromInt(x * camera.render_resolution),
+                    .y = @floatFromInt(y * camera.render_resolution),
+                });
             }
         }
     }

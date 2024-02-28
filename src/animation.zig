@@ -1,4 +1,5 @@
 const std = @import("std");
+const camera = @import("camera.zig");
 const Lua = @import("ziglua").Lua;
 const file = @import("file_utils.zig");
 const options = @import("options.zig");
@@ -46,49 +47,38 @@ pub const AnimationPlayer = struct {
     //renders the animation
     pub fn render(self: *const @This(), state: *const AnimationState, position: ray.Vector2) void {
         if (self.disabled) return;
-        const animation = state.animations.get(self.animation_name).?;
-        if (animation.frames.len > 0) {
-            const frame = animation.frames[self.current_frame];
 
-            ray.DrawTexturePro(
-                animation.texture.?,
-                frame.subrect,
-                ray.Rectangle{
-                    .x = position.x,
-                    .y = position.y,
-                    .width = frame.subrect.width + 0.1,
-                    .height = frame.subrect.height + 0.1,
-                },
-                animation.origin,
-                self.rotation,
-                self.tint,
-            );
-        } else {
-            const subrect = ray.Rectangle{
+        const animation = state.animations.get(self.animation_name) orelse {
+            std.log.warn("missing animation: {s}\n", .{self.animation_name});
+            return;
+        };
+
+        const texture = if (animation.texture != null) animation.texture.? else @panic("missing texture");
+
+        const subrect = if (animation.frames.len > 0)
+            animation.frames[self.current_frame].subrect
+        else
+            ray.Rectangle{
                 .x = 0,
                 .y = 0,
-                .width = @floatFromInt(animation.texture.?.width),
-                .height = @floatFromInt(animation.texture.?.height),
+                .width = @floatFromInt(texture.width),
+                .height = @floatFromInt(texture.height),
             };
-            ray.DrawTexturePro(
-                animation.texture.?,
-                subrect,
-                ray.Rectangle{
-                    .x = position.x,
-                    .y = position.y,
-                    .width = subrect.width + 0.1,
-                    .height = subrect.height + 0.1,
-                },
-                animation.origin,
-                self.rotation,
-                self.tint,
-            );
-        }
+        const render_rect = ray.Rectangle{
+            .x = position.x,
+            .y = position.y,
+            .width = camera.render_resolution,
+            .height = camera.render_resolution,
+        };
+        ray.DrawTexturePro(texture, subrect, render_rect, animation.origin, self.rotation, self.tint);
     }
 
     //updates animation frame and rotation
     pub fn update(self: *@This(), state: *const AnimationState, opt: options.Update) void {
-        const animation = state.animations.get(self.animation_name).?;
+        const animation = state.animations.get(self.animation_name) orelse {
+            std.log.warn("missing animation: {s}\n", .{self.animation_name});
+            return;
+        };
         if (animation.frames.len == 0) return;
 
         self.remaining_frame_time -= opt.dtInMs();
@@ -129,7 +119,12 @@ pub const AnimationState = struct {
         const config = try file.readConfig([]Animation, lua, .animations);
         defer config.deinit();
 
+        for (config.value) |animation| {
+            std.debug.print("Preloaded-Animation config: {s}\n", .{animation.name});
+        }
+
         for (config.value) |*animation| {
+            std.log.info("Attempting to load Animation: {s}\n", .{animation.name});
             if (!self.textures.contains(animation.filepath)) {
                 const path = try file.combineAppendSentinel(a, try file.getImageDirPath(a), animation.filepath);
                 defer a.free(path);
@@ -146,6 +141,7 @@ pub const AnimationState = struct {
             }
             animation.texture = self.textures.get(animation.filepath).?;
 
+            std.log.info("Loaded Animation: {s}\n", .{animation.name});
             try self.animations.put(animation.name, animation.*);
         }
 

@@ -76,7 +76,7 @@ pub const TileRenderer = struct {
         //TODO add border rendering
         if (self.main) |main| {
             main.render(state, pos);
-        }
+        } else @panic("tile missing animation");
     }
 
     pub fn update(self: *TileRenderer, opt: options.Update) void {

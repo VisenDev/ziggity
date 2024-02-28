@@ -23,13 +23,13 @@ pub inline fn initCamera() ray.Camera2D {
     return ray.Camera2D{
         .offset = .{ .x = 0, .y = 0 },
         .rotation = 0.0,
-        .zoom = 2,
+        .zoom = 1,
         .target = .{ .x = 0, .y = 0 },
     };
 }
 
 //every tile is scaled up to this resolution before rendering
-pub const render_resolution = 256;
+pub const render_resolution = 64;
 
 //TODO update camera offset
 pub fn calculateCameraPosition(

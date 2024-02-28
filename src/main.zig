@@ -161,8 +161,12 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
         try debug.renderEntityCount(lvl.ecs);
         inv.renderPlayerInventory(lvl.ecs, a, &animation_state);
 
-        try console.update(lua, keybindings);
-        try console.render();
+        //const player = anime.AnimationPlayer{ .animation_name = "cave_floor" };
+        //std.debug.print("frames: {any}\n", .{animation_state.animations.get("cave_floor").?.frames.len});
+        //player.render(&animation_state, .{ .x = 10.0, .y = 10.0 });
+
+        //try console.update(lua, keybindings);
+        //try console.render();
         ray.EndDrawing();
 
         if (ray.IsKeyPressed('Q')) {

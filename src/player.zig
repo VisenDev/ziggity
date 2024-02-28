@@ -58,7 +58,7 @@ pub fn updatePlayerSystem(
 
         //let player shoot projectiles
         if (ray.IsMouseButtonDown(ray.MOUSE_BUTTON_LEFT)) {
-            const fireball = try l.autoCall(?usize, "SpawnFireball", .{ self, &copy }) orelse break;
+            const fireball = try l.autoCall(?usize, "SpawnSlime", .{ self, &copy }) orelse break;
             const pos = cam.mousePos(camera);
             self.setComponent(a, fireball, Component.physics{
                 .pos = pos,

@@ -119,7 +119,7 @@ pub const KeyBindings = struct {
             return true;
         }
 
-        std.debug.print("attempted to use keybinding \"{s}\" that does not exist\n", .{key_name});
+        //std.debug.print("attempted to use keybinding \"{s}\" that does not exist\n", .{key_name});
         return false;
     }
 
@@ -144,7 +144,7 @@ pub const KeyBindings = struct {
             return true;
         }
 
-        std.debug.print("attempted to use keybinding \"{s}\" that does not exist\n", .{key_name});
+        //std.debug.print("attempted to use keybinding \"{s}\" that does not exist\n", .{key_name});
         return false;
     }
 };
