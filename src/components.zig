@@ -78,10 +78,10 @@ pub const loot = struct {
 };
 pub const hitbox = struct {
     pub const name = "hitbox";
-    left: f32 = 0.5,
-    right: f32 = 0.5,
-    top: f32 = 0.5,
-    bottom: f32 = 0.5,
+    left: f32 = 0.0,
+    right: f32 = 0.9,
+    top: f32 = 0.0,
+    bottom: f32 = 0.9,
 
     pub fn getCollisionRect(self: @This(), pos: ray.Vector2) ray.Rectangle {
         return ray.Rectangle{

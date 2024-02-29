@@ -65,7 +65,7 @@ pub const KeyBindings = struct {
         for (config.value) |key_config| {
             var resulting_key = Key{
                 .name = key_config.name,
-                .char = key_config.key[0],
+                .char = std.ascii.toUpper(key_config.key[0]),
                 .mode = key_config.mode,
                 .shift = key_config.shift,
                 .control = key_config.control,

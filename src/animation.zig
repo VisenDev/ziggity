@@ -67,8 +67,8 @@ pub const AnimationPlayer = struct {
         const render_rect = ray.Rectangle{
             .x = position.x,
             .y = position.y,
-            .width = camera.render_resolution,
-            .height = camera.render_resolution,
+            .width = camera.render_resolution + 0.1,
+            .height = camera.render_resolution + 0.1,
         };
         ray.DrawTexturePro(texture, subrect, render_rect, animation.origin, self.rotation, self.tint);
     }
