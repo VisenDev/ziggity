@@ -6,6 +6,7 @@ const ray = @cImport({
 });
 
 const vec_default: ray.Vector2 = .{ .x = 0, .y = 0 };
+
 pub const physics = struct {
     pub const name = "physics";
 

@@ -22,9 +22,9 @@ pub const Animation = struct {
     filepath: []const u8,
     name: []const u8,
     loop: bool = true,
-    rotation_speed: f32 = 0, //scalar to be multiplied by dt when rotating
+    //rotation_speed: f32 = 0, //scalar to be multiplied by dt when rotating
     origin: ray.Vector2 = .{ .x = 0, .y = 0 },
-    render_style: enum { pixel_perfect, scaled } = .pixel_perfect,
+    //render_style: enum { pixel_perfect, scaled } = .pixel_perfect,
     frames: []const AnimationFrame = &.{},
 
     pub inline fn length(self: *const @This()) usize {
@@ -36,16 +36,31 @@ pub const Animation = struct {
     }
 };
 
+pub const RenderOptions = struct {
+    rotation: f32 = 0,
+    tint: ray.Color = ray.WHITE,
+    flipped: bool = false,
+    render_style: enum { scaled_to_grid, actual } = .scaled_to_grid,
+};
+
+///flips a subrect
+fn flipSelection(r: ray.Rectangle) ray.Rectangle {
+    return .{
+        .x = r.x,
+        .y = r.y,
+        .width = -r.width,
+        .height = r.height,
+    };
+}
+
 pub const AnimationPlayer = struct {
     animation_name: []const u8,
     current_frame: usize = 0,
     remaining_frame_time: f32 = 0,
-    rotation: f32 = 0,
-    tint: ray.Color = ray.WHITE,
     disabled: bool = false,
 
     //renders the animation
-    pub fn render(self: *const @This(), state: *const AnimationState, position: ray.Vector2) void {
+    pub fn render(self: *const @This(), state: *const AnimationState, position: ray.Vector2, opt: RenderOptions) void {
         if (self.disabled) return;
 
         const animation = state.animations.get(self.animation_name) orelse {
@@ -53,9 +68,14 @@ pub const AnimationPlayer = struct {
             return;
         };
 
-        const texture = if (animation.texture != null) animation.texture.? else @panic("missing texture");
+        const texture =
+            if (animation.texture != null)
+            animation.texture.?
+        else
+            @panic("missing texture, this should never happen");
 
-        const subrect = if (animation.frames.len > 0)
+        const unflipped_subrect =
+            if (animation.frames.len > 0)
             animation.frames[self.current_frame].subrect
         else
             ray.Rectangle{
@@ -64,13 +84,26 @@ pub const AnimationPlayer = struct {
                 .width = @floatFromInt(texture.width),
                 .height = @floatFromInt(texture.height),
             };
-        const render_rect = ray.Rectangle{
-            .x = position.x,
-            .y = position.y,
-            .width = camera.render_resolution + 0.1,
-            .height = camera.render_resolution + 0.1,
-        };
-        ray.DrawTexturePro(texture, subrect, render_rect, animation.origin, self.rotation, self.tint);
+
+        const subrect = if (opt.flipped) flipSelection(unflipped_subrect) else unflipped_subrect;
+
+        const render_rect =
+            if (opt.render_style == .scaled_to_grid)
+            ray.Rectangle{
+                .x = position.x,
+                .y = position.y,
+                .width = camera.render_resolution + 0.1,
+                .height = camera.render_resolution + 0.1,
+            }
+        else
+            ray.Rectangle{
+                .x = position.x,
+                .y = position.y,
+                .width = @floatFromInt(texture.width),
+                .height = @floatFromInt(camera.render_resolution),
+            };
+
+        ray.DrawTexturePro(texture, subrect, render_rect, animation.origin, opt.rotation, opt.tint);
     }
 
     //updates animation frame and rotation
@@ -83,13 +116,9 @@ pub const AnimationPlayer = struct {
 
         self.remaining_frame_time -= opt.dtInMs();
 
-        //TODO fix rotation_speed
-        self.rotation += animation.rotation_speed * opt.dt;
-
         if (self.remaining_frame_time <= 0) {
             if (animation.loop == false and self.current_frame == animation.frames.len - 1) {
                 self.disabled = true;
-                //std.debug.print("animation is disabled: {s}", .{self.animation_name});
             }
 
             self.current_frame = animation.nextFrame(self.current_frame);
@@ -119,12 +148,7 @@ pub const AnimationState = struct {
         const config = try file.readConfig([]Animation, lua, .animations);
         defer config.deinit();
 
-        for (config.value) |animation| {
-            std.debug.print("Preloaded-Animation config: {s}\n", .{animation.name});
-        }
-
         for (config.value) |*animation| {
-            std.log.info("Attempting to load Animation: {s}\n", .{animation.name});
             if (!self.textures.contains(animation.filepath)) {
                 const path = try file.combineAppendSentinel(a, try file.getImageDirPath(a), animation.filepath);
                 defer a.free(path);
@@ -141,7 +165,7 @@ pub const AnimationState = struct {
             }
             animation.texture = self.textures.get(animation.filepath).?;
 
-            std.log.info("Loaded Animation: {s}\n", .{animation.name});
+            std.log.info("Loaded Animation: {s}", .{animation.name});
             try self.animations.put(animation.name, animation.*);
         }
 

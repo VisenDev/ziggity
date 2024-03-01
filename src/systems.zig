@@ -274,7 +274,11 @@ pub fn renderSprites(
             if (sprite.disabled) continue;
             if (sprite.z_level != current_z_level) continue;
 
-            sprite.animation_player.render(animation_state, scaleVector(physics.pos, camera.render_resolution));
+            const opt = anime.RenderOptions{
+                .flipped = physics.vel.x > 0,
+            };
+
+            sprite.animation_player.render(animation_state, scaleVector(physics.pos, camera.render_resolution), opt);
         }
     }
 }
