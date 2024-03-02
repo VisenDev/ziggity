@@ -1,5 +1,6 @@
 const anime = @import("animation.zig");
 const inv = @import("inventory.zig");
+const control = @import("controller.zig");
 const sys = @import("systems.zig");
 const ray = @cImport({
     @cInclude("raylib.h");
@@ -60,15 +61,7 @@ pub const patroller = struct {
     pub const name = "patroller";
     points: []ray.Vector2 = &[_]ray.Vector2{},
 };
-pub const mind = struct {
-    pub const name = "mind";
-    activity: enum {
-        patrol,
-        attack,
-        follow,
-        stop,
-    } = .stop,
-};
+pub const controller = control.controller;
 pub const eyesight = struct {
     pub const name = "eyesight";
     view_range: f32 = 5,

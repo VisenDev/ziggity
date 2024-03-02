@@ -9,7 +9,7 @@
 [TODO] design sound system
 [TODO] design music system
 [DONE] finish ascii prototyping for level generation
-[TODO] add init.lua to be configurable by the user
+[DONE] add init.lua to be configurable by the user
 [DONE] z_levels: add different rendering layers for sprites - implement using rendertextures in animations
 [DONE] add enabled flag to animation component
 [TODO] add procedural animations

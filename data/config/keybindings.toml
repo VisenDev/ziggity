@@ -1,0 +1,68 @@
+#[player_up]
+#char = "w"
+#
+#[player_down]
+#char = "s" 
+#
+#[player_left]
+#char = "a" 
+#
+#[player_right]
+#char = "d" 
+#
+#[zoom_in]
+#char = "+" 
+#
+#[zoom_out]
+#char = "-" 
+
+[[keys]]
+name = "player_up"
+char = "W"
+
+[[keys]]
+name = "player_down"
+char = "S"
+
+[[keys]]
+name = "player_right"
+char = "D"
+
+[[keys]]
+name = "player_left"
+char = "A"
+
+[[keys]]
+name = "zoom_in"
+char = "="
+
+[[keys]]
+name = "zoom_out"
+char = "-"
+
+[[keys]]
+name = "console"
+char = "T"
+
+[[keys]]
+name = "debug_mode"
+char = "/"
+
+[[keys]]
+name = "insert_mode"
+char = ";"
+
+[[keys]]
+name = "previous"
+char = "up"
+mode = "insert"
+
+[[keys]]
+name = "next"
+char = "down"
+mode = "insert"
+
+[[keys]]
+name = "execute" #executes a command
+char = "enter"
+mode = "insert"

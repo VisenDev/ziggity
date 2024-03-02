@@ -189,7 +189,7 @@ pub const ECS = struct {
     }
 
     ///Get component, asserts component exists
-    pub inline fn get(self: *const ECS, comptime component_T: type, id: usize) *component_T {
+    pub fn get(self: *const ECS, comptime component_T: type, id: usize) *component_T {
         const maybe = self.getMaybe(component_T, id);
         if (maybe) |comp| {
             return comp;

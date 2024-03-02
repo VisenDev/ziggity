@@ -1,0 +1,110 @@
+
+---@class Vector
+---@field x integer
+---@field y integer
+
+---@class Rectangle
+---@field x integer
+---@field y integer
+---@field width integer
+---@field height integer
+
+---@class Frame
+---@field subrect Rectangle[]
+---@field milliseconds integer|nil
+
+---@class Animation
+---@field name string
+---@field filepath string
+---@field rotation_speed integer|nil
+---@field origin Vector|nil
+---@field frames Frame[]|nil
+
+---@return Animation
+---@param name string
+---@param filepath string
+---@param x integer
+---@param y integer
+---@param width integer
+---@param height integer
+function SubImage(name, filepath, x, y, width, height)
+return {
+      ['name'] = name,
+      ['filepath'] = filepath,
+      ['frames'] = {
+         {['subrect'] = {['x'] = x, ['y'] = y, ['width'] = width, ['height'] = height},}
+      },
+      --['origin'] = {['x'] = width / 2, ['y'] = height},
+   }
+end
+
+---@return Animation[]
+function Animations()
+
+   return {
+      SubImage("player", "entities.png", 0, 0, 32, 32),
+      SubImage("particle", "entities.png", 14, 14, 4, 4),
+
+      --caves
+      SubImage("cave_wall", "tilemap.png", 0, 0, 32, 32),
+      SubImage("cave_floor", "tilemap.png", 32, 0, 32, 32),
+      SubImage("cave_border_side", "tilemap.png", 0, 32, 32, 32),
+      SubImage("cave_border_top", "tilemap.png", 0, 64, 32, 32),
+
+      --monsters
+      SubImage("slime", "entities.png", 64, 0, 32, 32),
+      SubImage("wendigo", "entities.png", 32, 0, 32, 32),
+      SubImage("aged_goblin", "entities.png", 0, 0, 32, 32),
+      SubImage("gumporg", "entities.png", 96, 0, 32, 32),
+   }
+end
+
+function PrintTable(t)
+  for key, value in pairs(t) do
+    if type(value) == "table" then
+      print("Key: " .. tostring(key))
+      PrintTable(value)
+    else
+      print("Key: " .. tostring(key) .. ", Value: " .. tostring(value))
+    end
+  end
+end
+---@class KeyBinding
+----@field name string
+----@field mode string|nil
+----@field key string
+
+
+function KeyBindings()
+
+   local bindings = {
+      {['name'] = 'player_right', ['key'] = 'D'},
+      {['name'] = 'player_left',  ['key'] = 'A'},
+      {['name'] = 'player_up',    ['key'] = 'W'},
+      {['name'] = 'player_down',  ['key'] = 'S'},
+      {['name'] = 'zoom_in',      ['key'] = '='},
+      {['name'] = 'zoom_out',     ['key'] = '-'},
+      {['name'] = 'debug_mode',   ['key'] = '/'},
+   }
+
+   return bindings
+end
+
+
+
+function MakeTile(name, category)
+   return
+      {
+         ['name'] = name,
+         ['category'] = category,
+      }
+end
+
+function Tiles()
+   return {
+      MakeTile("cave_floor", "floor"),
+      MakeTile("cave_wall", "wall"),
+      MakeTile("fort_floor", "floor"),
+      MakeTile("fort_wall", "wall"),
+   }
+end

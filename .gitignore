@@ -3,4 +3,4 @@ zig-out
 zig-out/
 ./zig-out/*
 src/depreciated
-game-files/images/crawl
+data/images/src/*
