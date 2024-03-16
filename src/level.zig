@@ -1,4 +1,5 @@
 const std = @import("std");
+const arch = @import("archetypes.zig");
 const Lua = @import("ziglua").Lua;
 const anime = @import("animation.zig");
 const map = @import("map.zig");
@@ -62,8 +63,10 @@ pub fn generateLevel(a: std.mem.Allocator, lua: *Lua, options: LevelGenOptions) 
     var exits = try a.alloc(Exit, 1);
     exits[0] = Exit{ .x = 5, .y = 5, .destination_id = "first_level" };
 
-    var copy = a;
-    const player_id = try lua.autoCall(?usize, "SpawnPlayer", .{ entities, &copy }) orelse return error.failed_to_create_player;
+    //var copy = a;
+    //_ = copy;
+    //const player_id = try lua.autoCall(?usize, "SpawnPlayer", .{ entities, &copy }) orelse return error.failed_to_create_player;
+    const player_id = try arch.createPlayer(entities, a);
     try entities.setComponent(a, player_id, ecs.Component.Physics{ .pos = .{ .x = 3, .y = 5 } });
 
     return Level{ .name = "harry truman", .ecs = entities, .map = world_map, .exits = exits, .player_id = player_id };

@@ -28,13 +28,40 @@
 ---@param width integer
 ---@param height integer
 function SubImage(name, filepath, x, y, width, height)
-return {
+   return {
       ['name'] = name,
       ['filepath'] = filepath,
       ['frames'] = {
          {['subrect'] = {['x'] = x, ['y'] = y, ['width'] = width, ['height'] = height},}
       },
       --['origin'] = {['x'] = width / 2, ['y'] = height},
+   }
+end
+
+---@return Animation
+---@param name string
+---@param filepath string
+---@param x integer
+---@param y integer
+---@param width integer
+---@param height integer
+---@param frame_count integer
+---@param ms_per_frame integer
+---@param loop boolean
+function SlideShow(name, filepath, x, y, width, height, frame_count, ms_per_frame, loop)
+   local frames = {}
+   for i = 1,frame_count + 1 do
+      frames[i] = {
+         ['subrect'] = {['x'] = x, ['y'] = y + (i - 1) * height, ['width'] = width, ['height'] = height},
+         ['milliseconds'] = ms_per_frame,
+      }
+   end
+
+   return {
+      ['name'] = name,
+      ['filepath'] = filepath,
+      ['frames'] = frames,
+      ['loop'] = loop,
    }
 end
 
@@ -56,18 +83,21 @@ function Animations()
       SubImage("wendigo", "entities.png", 32, 0, 32, 32),
       SubImage("aged_goblin", "entities.png", 0, 0, 32, 32),
       SubImage("gumporg", "entities.png", 96, 0, 32, 32),
+
+      --projects
+      SlideShow("fireball", "fireball.png", 0, 0, 8, 8, 5, 100, false)
    }
 end
 
 function PrintTable(t)
-  for key, value in pairs(t) do
-    if type(value) == "table" then
-      print("Key: " .. tostring(key))
-      PrintTable(value)
-    else
-      print("Key: " .. tostring(key) .. ", Value: " .. tostring(value))
-    end
-  end
+   for key, value in pairs(t) do
+      if type(value) == "table" then
+         print("Key: " .. tostring(key))
+         PrintTable(value)
+      else
+         print("Key: " .. tostring(key) .. ", Value: " .. tostring(value))
+      end
+   end
 end
 ---@class KeyBinding
 ----@field name string

@@ -27,6 +27,7 @@ pub fn updatePlayerSystem(
     camera: ray.Camera2D,
     opt: options.Update,
 ) !void {
+    _ = l;
     const systems = [_]type{ Component.IsPlayer, Component.Physics };
     const set = self.getSystemDomain(a, &systems);
 
@@ -55,11 +56,9 @@ pub fn updatePlayerSystem(
         physics.vel.x += direction.x * physics.acceleration * opt.dt;
         physics.vel.y += direction.y * physics.acceleration * opt.dt;
 
-        var copy = a; //mutable copy of the allocator parameter
-
         //let player shoot projectiles
         if (ray.IsMouseButtonDown(ray.MOUSE_BUTTON_LEFT)) {
-            const fireball = try l.autoCall(?usize, "SpawnSlime", .{ self, &copy }) orelse break;
+            const fireball = try arch.createFireball(self, a);
             const pos = cam.mousePos(camera);
             self.setComponent(a, fireball, Component.Physics{
                 .pos = pos,
