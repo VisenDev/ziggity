@@ -5,12 +5,12 @@ const ecs = @import("ecs.zig");
 
 pub fn createSlime(self: *ecs.ECS, a: std.mem.Allocator) !usize {
     const id = self.newEntity(a) orelse return error.EntityCapReached;
-    try self.setComponent(a, id, Component.physics{});
-    try self.setComponent(a, id, Component.hitbox{});
-    try self.setComponent(a, id, Component.wall_collisions{});
-    try self.setComponent(a, id, Component.metadata{ .archetype = "slime" });
-    try self.setComponent(a, id, Component.sprite{ .animation_player = .{ .animation_name = "slime" } });
-    try self.setComponent(a, id, Component.controller{});
-    try self.setComponent(a, id, Component.wanderer{});
+    try self.setComponent(a, id, Component.Physics{});
+    try self.setComponent(a, id, Component.Hitbox{});
+    try self.setComponent(a, id, Component.WallCollisions{});
+    try self.setComponent(a, id, Component.Metadata{ .archetype = "slime" });
+    try self.setComponent(a, id, Component.Sprite{ .animation_player = .{ .animation_name = "slime" } });
+    try self.setComponent(a, id, Component.Controller{});
+    try self.setComponent(a, id, Component.Wanderer{});
     return id;
 }

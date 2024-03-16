@@ -34,7 +34,7 @@ pub fn normalize(v: ray.Vector2) ray.Vector2 {
 }
 
 ///makes a physics system move towards a destination
-pub fn moveTowards(physics: *Component.physics, destination: ray.Vector2, opt: options.Update) void {
+pub fn moveTowards(physics: *Component.Physics, destination: ray.Vector2, opt: options.Update) void {
     const normal = normalize(destination);
     physics.vel.x += normal.x * physics.acceleration * opt.dt;
     physics.vel.y += normal.y * physics.acceleration * opt.dt;
@@ -49,18 +49,18 @@ pub fn updateMovementSystem(
     opt: options.Update,
 ) !void {
     _ = animations;
-    const systems = [_]type{Component.physics};
+    const systems = [_]type{Component.Physics};
     const set = self.getSystemDomain(a, &systems);
 
     for (set) |member| {
-        var physics = self.get(Component.physics, member);
+        var physics = self.get(Component.Physics, member);
 
         const old_position = physics.pos;
         physics.pos.x += physics.vel.x;
 
         //undo if the entity collides
-        if (self.getMaybe(Component.hitbox, member)) |hitbox| {
-            if (self.getMaybe(Component.wall_collisions, member) != null and
+        if (self.getMaybe(Component.Hitbox, member)) |hitbox| {
+            if (self.getMaybe(Component.WallCollisions, member) != null and
                 m.checkCollision(hitbox.getCollisionRect(physics.pos)))
             {
                 physics.pos.x = old_position.x;
@@ -70,8 +70,8 @@ pub fn updateMovementSystem(
 
         physics.pos.y += physics.vel.y;
 
-        if (self.getMaybe(Component.hitbox, member)) |hitbox| {
-            if (self.getMaybe(Component.wall_collisions, member) != null and
+        if (self.getMaybe(Component.Hitbox, member)) |hitbox| {
+            if (self.getMaybe(Component.WallCollisions, member) != null and
                 m.checkCollision(hitbox.getCollisionRect(physics.pos)))
             {
                 physics.pos.y = old_position.y;
@@ -82,11 +82,11 @@ pub fn updateMovementSystem(
         physics.vel.x *= physics.friction;
         physics.vel.y *= physics.friction;
 
-        if (self.getMaybe(Component.movement_particles, member)) |_| {
+        if (self.getMaybe(Component.Movement_particles, member)) |_| {
             if (physics.pos.x != old_position.x or physics.pos.y != old_position.y) {
                 var copy = a;
                 const particle = try l.autoCall(?usize, "SpawnMovementParticle", .{ self, &copy }) orelse continue;
-                try self.setComponent(a, particle, Component.physics{
+                try self.setComponent(a, particle, Component.Physics{
                     .pos = .{
                         .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
                         .y = physics.pos.y + 0.8 * (ecs.randomFloat() - 0.5),
@@ -108,11 +108,11 @@ pub fn updateMovementSystem(
     }
 
     //only cache entities with both a physics and hitbox component
-    const cache_systems = [_]type{ Component.physics, Component.hitbox };
+    const cache_systems = [_]type{ Component.Physics, Component.Hitbox };
 
     //cache positions
     for (self.getSystemDomain(a, &cache_systems)) |member| {
-        const physics = self.get(Component.physics, member);
+        const physics = self.get(Component.Physics, member);
 
         const pos = physics.getCachePosition();
 

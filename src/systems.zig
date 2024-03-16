@@ -35,12 +35,12 @@ fn distance(a: ray.Vector2, b: ray.Vector2) f32 {
 pub fn updateHostileAiSystem(self: *ecs.ECS, a: std.mem.Allocator, opt: options.Update) void {
     _ = opt;
 
-    const systems = [_]type{ Component.mind, Component.tracker };
+    const systems = [_]type{ Component.Mind, Component.Targeter };
     const set = self.getSystemDomain(a, &systems);
 
     for (set) |member| {
-        const mind = self.get(Component.mind, member);
-        const tracker = self.get(Component.mind, member);
+        const mind = self.get(Component.Mind, member);
+        const tracker = self.get(Component.Mind, member);
         _ = tracker;
 
         switch (mind.activity) {}
@@ -52,11 +52,11 @@ pub fn updateWanderingSystem(self: *ecs.ECS, a: std.mem.Allocator, opt: options.
     _ = a;
     _ = opt;
 
-    //    const systems = [_]type{ Component.physics, Component.wanderer };
+    //    const systems = [_]type{ Component.Physics, Component.Wanderer };
     //    const set = self.getSystemDomain(a, &systems);
     //
     //    for (set) |member| {
-    //        var wanderer = self.get(Component.wanderer, member);
+    //        var wanderer = self.get(Component.Wanderer, member);
     //
     //        switch (wanderer.state) {
     //            .arrived => {
@@ -76,7 +76,7 @@ pub fn updateWanderingSystem(self: *ecs.ECS, a: std.mem.Allocator, opt: options.
     //                wanderer.cooldown = opt.dt * 300 * ecs.randomFloat();
     //            },
     //            .travelling => {
-    //                const physics = self.get(Component.physics, member);
+    //                const physics = self.get(Component.Physics, member);
     //                moveTowards(physics, wanderer.destination, opt);
     //                wanderer.cooldown -= opt.dt;
     //
@@ -94,25 +94,25 @@ pub fn updateDeathSystem(
     l: *Lua,
     opt: options.Update,
 ) !void {
-    const systems = [_]type{Component.health};
+    const systems = [_]type{Component.Health};
     const set = self.getSystemDomain(a, &systems);
 
     for (set) |member| {
-        var health = self.get(Component.health, member);
+        var health = self.get(Component.Health, member);
 
-        if (self.getMaybe(Component.health_trickle, member)) |health_trickle| {
+        if (self.getMaybe(Component.HealthTrickle, member)) |health_trickle| {
             health.hp -= health_trickle.decrease_per_tick * opt.dt;
         }
 
         if (health.hp <= 0) {
             health.is_dead = true;
 
-            if (self.getMaybe(Component.loot, member)) |loot| {
-                const physics = self.getMaybe(Component.physics, member) orelse continue;
+            if (self.getMaybe(Component.Loot, member)) |loot| {
+                const physics = self.getMaybe(Component.Physics, member) orelse continue;
                 for (loot.items) |item_script| {
                     var copy = a;
                     const item = try l.autoCall(?usize, item_script, .{ self, &copy }) orelse continue;
-                    try self.setComponent(a, item, Component.physics{
+                    try self.setComponent(a, item, Component.Physics{
                         .pos = .{
                             .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
                             .y = physics.pos.y + 0.8 * (ecs.randomFloat() - 0.5),
@@ -121,13 +121,13 @@ pub fn updateDeathSystem(
                 }
             }
 
-            if (self.getMaybe(Component.death_particles, member)) |particle| {
+            if (self.getMaybe(Component.DeathParticles, member)) |particle| {
                 _ = particle;
-                const physics = self.get(Component.physics, member);
+                const physics = self.get(Component.Physics, member);
                 for (0..5) |_| {
                     var copy = a;
                     const blood = try l.autoCall(?usize, "SpawnBloodParticle", .{ self, &copy }) orelse continue;
-                    try self.setComponent(a, blood, Component.physics{
+                    try self.setComponent(a, blood, Component.Physics{
                         .pos = .{
                             .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
                             .y = physics.pos.y + 0.8 * (ecs.randomFloat() - 0.5),
@@ -136,18 +136,18 @@ pub fn updateDeathSystem(
                 }
             }
 
-            if (self.getMaybe(Component.death_animation, member)) |animation| {
-                const physics = self.getMaybe(Component.physics, member) orelse continue;
+            if (self.getMaybe(Component.DeathAnimation, member)) |animation| {
+                const physics = self.getMaybe(Component.Physics, member) orelse continue;
                 //const death_animation_entity = api.call(l, "SpawnAnimation") catch continue;
                 var copy = a;
                 const death_animation_entity = try l.autoCall(?usize, "SpawnAnimation", .{ self, &copy }) orelse continue;
-                try self.setComponent(a, death_animation_entity, Component.physics{
+                try self.setComponent(a, death_animation_entity, Component.Physics{
                     .pos = .{
                         .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
                         .y = physics.pos.y + 0.8 * (ecs.randomFloat() - 0.5),
                     },
                 });
-                try self.setComponent(a, death_animation_entity, Component.sprite{
+                try self.setComponent(a, death_animation_entity, Component.Sprite{
                     .animation_player = .{ .animation_name = try a.dupeZ(u8, animation.animation_name) },
                 });
             }
@@ -164,11 +164,11 @@ pub fn updateHealthCooldownSystem(
     a: std.mem.Allocator,
     opt: options.Update,
 ) void {
-    const systems = [_]type{Component.health};
+    const systems = [_]type{Component.Health};
     const set = self.getSystemDomain(a, &systems);
 
     for (set) |member| {
-        var health = self.get(Component.health, member);
+        var health = self.get(Component.Health, member);
 
         if (health.cooldown_remaining >= 0) {
             health.cooldown_remaining -= opt.dt;
@@ -182,11 +182,11 @@ pub fn updateSpriteSystem(
     animation_state: *anime.AnimationState,
     opt: options.Update,
 ) void {
-    const systems = [_]type{Component.sprite};
+    const systems = [_]type{Component.Sprite};
     const set = self.getSystemDomain(a, &systems);
 
     for (set) |member| {
-        const sprite_maybe = self.getMaybe(Component.sprite, member);
+        const sprite_maybe = self.getMaybe(Component.Sprite, member);
         if (sprite_maybe) |sprite| {
             sprite.animation_player.update(animation_state, opt);
         } else {
@@ -202,20 +202,20 @@ pub fn updateDamageSystem(
     opt: options.Update,
 ) !void {
     _ = opt;
-    const systems = [_]type{ Component.hitbox, Component.damage, Component.physics };
+    const systems = [_]type{ Component.Hitbox, Component.Damage, Component.Physics };
     const set = self.getSystemDomain(a, &systems);
 
     for (set) |member| {
-        const damage = self.get(Component.damage, member);
+        const damage = self.get(Component.Damage, member);
 
         const colliders = try coll.findCollidingEntities(self, a, member);
         for (colliders) |entity| {
-            if (self.getMaybe(Component.invulnerable, entity)) |_| continue;
-            var health = self.getMaybe(Component.health, entity) orelse continue;
+            if (self.getMaybe(Component.Invulnerable, entity)) |_| continue;
+            var health = self.getMaybe(Component.Health, entity) orelse continue;
 
             if (health.cooldown_remaining <= 0) {
                 health.hp -= damage.amount;
-                health.cooldown_remaining = Component.health.damage_cooldown;
+                health.cooldown_remaining = Component.Health.damage_cooldown;
             }
         }
     }
@@ -227,11 +227,11 @@ pub fn trimAnimationEntitySystem(
     opt: options.Update,
 ) !void {
     _ = opt;
-    const systems = [_]type{ Component.is_animation, Component.sprite };
+    const systems = [_]type{ Component.IsAnimation, Component.Sprite };
     const set = self.getSystemDomain(a, &systems);
 
     for (set) |member| {
-        const sprite = self.get(Component.sprite, member);
+        const sprite = self.get(Component.Sprite, member);
         if (sprite.animation_player.disabled) {
             try self.deleteEntity(a, member);
         }
@@ -266,14 +266,14 @@ pub fn renderSprites(
     tile_state: *const tile.TileState,
 ) void {
     _ = tile_state;
-    const systems = [_]type{ Component.physics, Component.sprite };
+    const systems = [_]type{ Component.Physics, Component.Sprite };
     const set = self.getSystemDomain(a, &systems);
 
-    inline for (@typeInfo(Component.sprite.ZLevels).Enum.fields) |current_z_level_decl| {
+    inline for (@typeInfo(Component.Sprite.ZLevels).Enum.fields) |current_z_level_decl| {
         for (set) |member| {
-            const current_z_level = @field(Component.sprite.ZLevels, current_z_level_decl.name);
-            const sprite = self.components.sprite.get(member).?;
-            const physics = self.components.physics.get(member).?;
+            const current_z_level = @field(Component.Sprite.ZLevels, current_z_level_decl.name);
+            const sprite = self.get(Component.Sprite, member);
+            const physics = self.get(Component.Physics, member);
 
             if (sprite.disabled) continue;
             if (sprite.z_level != current_z_level) continue;

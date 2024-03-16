@@ -12,10 +12,10 @@ const ray = @cImport({
 });
 
 pub fn checkCollision(
-    physics_1: Component.physics,
-    hitbox_1: Component.hitbox,
-    physics_2: Component.physics,
-    hitbox_2: Component.hitbox,
+    physics_1: Component.Physics,
+    hitbox_1: Component.Hitbox,
+    physics_2: Component.Physics,
+    hitbox_2: Component.Hitbox,
 ) bool {
     return ray.CheckCollisionRecs(
         hitbox_1.getCollisionRect(physics_1.pos),
@@ -31,15 +31,15 @@ pub fn findCollidingEntities(
 ) ![]usize {
     self.collision_id_buffer.clearRetainingCapacity();
 
-    const physics = self.getMaybe(Component.physics, id) orelse return self.collision_id_buffer.items;
-    const hitbox = self.getMaybe(Component.hitbox, id) orelse return self.collision_id_buffer.items;
+    const physics = self.getMaybe(Component.Physics, id) orelse return self.collision_id_buffer.items;
+    const hitbox = self.getMaybe(Component.Hitbox, id) orelse return self.collision_id_buffer.items;
 
     const pos = physics.getCachePosition();
     const neighbor_list = self.position_cache.findNeighbors(a, pos.x, pos.y);
     for (neighbor_list) |neighbor| {
         for (neighbor.items) |neighbor_id| {
-            const neighbor_physics = self.getMaybe(Component.physics, neighbor_id) orelse continue;
-            const neighbor_hitbox = self.getMaybe(Component.hitbox, neighbor_id) orelse continue;
+            const neighbor_physics = self.getMaybe(Component.Physics, neighbor_id) orelse continue;
+            const neighbor_hitbox = self.getMaybe(Component.Hitbox, neighbor_id) orelse continue;
 
             if (checkCollision(physics.*, hitbox.*, neighbor_physics.*, neighbor_hitbox.*)) {
                 try self.collision_id_buffer.append(a, neighbor_id);

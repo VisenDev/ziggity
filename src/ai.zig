@@ -54,11 +54,11 @@ fn getBehaviorComponents() [countBehaviorComponents()]type {
 }
 
 pub fn updateControllerSystem(self: *ecs.ECS, a: std.mem.Allocator, opt: options.Update) !void {
-    const systems = [_]type{Component.controller};
+    const systems = [_]type{Component.Controller};
     const set = self.getSystemDomain(a, &systems);
 
     for (set) |member| {
-        var ctrl = self.get(Component.controller, member);
+        var ctrl = self.get(Component.Controller, member);
 
         if (ctrl.active_behavior == null) {
             var max_importance: u8 = 0;
@@ -99,13 +99,13 @@ pub const Wanderer = struct {
     cooldown: f32 = 0,
 
     pub fn decision(self: *const ecs.ECS, entity: usize) u8 {
-        if (self.getMaybe(Component.wanderer, entity) != null) {
+        if (self.getMaybe(Component.Wanderer, entity) != null) {
             return 10;
         } else return 0;
     }
 
     pub fn action(self: *ecs.ECS, entity: usize, opt: ActionFnOptions) bool {
-        const wanderer = self.get(Component.wanderer, entity);
+        const wanderer = self.get(Component.Wanderer, entity);
         switch (wanderer.state) {
             .arrived => {
                 wanderer.cooldown = opt.update.dt * 300 * ecs.randomFloat();
@@ -124,7 +124,7 @@ pub const Wanderer = struct {
                 wanderer.cooldown = opt.update.dt * 300 * ecs.randomFloat();
             },
             .travelling => {
-                const physics = self.get(Component.physics, entity);
+                const physics = self.get(Component.Physics, entity);
                 move.moveTowards(physics, wanderer.destination, opt.update);
                 wanderer.cooldown -= opt.update.dt;
 
@@ -137,8 +137,32 @@ pub const Wanderer = struct {
     }
 };
 
-pub fn trackerDecision(self: *const ecs.ECS, entity: usize) u8 {
-    if (self.getMaybe(Component.tracker, entity) != null) {
-        return 50;
-    } else return 0;
-}
+pub const Faction = struct {
+    pub const name = "faction";
+
+    pub const FactionNames = enum {
+        player,
+        hostile,
+    };
+
+    hostile_factions: []FactionNames = &.{.player},
+    hostile_entities: []usize,
+    peaceful_factions: []FactionNames = &.{.hostile},
+    peaceful_entities: []usize,
+};
+
+pub const Targeter = struct {
+    pub const name = "targeter";
+    target: ?usize = null,
+};
+
+pub const MeleeAI = struct {
+    pub const name = "MeleeAI";
+    tracked: ?usize = null,
+
+    pub fn decision(self: *const ecs.ECS, entity: usize) u8 {
+        if (self.getMaybe(Component.Targeter, entity) != null) {
+            return 50;
+        } else return 0;
+    }
+};

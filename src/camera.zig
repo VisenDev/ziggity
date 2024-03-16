@@ -1,4 +1,5 @@
 pub const tile = @import("tiles.zig");
+const Component = @import("components.zig");
 pub const key = @import("keybindings.zig");
 const ray = @cImport({
     @cInclude("raylib.h");
@@ -42,7 +43,7 @@ pub fn calculateCameraPosition(
     if (keybindings.isDown("zoom_out") and zoom > 0.7) zoom *= 0.99;
 
     const player_id = l.player_id;
-    var player_position: ray.Vector2 = l.ecs.components.physics.get(player_id).?.pos;
+    var player_position: ray.Vector2 = l.ecs.get(Component.Physics, player_id).pos;
 
     player_position.x *= tof32(render_resolution);
     player_position.y *= tof32(render_resolution);

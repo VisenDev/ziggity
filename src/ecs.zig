@@ -51,9 +51,9 @@ pub fn sliceComponentNames() []const std.builtin.Type.Declaration {
     return @typeInfo(Component).Struct.decls;
 }
 
-pub fn intFromComponent(comptime Component_T: type) usize {
+pub fn intFromComponent(comptime ComponentType: type) usize {
     inline for (comptime sliceComponentNames(), 0..) |val, i| {
-        if (std.mem.eql(u8, val.name, Component_T.name)) {
+        if (@field(Component, val.name) == ComponentType) {
             return i;
         }
     }
@@ -69,12 +69,12 @@ pub fn EcsComponent() type {
     var fields: [len]std.builtin.Type.StructField = undefined;
 
     for (comptime sliceComponentNames(), 0..) |val, i| {
-        const component_type = @field(Component, val.name);
-        const default = SparseSet(component_type){};
+        const ComponentType = @field(Component, val.name);
+        const default = SparseSet(ComponentType){};
         fields[i] = .{
-            .name = val.name,
-            .type = SparseSet(component_type),
-            .default_value = @as(*const SparseSet(component_type), &default),
+            .name = @typeName(ComponentType),
+            .type = SparseSet(ComponentType),
+            .default_value = @as(*const SparseSet(ComponentType), &default),
             .is_comptime = false,
             .alignment = 8,
         };
@@ -96,7 +96,7 @@ pub const ECS = struct {
     pub fn prepForStringify(self: *@This(), a: std.mem.Allocator) void {
         _ = a;
         inline for (comptime sliceComponentNames()) |decl| {
-            var sys = &@field(self.components, decl.name);
+            var sys = &@field(self.components, @typeName(@field(Component, decl.name)));
             sys.dense.capacity = 0;
             sys.dense_ids.capacity = 0;
         }
@@ -149,13 +149,13 @@ pub const ECS = struct {
     pub fn deleteEntity(self: *@This(), a: std.mem.Allocator, id: usize) !void {
         try self.availible_ids.append(a, id);
         inline for (comptime sliceComponentNames()) |decl| {
-            try @field(self.components, decl.name).delete(id);
+            try @field(self.components, @typeName(@field(Component, decl.name))).delete(id);
         }
         try self.bitflags.delete(id);
     }
 
     pub fn setComponent(self: *@This(), a: std.mem.Allocator, id: usize, component: anytype) !void {
-        try @field(self.components, @TypeOf(component).name).set(a, id, component);
+        try @field(self.components, @typeName(@TypeOf(component))).set(a, id, component);
         const bitflag = intFromComponent(@TypeOf(component));
         self.bitflags.get(id).?.set(bitflag);
     }
@@ -194,7 +194,7 @@ pub const ECS = struct {
         if (maybe) |comp| {
             return comp;
         } else {
-            const meta = self.getMaybe(Component.metadata, id) orelse &Component.metadata{};
+            const meta = self.getMaybe(Component.Metadata, id) orelse &Component.Metadata{};
             std.debug.print(
                 "\nFailed to find component {} on entity {} with archetype {s}\n",
                 .{ component_T, id, meta.archetype },
@@ -212,16 +212,15 @@ pub const ECS = struct {
     }
 
     ///Gets component if it exists;
-    pub inline fn getMaybe(self: *const ECS, comptime component_T: type, id: usize) ?*component_T {
-        const name = component_T.name;
-        return @field(self.components, name).get(id);
+    pub inline fn getMaybe(self: *const ECS, comptime ComponentType: type, id: usize) ?*ComponentType {
+        return @field(self.components, @typeName(ComponentType)).get(id);
     }
 
     pub fn listComponents(self: *const ECS, a: std.mem.Allocator, id: usize) !std.ArrayList([]const u8) {
         var result = std.ArrayList([]const u8).init(a);
         inline for (comptime sliceComponentNames()) |decl| {
             if (self.getMaybe(@field(Component, decl.name), id)) |_| {
-                try result.append(@field(Component, decl.name).name);
+                try result.append(@typeName(@field(Component, decl.name)));
             }
         }
         return result;

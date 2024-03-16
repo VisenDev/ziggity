@@ -27,7 +27,7 @@ pub fn updatePlayerSystem(
     camera: ray.Camera2D,
     opt: options.Update,
 ) !void {
-    const systems = [_]type{ Component.is_player, Component.physics };
+    const systems = [_]type{ Component.IsPlayer, Component.Physics };
     const set = self.getSystemDomain(a, &systems);
 
     const magnitude: f32 = 30;
@@ -51,7 +51,7 @@ pub fn updatePlayerSystem(
             direction.x += magnitude;
         }
 
-        var physics = self.get(Component.physics, member);
+        var physics = self.get(Component.Physics, member);
         physics.vel.x += direction.x * physics.acceleration * opt.dt;
         physics.vel.y += direction.y * physics.acceleration * opt.dt;
 
@@ -61,7 +61,7 @@ pub fn updatePlayerSystem(
         if (ray.IsMouseButtonDown(ray.MOUSE_BUTTON_LEFT)) {
             const fireball = try l.autoCall(?usize, "SpawnSlime", .{ self, &copy }) orelse break;
             const pos = cam.mousePos(camera);
-            self.setComponent(a, fireball, Component.physics{
+            self.setComponent(a, fireball, Component.Physics{
                 .pos = pos,
                 .vel = .{
                     .x = (ecs.randomFloat() - 0.5) * opt.dt,
@@ -75,7 +75,7 @@ pub fn updatePlayerSystem(
             //const slime = try l.autoCall(?usize, "SpawnSlime", .{ self, &copy }) orelse break;
             const slime = arch.createSlime(self, a) catch continue;
             const pos = cam.mousePos(camera);
-            self.setComponent(a, slime, Component.physics{
+            self.setComponent(a, slime, Component.Physics{
                 .pos = pos,
             }) catch continue;
         }

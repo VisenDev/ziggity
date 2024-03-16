@@ -9,9 +9,7 @@ const ray = @cImport({
 
 const vec_default: ray.Vector2 = .{ .x = 0, .y = 0 };
 
-pub const physics = struct {
-    pub const name = "physics";
-
+pub const Physics = struct {
     pos: ray.Vector2 = vec_default,
     vel: ray.Vector2 = vec_default,
 
@@ -26,16 +24,14 @@ pub const physics = struct {
         };
     }
 };
-pub const health = struct {
-    pub const name = "health";
+pub const Health = struct {
     hp: f32 = 10,
     max_hp: f32 = 10,
     is_dead: bool = false,
     cooldown_remaining: f32 = 0,
     pub const damage_cooldown: u32 = 150;
 };
-pub const sprite = struct {
-    pub const name = "sprite";
+pub const Sprite = struct {
 
     //z level constants
     pub const ZLevels = enum { background, middleground, foreground };
@@ -43,31 +39,23 @@ pub const sprite = struct {
     z_level: ZLevels = .middleground, //0 is the lowest
     disabled: bool = false,
 };
-pub const tracker = struct {
-    pub const name = "tracker";
-    tracked: ?usize = null,
-};
-pub const movement_particles = struct {
-    pub const name = "movement_particles";
+//pub const Tracker = ai.Targeter;
+pub const Movement_particles = struct {
     color: ray.Color = ray.WHITE,
     quantity: u32 = 1,
 };
-pub const wanderer = ai.Wanderer;
-pub const patroller = struct {
-    pub const name = "patroller";
+pub const Wanderer = ai.Wanderer;
+pub const Patroller = struct {
     points: []ray.Vector2 = &[_]ray.Vector2{},
 };
-pub const controller = ai.Controller;
-pub const eyesight = struct {
-    pub const name = "eyesight";
+pub const Controller = ai.Controller;
+pub const Eyesight = struct {
     view_range: f32 = 5,
 };
-pub const loot = struct {
-    pub const name = "loot";
+pub const Loot = struct {
     items: []const [:0]const u8 = &[_][:0]const u8{""},
 };
-pub const hitbox = struct {
-    pub const name = "hitbox";
+pub const Hitbox = struct {
     left: f32 = 0.0,
     right: f32 = 0.9,
     top: f32 = 0.0,
@@ -82,65 +70,51 @@ pub const hitbox = struct {
         };
     }
 };
-pub const damage = struct {
-    pub const name = "damage";
+pub const Damage = struct {
     type: []const u8 = "",
     amount: f32 = 10,
 };
-pub const nametag = struct {
-    pub const name = "nametag";
+pub const Nametag = struct {
     value: []u8 = "",
 };
-pub const explode_on_death = struct {
-    pub const name = "explode_on_death";
+pub const ExplodeOnDeath = struct {
     filler: u8 = 0, //this field is here because zig does not like when the struct is empty
 };
-pub const is_player = struct {
-    pub const name = "is_player";
+pub const IsPlayer = struct {
     filler: u8 = 0, //this field is here because zig does not like when the struct is empty
 };
-pub const health_trickle = struct {
-    pub const name = "health_trickle";
+pub const HealthTrickle = struct {
     decrease_per_tick: f32 = 10,
 };
-pub const invulnerable = struct {
-    pub const name = "invulnerable";
-
+pub const Invulnerable = struct {
     filler: u8 = 0, //this field is here because zig does not like when the struct is empty
 };
-pub const metadata = struct {
-    pub const name = "metadata";
+pub const Metadata = struct {
     archetype: []const u8 = "unknown",
 };
-pub const item = inv.ItemComponent;
-pub const inventory = inv.InventoryComponent;
+pub const Item = inv.ItemComponent;
+pub const Inventory = inv.InventoryComponent;
 //Should I possibly rename this to "useable?" so that more entities than the player can use it?
 //or actions?
-pub const left_clickable = struct {
-    pub const name = "left_clickable";
+pub const LeftClickable = struct {
     function_name: []const u8 = "",
 };
-pub const right_clickable = struct {
-    pub const name = "right_clickable";
+pub const RightClickable = struct {
     function_name: []const u8 = "",
 };
-pub const death_particles = struct {
-    pub const name = "death_particles";
+pub const DeathParticles = struct {
     color: ray.Color = ray.RED,
     quantity: usize = 20,
 };
-pub const death_animation = struct {
-    pub const name = "death_animation";
+pub const DeathAnimation = struct {
     animation_name: []const u8 = "",
 };
 
 //if an entity has this component it will die whenever its animation stops looping
-pub const is_animation = struct {
-    pub const name = "is_animation";
+pub const IsAnimation = struct {
     filler: u8 = 0, //this field is here because zig does not like when the struct is empty
 };
 
-pub const wall_collisions = struct {
-    pub const name = "wall_collisions";
+pub const WallCollisions = struct {
     filler: u8 = 0, //this field is here because zig does not like when the struct is empty
 };

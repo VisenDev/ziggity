@@ -48,13 +48,13 @@ pub const InventoryComponent = struct {
 
 ////======normal code=========
 
-fn findExistingSlot(self: *const ecs.ECS, inv: *Component.inventory, item: Component.item) ?usize {
+fn findExistingSlot(self: *const ecs.ECS, inv: *Component.Inventory, item: Component.Item) ?usize {
     if (item.max_stack_size == 1) {
         return null;
     }
 
     for (inv.slots(), 0..) |slot, i| {
-        const inv_item = self.get(Component.item, slot.id);
+        const inv_item = self.get(Component.Item, slot.id);
         if (std.mem.eql(u8, item.type, inv_item.type) and slot.item_count < item.max_stack_size and item.max_stack_size == inv_item.max_stack_size) {
             return i;
         }
@@ -62,8 +62,8 @@ fn findExistingSlot(self: *const ecs.ECS, inv: *Component.inventory, item: Compo
     return null;
 }
 
-pub fn addItem(self: *ecs.ECS, a: std.mem.Allocator, inv: *Component.inventory, new_item_id: usize) !void {
-    const new_item = self.getMaybe(Component.item, new_item_id) orelse return error.id_missing_item_component;
+pub fn addItem(self: *ecs.ECS, a: std.mem.Allocator, inv: *Component.Inventory, new_item_id: usize) !void {
+    const new_item = self.getMaybe(Component.Item, new_item_id) orelse return error.id_missing_item_component;
 
     if (findExistingSlot(self, inv, new_item.*)) |index| {
         inv.slots()[index].item_count += 1;
@@ -73,7 +73,7 @@ pub fn addItem(self: *ecs.ECS, a: std.mem.Allocator, inv: *Component.inventory, 
             .id = new_item_id,
         };
         inv.len += 1;
-        self.get(Component.item, new_item_id).status = .in_inventory;
+        self.get(Component.Item, new_item_id).status = .in_inventory;
     }
 }
 
@@ -83,20 +83,20 @@ pub fn updateInventorySystem(
     opt: options.Update,
 ) !void {
     _ = opt;
-    const systems = [_]type{ Component.inventory, Component.hitbox };
+    const systems = [_]type{ Component.Inventory, Component.Hitbox };
     const set = self.getSystemDomain(a, &systems);
 
     for (set) |member| {
         const colliders = try coll.findCollidingEntities(self, a, member);
 
-        var inventory = self.get(Component.inventory, member);
+        var inventory = self.get(Component.Inventory, member);
         _ = &inventory;
         if (inventory.len >= inventory.capacity) {
             continue;
         }
 
         for (colliders) |entity| {
-            if (self.getMaybe(Component.item, entity)) |item| {
+            if (self.getMaybe(Component.Item, entity)) |item| {
                 if (item.status == .in_world) {
                     addItem(self, a, inventory, entity) catch break;
                     break;
@@ -111,16 +111,16 @@ pub fn renderPlayerInventory(
     a: std.mem.Allocator,
     animation_state: *const anime.AnimationState,
 ) void {
-    const systems = [_]type{ Component.is_player, Component.inventory };
+    const systems = [_]type{ Component.IsPlayer, Component.Inventory };
     const set = self.getSystemDomain(a, &systems);
     _ = animation_state;
 
     for (set) |member| {
-        const inventory = self.get(Component.inventory, member);
+        const inventory = self.get(Component.Inventory, member);
         for (0..inventory.len) |i| {
             //_ = std.fmt.bufPrintZ(&buf, "{} entities", .{inventory.slots()[i].item_count}) catch unreachable;
             const y: c_int = @intCast(i * 20);
-            const item = self.get(Component.item, inventory.slots()[i].id);
+            const item = self.get(Component.Item, inventory.slots()[i].id);
             ray.DrawText(item.type.ptr, 200, 25 + y, 15, ray.RAYWHITE);
 
             var buf: [1024:0]u8 = undefined;
@@ -129,4 +129,4 @@ pub fn renderPlayerInventory(
         }
     }
 }
-//const inventory self.get(Component.inventory, )
+//const inventory self.get(Component.Inventory, )
