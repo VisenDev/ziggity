@@ -17,6 +17,13 @@ const ray = @cImport({
     @cInclude("raylib.h");
 });
 
+pub fn distance(a: ray.Vector2, b: ray.Vector2) f32 {
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+
+    return @sqrt(dx * dx + dy * dy);
+}
+
 ///normalizes a vector
 pub fn normalize(v: ray.Vector2) ray.Vector2 {
     const mag = std.math.sqrt(v.x * v.x + v.y * v.y);

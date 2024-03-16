@@ -3,16 +3,20 @@ const Component = @import("components.zig");
 const options = @import("options.zig");
 const ecs = @import("ecs.zig");
 
-pub const decision_fn_ptr = *fn (ecs: *anyopaque, id: usize) u8;
-pub const action_fn_ptr = *fn (ecs: *anyopaque, id: usize, num_ms_active: usize) bool;
+pub const ActionFnOptions = struct {
+    num_ms_active: usize = 0,
+    update: options.Update = .{},
+};
+pub const action_fn_ptr = *fn (ecs: *ecs.ECS, id: usize, opt: ActionFnOptions) bool;
+pub const decision_fn_ptr = *fn (ecs: *const ecs.Ecs, id: usize) u8;
+
+pub const Behavior = struct {
+    decision_fn_name: []const u8 = "",
+    action_fn_name: []const u8 = "",
+};
 
 pub const controller = struct {
     pub const name = "controller";
-
-    pub const Behavior = struct {
-        decision_fn_name: []const u8 = "",
-        action_fn_name: []const u8 = "",
-    };
 
     behaviors: []Behavior = &.{},
     active_behavior: ?usize = null,
@@ -35,33 +39,32 @@ pub const ControllerState = struct {
         self.action_fns.deinit();
     }
 
-    pub fn registerActionNamespace(self: *ControllerState, namespace: anytype) !void {
-        inline for (std.meta.declarations(namespace)) |decl| {
-            const value = @field(namespace, decl.name);
-            try self.action_fns.put(decl.name, value);
-        }
+    pub fn register(self: *ControllerState, name: []const u8, decision_fn: *decision_fn_ptr, action_fn: *action_fn_ptr) !void {
+        try self.action_fns.put(name, action_fn);
+        try self.decision_fns.put(name, decision_fn);
     }
 
-    pub fn registerDecisionNamespace(self: *ControllerState, namespace: anytype) !void {
-        inline for (std.meta.declarations(namespace)) |decl| {
-            const value = @field(namespace, decl.name);
-            try self.decision_fns.put(decl.name, value);
-        }
-    }
-};
+    //pub fn registerActionFn(self: *ControllerState, func_name: []const u8, function: action_fn_ptr) !void {
+    //    try self.action_fns.put(func_name, function);
+    //}
 
-pub const basic_decisions = struct {
-    pub fn wander(self: *const ecs.ECS, entity: usize) u8 {
-        if (self.getMaybe(Component.wanderer, entity) != null) {
-            return 10;
-        } else return 0;
-    }
+    //pub fn registerDecisionFn(self: *ControllerState, func_name: []const u8, function: decision_fn_ptr) !void {
+    //    try self.decision_fns.put(func_name, function);
+    //}
 
-    pub fn chase(self: *const ecs.ECS, entity: usize) u8 {
-        if (self.getMaybe(Component.chase, entity) != null) {
-            return 50;
-        } else return 0;
-    }
+    //pub fn registerActionNamespace(self: *ControllerState, namespace: anytype) !void {
+    //    inline for (std.meta.declarations(namespace)) |decl| {
+    //        const value = @field(namespace, decl.name);
+    //        try self.registerActionFn(decl.name, value);
+    //    }
+    //}
+
+    //pub fn registerDecisionNamespace(self: *ControllerState, namespace: anytype) !void {
+    //    inline for (std.meta.declarations(namespace)) |decl| {
+    //        const value = @field(namespace, decl.name);
+    //        try self.registerDecisionFn(decl.name, value);
+    //    }
+    //}
 };
 
 pub fn updateControllerSystem(self: *ecs.ECS, a: std.mem.Allocator, state: ControllerState, opt: options.Update) !void {

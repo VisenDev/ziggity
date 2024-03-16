@@ -48,40 +48,44 @@ pub fn updateHostileAiSystem(self: *ecs.ECS, a: std.mem.Allocator, opt: options.
 }
 
 pub fn updateWanderingSystem(self: *ecs.ECS, a: std.mem.Allocator, opt: options.Update) void {
-    const systems = [_]type{ Component.physics, Component.wanderer };
-    const set = self.getSystemDomain(a, &systems);
+    _ = self;
+    _ = a;
+    _ = opt;
 
-    for (set) |member| {
-        var wanderer = self.get(Component.wanderer, member);
-
-        switch (wanderer.state) {
-            .arrived => {
-                wanderer.cooldown = opt.dt * 300 * ecs.randomFloat();
-                wanderer.state = .waiting;
-            },
-            .waiting => {
-                wanderer.cooldown -= opt.dt;
-                if (wanderer.cooldown < 0) {
-                    wanderer.state = .selecting;
-                }
-            },
-            .selecting => {
-                const random_destination = ecs.randomVector2(50, 50);
-                wanderer.destination = random_destination;
-                wanderer.state = .travelling;
-                wanderer.cooldown = opt.dt * 300 * ecs.randomFloat();
-            },
-            .travelling => {
-                const physics = self.get(Component.physics, member);
-                moveTowards(physics, wanderer.destination, opt);
-                wanderer.cooldown -= opt.dt;
-
-                if (distance(physics.pos, wanderer.destination) < 1 or wanderer.cooldown <= 0) {
-                    wanderer.state = .arrived;
-                }
-            },
-        }
-    }
+    //    const systems = [_]type{ Component.physics, Component.wanderer };
+    //    const set = self.getSystemDomain(a, &systems);
+    //
+    //    for (set) |member| {
+    //        var wanderer = self.get(Component.wanderer, member);
+    //
+    //        switch (wanderer.state) {
+    //            .arrived => {
+    //                wanderer.cooldown = opt.dt * 300 * ecs.randomFloat();
+    //                wanderer.state = .waiting;
+    //            },
+    //            .waiting => {
+    //                wanderer.cooldown -= opt.dt;
+    //                if (wanderer.cooldown < 0) {
+    //                    wanderer.state = .selecting;
+    //                }
+    //            },
+    //            .selecting => {
+    //                const random_destination = ecs.randomVector2(50, 50);
+    //                wanderer.destination = random_destination;
+    //                wanderer.state = .travelling;
+    //                wanderer.cooldown = opt.dt * 300 * ecs.randomFloat();
+    //            },
+    //            .travelling => {
+    //                const physics = self.get(Component.physics, member);
+    //                moveTowards(physics, wanderer.destination, opt);
+    //                wanderer.cooldown -= opt.dt;
+    //
+    //                if (distance(physics.pos, wanderer.destination) < 1 or wanderer.cooldown <= 0) {
+    //                    wanderer.state = .arrived;
+    //                }
+    //            },
+    //        }
+    //    }
 }
 
 pub fn updateDeathSystem(

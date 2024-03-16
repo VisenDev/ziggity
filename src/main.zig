@@ -1,4 +1,5 @@
 const std = @import("std");
+const ai = @import("ai.zig");
 const inv = @import("inventory.zig");
 const cam = @import("camera.zig");
 const anime = @import("animation.zig");
@@ -140,6 +141,7 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
         try sys.updateDamageSystem(lvl.ecs, a, update_options);
         sys.updateSpriteSystem(lvl.ecs, a, &animation_state, update_options);
         try sys.trimAnimationEntitySystem(lvl.ecs, a, update_options);
+        try ai.updateControllerSystem(lvl.ecs, a, update_options);
 
         ray.BeginDrawing();
         ray.BeginMode2D(camera); // Begin 2D mode with custom camera (2D)

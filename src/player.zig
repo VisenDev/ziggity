@@ -1,4 +1,5 @@
 const std = @import("std");
+const arch = @import("archetypes.zig");
 const api = @import("api.zig");
 const tile = @import("tiles.zig");
 const anime = @import("animation.zig");
@@ -71,11 +72,12 @@ pub fn updatePlayerSystem(
 
         //spawnSlimes
         if (ray.IsMouseButtonDown(ray.MOUSE_BUTTON_RIGHT)) {
-            const slime = try l.autoCall(?usize, "SpawnSlime", .{ self, &copy }) orelse break;
+            //const slime = try l.autoCall(?usize, "SpawnSlime", .{ self, &copy }) orelse break;
+            const slime = arch.createSlime(self, a) catch continue;
             const pos = cam.mousePos(camera);
             self.setComponent(a, slime, Component.physics{
                 .pos = pos,
-            }) catch unreachable;
+            }) catch continue;
         }
     }
 }

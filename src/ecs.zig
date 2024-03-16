@@ -47,12 +47,12 @@ test "randomVector" {
     }
 }
 
-inline fn sliceComponentNames() []const std.builtin.Type.Declaration {
+pub fn sliceComponentNames() []const std.builtin.Type.Declaration {
     return @typeInfo(Component).Struct.decls;
 }
 
 pub fn intFromComponent(comptime Component_T: type) usize {
-    inline for (sliceComponentNames(), 0..) |val, i| {
+    inline for (comptime sliceComponentNames(), 0..) |val, i| {
         if (std.mem.eql(u8, val.name, Component_T.name)) {
             return i;
         }
@@ -61,14 +61,14 @@ pub fn intFromComponent(comptime Component_T: type) usize {
 }
 
 pub fn componentFromInt(component_int: usize) []const u8 {
-    sliceComponentNames()[component_int];
+    comptime sliceComponentNames()[component_int];
 }
 
 pub fn EcsComponent() type {
     const len = @typeInfo(Component).Struct.decls.len;
     var fields: [len]std.builtin.Type.StructField = undefined;
 
-    for (sliceComponentNames(), 0..) |val, i| {
+    for (comptime sliceComponentNames(), 0..) |val, i| {
         const component_type = @field(Component, val.name);
         const default = SparseSet(component_type){};
         fields[i] = .{
@@ -95,7 +95,7 @@ pub const ECS = struct {
     //0s remainding capacities to avoid errors when parsing from json
     pub fn prepForStringify(self: *@This(), a: std.mem.Allocator) void {
         _ = a;
-        inline for (sliceComponentNames()) |decl| {
+        inline for (comptime sliceComponentNames()) |decl| {
             var sys = &@field(self.components, decl.name);
             sys.dense.capacity = 0;
             sys.dense_ids.capacity = 0;
@@ -126,7 +126,7 @@ pub const ECS = struct {
             .availible_ids = ids,
             .components = res,
             .capacity = capacity,
-            .bitflags = try SparseSet(std.bit_set.StaticBitSet(sliceComponentNames().len)).init(a, capacity),
+            .bitflags = try SparseSet(std.bit_set.StaticBitSet(comptime sliceComponentNames().len)).init(a, capacity),
             .domain_id_buffer = domain_id_buffer,
             .collision_id_buffer = collision_id_buffer,
             .position_cache = try Grid(std.ArrayListUnmanaged(usize)).init(a, 32, 32, .{}),
@@ -137,7 +137,7 @@ pub const ECS = struct {
         const id = self.availible_ids.popOrNull();
         if (id) |real_id| {
             //std.debug.print("created new entity {}\n", .{real_id});
-            self.bitflags.insert(a, real_id, std.bit_set.StaticBitSet(sliceComponentNames().len).initEmpty()) catch return null;
+            self.bitflags.insert(a, real_id, std.bit_set.StaticBitSet(comptime sliceComponentNames().len).initEmpty()) catch return null;
         }
         return id;
     }
@@ -148,7 +148,7 @@ pub const ECS = struct {
 
     pub fn deleteEntity(self: *@This(), a: std.mem.Allocator, id: usize) !void {
         try self.availible_ids.append(a, id);
-        inline for (sliceComponentNames()) |decl| {
+        inline for (comptime sliceComponentNames()) |decl| {
             try @field(self.components, decl.name).delete(id);
         }
         try self.bitflags.delete(id);
@@ -161,7 +161,7 @@ pub const ECS = struct {
     }
 
     pub fn addJsonComponent(self: *@This(), a: *const std.mem.Allocator, id: usize, component_name: []const u8, component_value: ?[]const u8) !void {
-        inline for (sliceComponentNames()) |decl| {
+        inline for (comptime sliceComponentNames()) |decl| {
             if (std.mem.eql(u8, component_name, decl.name)) {
                 const Comp = comptime @field(Component, decl.name);
                 var value: Comp = undefined;
@@ -178,7 +178,7 @@ pub const ECS = struct {
     }
 
     pub fn deinit(self: *@This(), a: std.mem.Allocator) void {
-        inline for (sliceComponentNames()) |decl| {
+        inline for (comptime sliceComponentNames()) |decl| {
             @field(self.components, decl.name).deinit(a);
         }
         self.availible_ids.deinit(a);
@@ -219,7 +219,7 @@ pub const ECS = struct {
 
     pub fn listComponents(self: *const ECS, a: std.mem.Allocator, id: usize) !std.ArrayList([]const u8) {
         var result = std.ArrayList([]const u8).init(a);
-        inline for (sliceComponentNames()) |decl| {
+        inline for (comptime sliceComponentNames()) |decl| {
             if (self.getMaybe(@field(Component, decl.name), id)) |_| {
                 try result.append(@field(Component, decl.name).name);
             }

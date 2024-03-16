@@ -1,4 +1,5 @@
 const anime = @import("animation.zig");
+const ai = @import("ai.zig");
 const inv = @import("inventory.zig");
 const control = @import("controller.zig");
 const sys = @import("systems.zig");
@@ -51,17 +52,12 @@ pub const movement_particles = struct {
     color: ray.Color = ray.WHITE,
     quantity: u32 = 1,
 };
-pub const wanderer = struct {
-    pub const name = "wanderer";
-    state: enum { arrived, travelling, waiting, selecting } = .arrived,
-    destination: ray.Vector2 = vec_default,
-    cooldown: f32 = 0,
-};
+pub const wanderer = ai.Wanderer;
 pub const patroller = struct {
     pub const name = "patroller";
     points: []ray.Vector2 = &[_]ray.Vector2{},
 };
-pub const controller = control.controller;
+pub const controller = ai.Controller;
 pub const eyesight = struct {
     pub const name = "eyesight";
     view_range: f32 = 5,
