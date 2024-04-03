@@ -38,6 +38,7 @@ pub fn findCollidingEntities(
     const neighbor_list = self.position_cache.findNeighbors(a, pos.x, pos.y);
     for (neighbor_list) |neighbor| {
         for (neighbor.items) |neighbor_id| {
+            if (neighbor_id == id) continue;
             const neighbor_physics = self.getMaybe(Component.Physics, neighbor_id) orelse continue;
             const neighbor_hitbox = self.getMaybe(Component.Hitbox, neighbor_id) orelse continue;
 

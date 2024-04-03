@@ -14,8 +14,8 @@ pub const Physics = struct {
     vel: ray.Vector2 = vec_default,
 
     //internal, should usually be treated as constants
-    acceleration: f32 = 0.02,
-    friction: f32 = 0.96,
+    acceleration: f32 = 0.03,
+    friction: f32 = 0.98,
 
     pub fn getCachePosition(self: @This()) struct { x: usize, y: usize } {
         return .{
@@ -111,10 +111,8 @@ pub const DeathAnimation = struct {
 };
 
 //if an entity has this component it will die whenever its animation stops looping
-pub const IsAnimation = struct {
-    filler: u8 = 0, //this field is here because zig does not like when the struct is empty
-};
+pub const DieWithAnimation = struct {};
 
-pub const WallCollisions = struct {
-    filler: u8 = 0, //this field is here because zig does not like when the struct is empty
-};
+pub const WallCollisions = struct {};
+
+pub const EntityCollisions = struct {};

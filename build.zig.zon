@@ -4,16 +4,12 @@
       .paths = .{""},
       .dependencies = .{
          .ziglua = .{
-            .url = "https://github.com/VisenDev/ziglua/archive/refs/heads/parsing-memory-fixes.tar.gz",
-            .hash = "12204dcea36acd1b626290b4d5bc69d5336c7935fb8d2707e5bedf62dad2a09978a0"
+            .url = "https://github.com/natecraddock/ziglua/archive/refs/heads/master.tar.gz",
+            .hash = "122003191c14aa101dc0533b93cb6e883096128eb08df3f32601a7d5276502a827e6"
          },
-         //.zigtoml = .{
-         //   .url = "https://github.com/VisenDev/zig-toml-json/archive/refs/heads/master.tar.gz",
-         //   .hash = "1220cccb7852ce87568738b14b87d42f51cf751b1d162e3ba4a8f7cd74e096603e7d",
-         //},
          .raylib = .{
             .url = "https://github.com/raysan5/raylib/archive/refs/heads/master.tar.gz",
-            .hash = "12201b30d2fc6e0965fdaad30961e80e007947e93ca56704163422875f0c968dc71a",
+            .hash = "12206b902f82b862d7e97c7d87364b5ab90a0a4f8b640351f32aa58a5888adc8f192",
          }
       },
 }

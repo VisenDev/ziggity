@@ -1,4 +1,5 @@
 const std = @import("std");
+const move = @import("movement.zig");
 const ai = @import("ai.zig");
 const inv = @import("inventory.zig");
 const cam = @import("camera.zig");
@@ -132,10 +133,10 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
         const update_options = options.Update{ .dt = delta_time };
         camera = cam.calculateCameraPosition(camera, lvl, &keybindings);
 
-        try sys.updateMovementSystem(lvl.ecs, a, lua, lvl.map, &animation_state, update_options);
+        try move.updateEntitySeparationSystem(lvl.ecs, a, update_options);
+        try move.updateMovementSystem(lvl.ecs, a, lvl.map, update_options);
         try play.updatePlayerSystem(lvl.ecs, a, lua, keybindings, camera, update_options);
         try inv.updateInventorySystem(lvl.ecs, a, update_options);
-        sys.updateWanderingSystem(lvl.ecs, a, update_options);
         try sys.updateDeathSystem(lvl.ecs, a, lua, update_options);
         sys.updateHealthCooldownSystem(lvl.ecs, a, update_options);
         try sys.updateDamageSystem(lvl.ecs, a, update_options);
@@ -151,8 +152,7 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
         lvl.map.render(&animation_state, &tile_state);
 
         if (debug_mode) {
-            //debug.renderPositionCache(lvl.ecs, a, tile_state.resolution);
-            //debug.renderHitboxes(lvl.ecs, a, tile_state.resolution);
+            try debug.renderWanderDestinations(lvl.ecs, a);
         }
 
         sys.renderSprites(lvl.ecs, a, &animation_state, &tile_state);
@@ -179,5 +179,5 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
 }
 
 test "unit tests" {
-    @import("std").testing.refAllDecls(@This());
+    @import("std").testing.refAllDeclsRecursive(@This());
 }

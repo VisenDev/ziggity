@@ -19,7 +19,7 @@ const ray = @cImport({
     @cInclude("raylib.h");
 });
 
-pub usingnamespace @import("movement.zig");
+//pub usingnamespace @import("movement.zig");
 const moveTowards = @This().moveTowards;
 
 //IMPORTANT, controls the scale of the position cache relative to the map
@@ -30,62 +30,6 @@ fn distance(a: ray.Vector2, b: ray.Vector2) f32 {
     const dy = a.y - b.y;
 
     return @sqrt(dx * dx + dy * dy);
-}
-
-pub fn updateHostileAiSystem(self: *ecs.ECS, a: std.mem.Allocator, opt: options.Update) void {
-    _ = opt;
-
-    const systems = [_]type{ Component.Mind, Component.Targeter };
-    const set = self.getSystemDomain(a, &systems);
-
-    for (set) |member| {
-        const mind = self.get(Component.Mind, member);
-        const tracker = self.get(Component.Mind, member);
-        _ = tracker;
-
-        switch (mind.activity) {}
-    }
-}
-
-pub fn updateWanderingSystem(self: *ecs.ECS, a: std.mem.Allocator, opt: options.Update) void {
-    _ = self;
-    _ = a;
-    _ = opt;
-
-    //    const systems = [_]type{ Component.Physics, Component.Wanderer };
-    //    const set = self.getSystemDomain(a, &systems);
-    //
-    //    for (set) |member| {
-    //        var wanderer = self.get(Component.Wanderer, member);
-    //
-    //        switch (wanderer.state) {
-    //            .arrived => {
-    //                wanderer.cooldown = opt.dt * 300 * ecs.randomFloat();
-    //                wanderer.state = .waiting;
-    //            },
-    //            .waiting => {
-    //                wanderer.cooldown -= opt.dt;
-    //                if (wanderer.cooldown < 0) {
-    //                    wanderer.state = .selecting;
-    //                }
-    //            },
-    //            .selecting => {
-    //                const random_destination = ecs.randomVector2(50, 50);
-    //                wanderer.destination = random_destination;
-    //                wanderer.state = .travelling;
-    //                wanderer.cooldown = opt.dt * 300 * ecs.randomFloat();
-    //            },
-    //            .travelling => {
-    //                const physics = self.get(Component.Physics, member);
-    //                moveTowards(physics, wanderer.destination, opt);
-    //                wanderer.cooldown -= opt.dt;
-    //
-    //                if (distance(physics.pos, wanderer.destination) < 1 or wanderer.cooldown <= 0) {
-    //                    wanderer.state = .arrived;
-    //                }
-    //            },
-    //        }
-    //    }
 }
 
 pub fn updateDeathSystem(
@@ -227,7 +171,7 @@ pub fn trimAnimationEntitySystem(
     opt: options.Update,
 ) !void {
     _ = opt;
-    const systems = [_]type{ Component.IsAnimation, Component.Sprite };
+    const systems = [_]type{ Component.DieWithAnimation, Component.Sprite };
     const set = self.getSystemDomain(a, &systems);
 
     for (set) |member| {

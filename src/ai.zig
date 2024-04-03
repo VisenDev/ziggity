@@ -19,14 +19,12 @@ pub const ActionFnOptions = struct {
     update: options.Update,
 };
 
-pub const action_fn_ptr = *fn (ecs: *ecs.ECS, id: usize, opt: ActionFnOptions) bool;
+pub const action_fn_ptr = *fn (ecs: *ecs.ECS, a: std.mem.Allocator, id: usize, opt: ActionFnOptions) bool;
 pub const decision_fn_ptr = *fn (ecs: *const ecs.ECS, id: usize) u8;
 
 fn isBehaviorComponent(comptime ComponentType: type) bool {
     return @hasDecl(ComponentType, "action") and
         @hasDecl(ComponentType, "decision"); // and
-    //@TypeOf(@field(ComponentType, "action")) == action_fn_ptr and
-    //@TypeOf(@field(ComponentType, "decision") == decision_fn_ptr);
 }
 
 fn countBehaviorComponents() usize {
@@ -76,7 +74,7 @@ pub fn updateControllerSystem(self: *ecs.ECS, a: std.mem.Allocator, opt: options
         if (ctrl.active_behavior) |active| {
             inline for (comptime getBehaviorComponents(), 0..) |BehaviorType, i| {
                 if (active == i) {
-                    const done = BehaviorType.action(self, member, .{
+                    const done = BehaviorType.action(self, a, member, .{
                         .update = opt,
                         .num_ms_active = ctrl.num_ms_active,
                     });
@@ -104,7 +102,8 @@ pub const Wanderer = struct {
         } else return 0;
     }
 
-    pub fn action(self: *ecs.ECS, entity: usize, opt: ActionFnOptions) bool {
+    pub fn action(self: *ecs.ECS, a: std.mem.Allocator, entity: usize, opt: ActionFnOptions) bool {
+        _ = a;
         const wanderer = self.get(Component.Wanderer, entity);
         switch (wanderer.state) {
             .arrived => {
@@ -118,17 +117,23 @@ pub const Wanderer = struct {
                 }
             },
             .selecting => {
-                const random_destination = ecs.randomVector2(50, 50);
+                const physics = self.get(Component.Physics, entity);
+                const random_vector = ecs.randomVector2(10, 10);
+                const random_destination = ray.Vector2{
+                    .x = physics.pos.x + random_vector.x - 6,
+                    .y = physics.pos.y + random_vector.y - 6,
+                };
+                std.debug.print("old: {}\nnew: {}\n\n", .{ wanderer.destination, random_destination });
                 wanderer.destination = random_destination;
                 wanderer.state = .travelling;
-                wanderer.cooldown = opt.update.dt * 300 * ecs.randomFloat();
+                wanderer.cooldown = 30 * ecs.randomFloat() * 1000;
             },
             .travelling => {
                 const physics = self.get(Component.Physics, entity);
                 move.moveTowards(physics, wanderer.destination, opt.update);
-                wanderer.cooldown -= opt.update.dt;
+                wanderer.cooldown -= opt.update.dtInMs();
 
-                if (move.distance(physics.pos, wanderer.destination) < 1 or wanderer.cooldown <= 0) {
+                if (move.distance(physics.pos, wanderer.destination) < 1.5 or wanderer.cooldown <= 0) {
                     wanderer.state = .arrived;
                 }
             },

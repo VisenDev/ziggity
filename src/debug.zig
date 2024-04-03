@@ -1,4 +1,5 @@
 const std = @import("std");
+const camera = @import("camera.zig");
 const tile = @import("tiles.zig");
 const anime = @import("animation.zig");
 const map = @import("map.zig");
@@ -60,4 +61,24 @@ pub fn renderEntityCount(self: *ecs.ECS) !void {
 
     _ = try std.fmt.bufPrintZ(&buf, "{} entities", .{count});
     ray.DrawText(&buf, 15, 45, font_size, ray.RAYWHITE);
+}
+
+pub fn renderWanderDestinations(self: *ecs.ECS, a: std.mem.Allocator) !void {
+    const systems = [_]type{ Component.Wanderer, Component.Physics };
+    const set = self.getSystemDomain(a, &systems);
+
+    for (set, 0..) |member, i| {
+        _ = i;
+
+        const physics = self.get(Component.Physics, member);
+        _ = physics;
+        const wanderer = self.get(Component.Wanderer, member);
+
+        ray.DrawRectangleLinesEx(.{
+            .x = wanderer.destination.x * camera.render_resolution,
+            .y = wanderer.destination.y * camera.render_resolution,
+            .width = 5,
+            .height = 5,
+        }, 1, ray.ColorAlpha(ray.RAYWHITE, 0.4));
+    }
 }

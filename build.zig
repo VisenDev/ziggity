@@ -26,6 +26,7 @@ pub fn build(b: *std.Build) void {
     // add the ziglua module and lua artifact
     exe.root_module.addImport("ziglua", ziglua.module("ziglua"));
     //exe.linkLibrary(ziglua.artifact("lua"));
+    //exe.linkLibrary(ziglua.artifact("lua"));
 
     const ray = b.dependency("raylib", .{ .target = target, .optimize = optimize });
     exe.linkLibrary(ray.artifact("raylib"));

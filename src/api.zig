@@ -19,10 +19,10 @@ pub fn initLuaApi(a: *const std.mem.Allocator) !Lua {
             .clear = cmd.Console.clear,
             .log = cmd.Console.log,
         },
-        .lvl = .{
-            .newEntity = ecs.ECS.newEntityPtr,
-            .addComponent = ecs.ECS.addJsonComponent,
-        },
+        //        .lvl = .{
+        //            .newEntity = ecs.ECS.newEntityPtr,
+        //            .addComponent = ecs.ECS.addJsonComponent,
+        //        },
         .file = .{},
     };
 
