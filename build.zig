@@ -11,12 +11,6 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    //const zigtoml = b.dependency("zigtoml", .{
-    //    .target = target,
-    //    .optimize = optimize,
-    //});
-    //exe.addModule("toml", zigtoml.module("toml"));
-
     //link lua
     const ziglua = b.dependency("ziglua", .{
         .target = target,
@@ -25,11 +19,10 @@ pub fn build(b: *std.Build) void {
 
     // add the ziglua module and lua artifact
     exe.root_module.addImport("ziglua", ziglua.module("ziglua"));
-    //exe.linkLibrary(ziglua.artifact("lua"));
-    //exe.linkLibrary(ziglua.artifact("lua"));
 
     const ray = b.dependency("raylib", .{ .target = target, .optimize = optimize });
     exe.linkLibrary(ray.artifact("raylib"));
+    //exe.addCSourceFile(.{ .file = .{ .path = "lib/raylib.h" } });
 
     //find raygui.h
     exe.addIncludePath(.{ .path = "lib" });

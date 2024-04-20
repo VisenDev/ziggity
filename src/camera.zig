@@ -7,6 +7,7 @@ const ray = @cImport({
 pub const std = @import("std");
 pub const level = @import("level.zig");
 const sys = @import("systems.zig");
+const anime = @import("animation.zig");
 
 pub fn screenWidth() f32 {
     return @floatFromInt(ray.GetScreenWidth());
@@ -81,7 +82,7 @@ pub fn calculateCameraPosition(
 }
 
 pub fn mousePos(camera: ray.Camera2D) ray.Vector2 {
-    return sys.scaleVector(
+    return anime.scaleVector(
         ray.GetScreenToWorld2D(ray.GetMousePosition(), camera),
         1.0 / @as(f32, @floatFromInt(render_resolution)),
     );

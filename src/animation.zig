@@ -1,4 +1,7 @@
 const std = @import("std");
+const tile = @import("tiles.zig");
+const Component = @import("components.zig");
+const ecs = @import("ecs.zig");
 const camera = @import("camera.zig");
 const Lua = @import("ziglua").Lua;
 const file = @import("file_utils.zig");
@@ -41,6 +44,8 @@ pub const RenderOptions = struct {
     tint: ray.Color = ray.WHITE,
     flipped: bool = false,
     render_style: enum { scaled_to_grid, actual } = .scaled_to_grid,
+    vertical_scale: f32 = 1.0,
+    horizontal_scale: f32 = 1.0,
 };
 
 ///flips a subrect
@@ -173,48 +178,45 @@ pub const AnimationState = struct {
     }
 };
 
-//test "animation_json" {
-//    const string =
-//        \\[
-//        \\{
-//        \\   "frames": [
-//        \\   {
-//        \\      "subrect": {"x": 0, "y": 0, "width": 4, "height": 4},
-//        \\         "milliseconds": 250
-//        \\   }
-//        \\   ],
-//        \\   "name": "particle",
-//        \\   "rotation_speed": 0,
-//        \\   "filepath": "particle.png",
-//        \\   "origin": {"x": 8, "y": 8}
-//        \\},
-//        \\{
-//        \\   "frames": [
-//        \\   {
-//        \\      "subrect": {"x": 0, "y": 0, "width": 16, "height": 32},
-//        \\      "milliseconds": 250
-//        \\   }
-//        \\   ],
-//        \\   "name": "player",
-//        \\   "rotation_speed": 0,
-//        \\   "filepath": "player.png",
-//        \\   "origin": {"x": 0, "y": 0}
-//        \\},
-//        \\{
-//        \\   "frames": [
-//        \\   {
-//        \\      "subrect": {"x": 0, "y": 0, "width": 8, "height": 8},
-//        \\      "milliseconds": 250
-//        \\   }
-//        \\   ],
-//        \\   "name": "slime",
-//        \\   "rotation_speed": 1,
-//        \\   "filepath": "slime.png",
-//        \\   "origin": {"x": 4, "y": 4}
-//        \\}
-//        \\]
-//    ;
-//
-//    const parsed = try std.json.parseFromSlice([]Animation, std.testing.allocator, string, .{});
-//    defer parsed.deinit();
-//}
+//===============RENDERING================
+
+pub inline fn scaleVector(a: ray.Vector2, scalar: anytype) ray.Vector2 {
+    if (@TypeOf(scalar) == f32)
+        return .{ .x = a.x * scalar, .y = a.y * scalar };
+
+    return .{ .x = a.x * tof32(scalar), .y = a.y * tof32(scalar) };
+}
+
+pub inline fn scaleRectangle(a: ray.Rectangle, scalar: anytype) ray.Rectangle {
+    if (@TypeOf(scalar) == f32)
+        return .{ .x = a.x * scalar, .y = a.y * scalar, .width = a.width * scalar, .height = a.height * scalar };
+
+    const floated = tof32(scalar);
+    return .{ .x = a.x * floated, .y = a.y * floated, .width = a.width * floated, .height = a.height * floated };
+}
+
+pub fn renderSprites(
+    self: *ecs.ECS,
+    a: std.mem.Allocator,
+    animation_state: *const AnimationState,
+) void {
+    const systems = [_]type{ Component.Physics, Component.Sprite };
+    const set = self.getSystemDomain(a, &systems);
+
+    inline for (@typeInfo(Component.Sprite.ZLevels).Enum.fields) |current_z_level_decl| {
+        for (set) |member| {
+            const current_z_level = @field(Component.Sprite.ZLevels, current_z_level_decl.name);
+            const sprite = self.get(Component.Sprite, member);
+            const physics = self.get(Component.Physics, member);
+
+            if (sprite.disabled) continue;
+            if (sprite.z_level != current_z_level) continue;
+
+            const opt = RenderOptions{
+                .flipped = physics.vel.x > 0,
+            };
+
+            sprite.animation_player.render(animation_state, scaleVector(physics.pos, camera.render_resolution), opt);
+        }
+    }
+}

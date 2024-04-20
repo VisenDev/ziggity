@@ -1,4 +1,6 @@
 const std = @import("std");
+const light = @import("light.zig");
+const shade = @import("shaders.zig");
 const move = @import("movement.zig");
 const ai = @import("ai.zig");
 const inv = @import("inventory.zig");
@@ -110,12 +112,20 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
 
     var debug_mode = false;
 
-    const shader = ray.LoadShader(0, ray.TextFormat("game-files/shaders/crosshatch.fs", @as(c_int, 330)));
-    defer ray.UnloadShader(shader);
+    var light_shader = try light.LightShader.init(a);
+    defer light_shader.deinit(a);
 
     var camera = cam.initCamera();
+    var update_options = options.Update{};
+
+    var target = ray.LoadRenderTexture(ray.GetScreenWidth(), ray.GetScreenHeight());
+    defer ray.UnloadRenderTexture(target);
 
     while (!ray.WindowShouldClose()) {
+        if (target.texture.width != ray.GetScreenWidth() or target.texture.height != ray.GetScreenHeight()) {
+            ray.UnloadRenderTexture(target);
+            target = ray.LoadRenderTexture(ray.GetScreenWidth(), ray.GetScreenHeight());
+        }
 
         //debug on or off
         if (keybindings.isPressed("debug_mode")) {
@@ -129,8 +139,7 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
         }
 
         //configure update options
-        const delta_time = ray.GetFrameTime();
-        const update_options = options.Update{ .dt = delta_time };
+        update_options.update();
         camera = cam.calculateCameraPosition(camera, lvl, &keybindings);
 
         try move.updateEntitySeparationSystem(lvl.ecs, a, update_options);
@@ -144,31 +153,57 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
         try sys.trimAnimationEntitySystem(lvl.ecs, a, update_options);
         try ai.updateControllerSystem(lvl.ecs, a, update_options);
 
-        ray.BeginDrawing();
-        ray.BeginMode2D(camera); // Begin 2D mode with custom camera (2D)
-        ray.BeginShaderMode(shader);
-        ray.ClearBackground(ray.RAYWHITE);
+        ray.BeginTextureMode(target);
+        {
+            ray.BeginMode2D(camera); // Begin 2D mode with custom camera (2D)
+            ray.ClearBackground(ray.RAYWHITE);
 
-        lvl.map.render(&animation_state, &tile_state);
+            lvl.map.render(&animation_state, &tile_state);
 
-        if (debug_mode) {
-            try debug.renderWanderDestinations(lvl.ecs, a);
+            if (debug_mode) {
+                try debug.renderWanderDestinations(lvl.ecs, a);
+            }
+
+            anime.renderSprites(lvl.ecs, a, &animation_state);
+
+            for (0..10) |_| {
+                try light_shader.addLight(a, .{
+                    .color = .{ .x = 1.0, .y = 0.5, .z = 1.0, .a = 1.0 },
+                    .radius = 100.0,
+                    .position = .{ .x = 100, .y = 100 },
+                }, camera);
+            }
+
+            light_shader.render();
         }
+        ray.EndTextureMode();
 
-        sys.renderSprites(lvl.ecs, a, &animation_state, &tile_state);
-        ray.EndShaderMode();
-        ray.EndMode2D();
+        ray.BeginDrawing();
+        {
+            //ray.BeginMode2D(camera);
+            ray.ClearBackground(ray.RAYWHITE); // Clear screen background
 
-        ray.DrawFPS(15, 15);
-        try debug.renderEntityCount(lvl.ecs);
-        inv.renderPlayerInventory(lvl.ecs, a, &animation_state);
+            // Enable shader using the custom uniform
+            ray.BeginShaderMode(light_shader.shader);
+            // NOTE: Render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
+            ray.DrawTextureRec(
+                target.texture,
+                .{
+                    .x = 0,
+                    .y = 0,
+                    .width = @floatFromInt(target.texture.width),
+                    .height = @floatFromInt(-target.texture.height),
+                },
+                .{ .x = 0, .y = 0 },
+                ray.WHITE,
+            );
+            ray.EndShaderMode();
 
-        //const player = anime.AnimationPlayer{ .animation_name = "cave_floor" };
-        //std.debug.print("frames: {any}\n", .{animation_state.animations.get("cave_floor").?.frames.len});
-        //player.render(&animation_state, .{ .x = 10.0, .y = 10.0 });
-
-        //try console.update(lua, keybindings);
-        //try console.render();
+            // Draw some 2d text over drawn texture
+            ray.DrawFPS(15, 15);
+            try debug.renderEntityCount(lvl.ecs);
+            inv.renderPlayerInventory(lvl.ecs, a, &animation_state);
+        }
         ray.EndDrawing();
 
         if (ray.IsKeyPressed('Q')) {

@@ -28,6 +28,12 @@ pub fn getCWD(a: std.mem.Allocator) ![]const u8 {
     return result;
 }
 
+pub fn getShaderDirPath(a: std.mem.Allocator) ![]const u8 {
+    const cwd: []const u8 = @as([]const u8, try getCWD(a));
+    defer a.free(cwd);
+    return try combine(a, cwd, "shaders/");
+}
+
 pub fn getConfigDirPath(a: std.mem.Allocator) ![]const u8 {
     const cwd: []const u8 = @as([]const u8, try getCWD(a));
     defer a.free(cwd);

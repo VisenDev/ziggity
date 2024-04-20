@@ -38,6 +38,8 @@ pub const Sprite = struct {
     animation_player: anime.AnimationPlayer = .{ .animation_name = "default" },
     z_level: ZLevels = .middleground, //0 is the lowest
     disabled: bool = false,
+    styling: ?enum { shrink } = null,
+    creation_time: ?f32 = null,
 };
 //pub const Tracker = ai.Targeter;
 pub const Movement_particles = struct {
@@ -109,7 +111,6 @@ pub const DeathParticles = struct {
 pub const DeathAnimation = struct {
     animation_name: []const u8 = "",
 };
-
 //if an entity has this component it will die whenever its animation stops looping
 pub const DieWithAnimation = struct {};
 
