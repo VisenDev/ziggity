@@ -33,6 +33,18 @@ pub inline fn initCamera() ray.Camera2D {
 //every tile is scaled up to this resolution before rendering
 pub const render_resolution = 64;
 
+pub fn tileToScreen(tile_coordinates: ray.Vector2, camera: ray.Camera2D) ray.Vector2 {
+    const world_position = tileToWorld(tile_coordinates);
+    return ray.GetScreenToWorld2D(world_position, camera);
+}
+
+pub fn tileToWorld(tile_coordinates: ray.Vector2) ray.Vector2 {
+    return ray.Vector2{
+        .x = tile_coordinates.x * render_resolution,
+        .y = tile_coordinates.y * render_resolution,
+    };
+}
+
 //TODO update camera offset
 pub fn calculateCameraPosition(
     camera: ray.Camera2D,

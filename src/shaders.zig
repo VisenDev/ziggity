@@ -1,4 +1,5 @@
 const file = @import("file_utils.zig");
+const cam = @import("camera.zig");
 const std = @import("std");
 const ray = @cImport({
     @cInclude("raylib.h");
@@ -31,6 +32,14 @@ pub fn getRaylibTypeFlag(comptime T: type) i32 {
         IVec4 => ray.SHADER_UNIFORM_IVEC4,
         ray.Texture2D => ray.SHADER_UNIFORM_SAMPLER2D,
         else => @compileError("Invalid Type"),
+    };
+}
+
+pub fn convertTileToOpenGL(pos: ray.Vector2, camera: ray.Camera2D) Vec2 {
+    const screenPos = cam.tileToScreen(pos, camera);
+    return Vec2{
+        .x = 1 - (screenPos.x / cam.screenWidth()),
+        .y = (screenPos.y / cam.screenHeight()),
     };
 }
 

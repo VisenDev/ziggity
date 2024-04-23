@@ -1,6 +1,5 @@
 const ziglua = @import("ziglua");
 const file = @import("file_utils.zig");
-const Lua = ziglua.Lua;
 const ecs = @import("ecs.zig");
 const level = @import("level.zig");
 const cmd = @import("console.zig");
@@ -10,25 +9,25 @@ const ray = @cImport({
     @cInclude("raylib.h");
 });
 
-pub fn initLuaApi(a: *const std.mem.Allocator) !Lua {
-    var l = try Lua.init(a);
+pub fn initLuaApi(a: *const std.mem.Allocator) !*ziglua.Lua {
+    var l = try ziglua.Lua.init(a);
     l.openLibs();
 
-    const api = .{
-        .console = .{
-            .clear = cmd.Console.clear,
-            .log = cmd.Console.log,
-        },
-        //        .lvl = .{
-        //            .newEntity = ecs.ECS.newEntityPtr,
-        //            .addComponent = ecs.ECS.addJsonComponent,
-        //        },
-        .file = .{},
-    };
+    // const api = .{
+    //     .console = .{
+    //         .clear = cmd.Console.clear,
+    //         .log = cmd.Console.log,
+    //     },
+    //     //        .lvl = .{
+    //     //            .newEntity = ecs.ECS.newEntityPtr,
+    //     //            .addComponent = ecs.ECS.addJsonComponent,
+    //     //        },
+    //     .file = .{},
+    // };
 
-    try l.set("api", api);
+    // try l.set("api", api);
 
-    try l.doString(@embedFile("scripts/archetypes.lua"));
+    //try l.doString(@embedFile("scripts/archetypes.lua"));
     try l.doString(@embedFile("scripts/procgen.lua"));
 
     //load the entry

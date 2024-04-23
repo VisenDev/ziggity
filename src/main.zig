@@ -80,8 +80,8 @@ pub fn main() !void {
             .main_menu => menu.drawMainMenu(),
             .save_menu => try menu.drawSaveSelectMenu(a, &save_id),
             .config_menu => err.crashToMainMenu("config_menu_not_implemented_yet"),
-            .new_save => try menu.drawNewSaveMenu(a, &lua),
-            .game => try runGame(a, &lua, save_id),
+            .new_save => try menu.drawNewSaveMenu(a, lua),
+            .game => try runGame(a, lua, save_id),
         };
     }
 }
@@ -166,13 +166,29 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
 
             anime.renderSprites(lvl.ecs, a, &animation_state);
 
-            for (0..10) |_| {
-                try light_shader.addLight(a, .{
-                    .color = .{ .x = 1.0, .y = 0.5, .z = 1.0, .a = 1.0 },
-                    .radius = 100.0,
-                    .position = .{ .x = 100, .y = 100 },
-                }, camera);
-            }
+            try light_shader.addLight(a, .{
+                .color = .{ .x = 1.0, .y = 0.5, .z = 1.0, .a = 1.0 },
+                .radius = 0.1,
+                .position = shade.convertTileToOpenGL(.{ .x = 5, .y = 5 }, camera),
+            }, camera);
+
+            try light_shader.addLight(a, .{
+                .color = .{ .x = 1.0, .y = 0.5, .z = 1.0, .a = 1.0 },
+                .radius = 0.2,
+                .position = shade.convertTileToOpenGL(.{ .x = 1, .y = 1 }, camera),
+            }, camera);
+
+            try light_shader.addLight(a, .{
+                .color = .{ .x = 1.0, .y = 1, .z = 1.0, .a = 1.0 },
+                .radius = 1.3,
+                .position = shade.convertTileToOpenGL(.{ .x = 1, .y = 5 }, camera),
+            }, camera);
+
+            try light_shader.addLight(a, .{
+                .color = .{ .x = 1.0, .y = 0.5, .z = 1.0, .a = 1.0 },
+                .radius = 0.4,
+                .position = shade.convertTileToOpenGL(.{ .x = 9, .y = 9 }, camera),
+            }, camera);
 
             light_shader.render();
         }
