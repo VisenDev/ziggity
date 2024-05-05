@@ -7,14 +7,14 @@ const ray = @cImport({
 pub const Update = struct {
     total_time: f32 = 0,
     dt: f32 = 0,
-    debugger: *debug.DebugRenderer = undefined,
+    debugger: *debug.DebugRenderer,
+
     pub inline fn dtInMs(self: Update) f32 {
         return self.dt * 1000.0;
     }
-    pub fn update(self: *Update, debugger: *debug.DebugRenderer) void {
+    pub fn update(self: *Update) void {
         self.dt = ray.GetFrameTime();
         self.total_time += self.dt;
-        self.debugger = debugger;
     }
 };
 

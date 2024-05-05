@@ -29,7 +29,9 @@ pub fn build(b: *std.Build) void {
     //exe.addSystemIncludePath(.{ .path = "/usr/local/include/raylib.h" });
 
     //flags to find raylib correctly
-    exe.addIncludePath(.{ .path = "lib" });
+    exe.addIncludePath(b.path("lib/"));
+    exe.addIncludePath(b.path("./lib/"));
+    exe.addIncludePath(b.path("./lib/raygui.h"));
     const cflags = [_][]const u8{ "-D RAYGUI_IMPLEMENTATION", "-lraylib" };
     exe.addCSourceFile(.{ .file = .{
         .path = "lib/raygui.c",

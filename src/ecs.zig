@@ -254,6 +254,10 @@ pub const ECS = struct {
 
         return self.domain_id_buffer.items;
     }
+
+    pub fn getNumEntities(self: @This()) usize {
+        return self.capacity - self.availible_ids.items.len;
+    }
 };
 
 //=================LUA WRAPPERS=====================

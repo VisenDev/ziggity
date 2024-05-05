@@ -14,6 +14,7 @@ pub fn createSlime(self: *ecs.ECS, a: std.mem.Allocator) !usize {
     try self.setComponent(a, id, Component.Sprite{ .animation_player = .{ .animation_name = "slime" } });
     try self.setComponent(a, id, Component.Controller{});
     try self.setComponent(a, id, Component.Wanderer{});
+    try self.setComponent(a, id, Component.Light{});
     return id;
 }
 
@@ -27,6 +28,7 @@ pub fn createPlayer(self: *ecs.ECS, a: std.mem.Allocator) !usize {
     try self.setComponent(a, id, Component.Metadata{ .archetype = "player" });
     try self.setComponent(a, id, Component.Sprite{ .animation_player = .{ .animation_name = "player" } });
     try self.setComponent(a, id, Component.IsPlayer{});
+    try self.setComponent(a, id, Component.Light{});
     return id;
 }
 
@@ -39,6 +41,7 @@ pub fn createFireball(self: *ecs.ECS, a: std.mem.Allocator) !usize {
     try self.setComponent(a, id, Component.Sprite{ .animation_player = .{ .animation_name = "fireball" } });
     try self.setComponent(a, id, Component.Damage{});
     try self.setComponent(a, id, Component.DieWithAnimation{});
+    try self.setComponent(a, id, Component.Light{ .color = .{ .x = 0.5, .y = 0.1, .z = 0.1, .a = 0.9 }, .radius = 0.2 });
     return id;
 }
 

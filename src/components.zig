@@ -1,4 +1,5 @@
 const anime = @import("animation.zig");
+const light = @import("light.zig");
 const ai = @import("ai.zig");
 const inv = @import("inventory.zig");
 const control = @import("controller.zig");
@@ -117,3 +118,5 @@ pub const DieWithAnimation = struct {};
 pub const WallCollisions = struct {};
 
 pub const EntityCollisions = struct {};
+
+pub const Light = light.LightComponent;

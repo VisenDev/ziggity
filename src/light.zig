@@ -2,27 +2,36 @@ const ray = @cImport({
     @cInclude("raylib.h");
 });
 const std = @import("std");
+const options = @import("options.zig");
 const shader = @import("shaders.zig");
 const cam = @import("camera.zig");
+const ecs = @import("ecs.zig");
+const Component = @import("components.zig");
 
-pub const Light = extern struct {
+pub const LightComponent = struct {
+    color: shader.Vec4 = .{ .x = 1.0, .y = 1.0, .z = 1.0, .a = 1.0 },
+    radius: f32 = 0.1,
+};
+
+pub const ShaderLight = extern struct {
     color: shader.Vec4 = .{},
-    radius: f32 = 0,
+    radius: f32 = 0.0,
     position: shader.Vec2 = .{},
 };
 
 pub const LightShader = struct {
-    pub const max_num_lights = 64;
+    pub const max_num_lights = 1024;
 
     shader: ray.Shader,
-    lights: std.MultiArrayList(Light),
+    camera: *const ray.Camera2D,
+    lights: std.MultiArrayList(ShaderLight),
     locations: std.StringHashMap(i32),
     num_active_lights: i32,
 
-    pub fn init(a: std.mem.Allocator) !LightShader {
+    pub fn init(a: std.mem.Allocator, camera: *const ray.Camera2D) !LightShader {
         const my_shader = try shader.loadFragmentShader(a, "light.fs");
 
-        var lights = std.MultiArrayList(Light){};
+        var lights = std.MultiArrayList(ShaderLight){};
         try lights.ensureTotalCapacity(a, max_num_lights);
         for (0..max_num_lights) |_| {
             try lights.append(a, .{});
@@ -33,7 +42,7 @@ pub const LightShader = struct {
         try locations.put("screen_height", ray.GetShaderLocation(my_shader, "screen_height"));
         try locations.put("screen_width", ray.GetShaderLocation(my_shader, "screen_width"));
 
-        inline for (std.meta.fields(Light)) |field| {
+        inline for (std.meta.fields(ShaderLight)) |field| {
             try locations.put(field.name, ray.GetShaderLocation(my_shader, field.name));
         }
 
@@ -42,6 +51,7 @@ pub const LightShader = struct {
             .lights = lights,
             .num_active_lights = 0,
             .locations = locations,
+            .camera = camera,
         };
     }
 
@@ -51,14 +61,15 @@ pub const LightShader = struct {
         self.locations.deinit();
     }
 
-    pub fn addLight(self: *@This(), a: std.mem.Allocator, light: Light, camera: ray.Camera2D) !void {
-        _ = a;
-        //TODO check if light will be visible before rendering
-        //TODO convert world coordinates to screen coordinates for the shader
-        _ = camera;
+    pub fn addLightToRender(self: *@This(), light: LightComponent, tile_position: ray.Vector2) !void {
         if (self.num_active_lights == max_num_lights) return error.OutOfCapacity;
 
-        self.lights.set(@intCast(self.num_active_lights), light);
+        const shader_light = ShaderLight{
+            .color = light.color,
+            .radius = light.radius * self.camera.zoom,
+            .position = shader.convertTileToOpenGL(tile_position, self.camera.*),
+        };
+        self.lights.set(@intCast(self.num_active_lights), shader_light);
         self.num_active_lights += 1;
     }
 
@@ -74,9 +85,9 @@ pub const LightShader = struct {
         const height = ray.GetScreenHeight();
         ray.SetShaderValue(self.shader, height_loc, &height, shader.getRaylibTypeFlag(i32));
 
-        inline for (std.meta.fields(Light)) |field| {
+        inline for (std.meta.fields(ShaderLight)) |field| {
             const loc = self.locations.get(field.name).?;
-            const field_enum = @field(std.MultiArrayList(Light).Field, field.name);
+            const field_enum = @field(std.MultiArrayList(ShaderLight).Field, field.name);
             const data = self.lights.items(field_enum);
             ray.SetShaderValueV(self.shader, loc, data.ptr, shader.getRaylibTypeFlag(field.type), self.num_active_lights);
         }
@@ -84,3 +95,22 @@ pub const LightShader = struct {
         self.num_active_lights = 0;
     }
 };
+
+pub fn updateLightingSystem(
+    self: *ecs.ECS,
+    a: std.mem.Allocator,
+    light_shader: *LightShader,
+    opt: options.Update,
+) !void {
+    const systems = [_]type{ Component.Light, Component.Physics };
+    const set = self.getSystemDomain(a, &systems);
+
+    opt.debugger.addText("Num Lights: {}", .{set.len});
+
+    for (set) |member| {
+        const light = self.get(Component.Light, member);
+        const physics = self.get(Component.Physics, member);
+
+        try light_shader.addLightToRender(light.*, physics.pos);
+    }
+}
