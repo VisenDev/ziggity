@@ -17,8 +17,15 @@ pub fn screenHeight() f32 {
     return @floatFromInt(ray.GetScreenHeight());
 }
 
-fn tof32(input: anytype) f32 {
+pub fn tof32(input: anytype) f32 {
     return @floatFromInt(input);
+}
+
+pub fn scaleVector(a: ray.Vector2, scalar: anytype) ray.Vector2 {
+    if (@TypeOf(scalar) == f32)
+        return .{ .x = a.x * scalar, .y = a.y * scalar };
+
+    return .{ .x = a.x * tof32(scalar), .y = a.y * tof32(scalar) };
 }
 
 pub inline fn initCamera() ray.Camera2D {
@@ -35,7 +42,7 @@ pub const render_resolution = 64;
 
 pub fn tileToScreen(tile_coordinates: ray.Vector2, camera: ray.Camera2D) ray.Vector2 {
     const world_position = tileToWorld(tile_coordinates);
-    return ray.GetScreenToWorld2D(world_position, camera);
+    return ray.GetWorldToScreen2D(world_position, camera);
 }
 
 pub fn tileToWorld(tile_coordinates: ray.Vector2) ray.Vector2 {

@@ -105,7 +105,7 @@ pub const AnimationPlayer = struct {
                 .x = position.x,
                 .y = position.y,
                 .width = @floatFromInt(texture.width),
-                .height = @floatFromInt(camera.render_resolution),
+                .height = @floatFromInt(texture.height),
             };
 
         ray.DrawTexturePro(texture, subrect, render_rect, animation.origin, opt.rotation, opt.tint);

@@ -37,9 +37,10 @@ pub fn getRaylibTypeFlag(comptime T: type) i32 {
 
 pub fn convertTileToOpenGL(pos: ray.Vector2, camera: ray.Camera2D) Vec2 {
     const screenPos = cam.tileToScreen(pos, camera);
+
     return Vec2{
-        .x = 1 - (screenPos.x / cam.screenWidth()),
-        .y = (screenPos.y / cam.screenHeight()),
+        .x = ((screenPos.x / cam.screenWidth())),
+        .y = (1 - (screenPos.y / cam.screenHeight())),
     };
 }
 

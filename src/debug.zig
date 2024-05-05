@@ -1,5 +1,5 @@
 const std = @import("std");
-const camera = @import("camera.zig");
+const cam = @import("camera.zig");
 const tile = @import("tiles.zig");
 const anime = @import("animation.zig");
 const map = @import("map.zig");
@@ -16,6 +16,88 @@ const sys = @import("systems.zig");
 const ray = @cImport({
     @cInclude("raylib.h");
 });
+
+pub const DebugEntry = struct {
+    pub const max_string_length = 256;
+
+    font_size: f32 = 20,
+    text_spacing: f32 = 2,
+    screen_position: ray.Vector2,
+    buffer: [max_string_length]u8 = [_]u8{0} ** max_string_length,
+};
+
+pub const DebugRenderer = struct {
+    camera: ray.Camera2D,
+    enabled: bool = false,
+    entries: std.ArrayList(DebugEntry),
+    num_debug_entries: usize = 0,
+
+    pub fn init(a: std.mem.Allocator, camera: ray.Camera2D) !@This() {
+        return @This(){
+            .camera = camera,
+            .entries = try std.ArrayList(DebugEntry).initCapacity(a, 32),
+        };
+    }
+
+    pub fn deinit(self: *@This()) void {
+        self.entries.deinit();
+    }
+
+    pub fn update(self: *@This(), camera: ray.Camera2D) void {
+        self.camera = camera;
+    }
+
+    pub fn render(self: *@This()) void {
+        if (self.enabled) {
+            for (self.entries.items) |entry| {
+                ray.DrawTextEx(
+                    ray.GetFontDefault(),
+                    (&entry.buffer).ptr,
+                    entry.screen_position,
+                    entry.font_size,
+                    entry.text_spacing,
+                    ray.RAYWHITE,
+                );
+            }
+        }
+        self.entries.clearRetainingCapacity();
+    }
+
+    pub fn addText(self: *@This(), comptime fmt: [:0]const u8, args: anytype) void {
+        const coordinates = ray.Vector2{ .x = 15, .y = 15 + self.font_size * self.num_debug_text_rows };
+        self.num_debug_text_rows += 1;
+        self.addTextAtScreenPosition(coordinates, fmt, args);
+    }
+
+    pub fn addTextAtScreenPosition(self: *@This(), position: ray.Vector2, comptime fmt: [:0]const u8, args: anytype) void {
+        self.entries.append(DebugEntry{
+            .screen_position = position,
+        }) catch {
+            std.debug.print("failed to allocate debug memory\n", .{});
+            return;
+        };
+        const buffer: []u8 = &self.entries.items[self.entries.items.len - 1].buffer;
+        _ = std.fmt.bufPrintZ(buffer, fmt, args) catch "[formatting error]";
+        //ray.DrawTextEx(ray.GetFontDefault(), string.ptr, position, self.font_size, self.text_spacing, ray.RAYWHITE);
+    }
+
+    pub fn addTextAtTileCoordinates(self: *@This(), coordinates: ray.Vector2, comptime fmt: [:0]const u8, args: anytype) void {
+        const screen_position = cam.tileToScreen(coordinates, self.camera);
+        self.addTextAtScreenPosition(screen_position, fmt, args);
+    }
+};
+
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 const font_size: c_int = 20;
 
@@ -75,8 +157,8 @@ pub fn renderWanderDestinations(self: *ecs.ECS, a: std.mem.Allocator) !void {
         const wanderer = self.get(Component.Wanderer, member);
 
         ray.DrawRectangleLinesEx(.{
-            .x = wanderer.destination.x * camera.render_resolution,
-            .y = wanderer.destination.y * camera.render_resolution,
+            .x = wanderer.destination.x * cam.render_resolution,
+            .y = wanderer.destination.y * cam.render_resolution,
             .width = 5,
             .height = 5,
         }, 1, ray.ColorAlpha(ray.RAYWHITE, 0.4));

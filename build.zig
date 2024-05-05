@@ -20,14 +20,16 @@ pub fn build(b: *std.Build) void {
     // add the ziglua module and lua artifact
     exe.root_module.addImport("ziglua", ziglua.module("ziglua"));
 
+    //the actual raylib import
     const ray = b.dependency("raylib", .{ .target = target, .optimize = optimize });
     exe.linkLibrary(ray.artifact("raylib"));
-    //exe.addCSourceFile(.{ .file = .{ .path = "lib/raylib.h" } });
 
-    //find raygui.h
-    exe.addIncludePath(.{ .path = "lib" });
+    //unnecessary ways i've been trying to show zls where raylib.h is
+    //exe.addIncludePath(b.path("lib/raylib.h"));
+    //exe.addSystemIncludePath(.{ .path = "/usr/local/include/raylib.h" });
 
     //flags to find raylib correctly
+    exe.addIncludePath(.{ .path = "lib" });
     const cflags = [_][]const u8{ "-D RAYGUI_IMPLEMENTATION", "-lraylib" };
     exe.addCSourceFile(.{ .file = .{
         .path = "lib/raygui.c",
