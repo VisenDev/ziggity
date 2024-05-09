@@ -20,22 +20,22 @@ const ray = @cImport({
 pub const DebugEntry = struct {
     pub const max_string_length = 256;
     pub const default_font_size = 8;
+    pub const PositionType = enum { screen_position, tile_position };
 
     font_size: f32 = default_font_size,
     text_spacing: f32 = 2,
-    screen_position: ray.Vector2,
+    position: ray.Vector2,
+    position_type: PositionType = .screen_position,
     buffer: [max_string_length]u8 = [_]u8{0} ** max_string_length,
 };
 
 pub const DebugRenderer = struct {
-    camera: *const ray.Camera2D,
     enabled: bool = true,
     entries: std.ArrayList(DebugEntry),
     num_debug_text_rows: f32 = 0,
 
-    pub fn init(a: std.mem.Allocator, camera: *const ray.Camera2D) !@This() {
+    pub fn init(a: std.mem.Allocator) !@This() {
         return @This(){
-            .camera = camera,
             .entries = try std.ArrayList(DebugEntry).initCapacity(a, 32),
         };
     }
@@ -44,13 +44,18 @@ pub const DebugRenderer = struct {
         self.entries.deinit();
     }
 
-    pub fn render(self: *@This()) void {
+    pub fn render(self: *@This(), animation_state: *const anime.AnimationState) void {
         if (self.enabled) {
             for (self.entries.items) |entry| {
+                const position = if (entry.position_type == .tile_position)
+                    animation_state.tileToScreen(entry.position)
+                else
+                    entry.position;
+
                 ray.DrawTextEx(
                     ray.GetFontDefault(),
                     (&entry.buffer).ptr,
-                    entry.screen_position,
+                    position,
                     entry.font_size,
                     entry.text_spacing,
                     ray.RAYWHITE,
@@ -69,18 +74,20 @@ pub const DebugRenderer = struct {
             .y = default_offset + font_size * self.num_debug_text_rows,
         };
         self.num_debug_text_rows += 1;
-        self.addTextAtScreenPosition(coordinates, font_size, fmt, args);
+        self.addTextAtPosition(coordinates, .screen_position, font_size, fmt, args);
     }
 
-    pub fn addTextAtScreenPosition(
+    pub fn addTextAtPosition(
         self: *@This(),
         position: ray.Vector2,
+        position_type: DebugEntry.PositionType,
         font_size: f32,
         comptime fmt: [:0]const u8,
         args: anytype,
     ) void {
         self.entries.append(DebugEntry{
-            .screen_position = position,
+            .position = position,
+            .position_type = position_type,
             .font_size = font_size,
         }) catch {
             std.debug.print("failed to allocate debug memory\n", .{});
@@ -91,11 +98,11 @@ pub const DebugRenderer = struct {
         //ray.DrawTextEx(ray.GetFontDefault(), string.ptr, position, self.font_size, self.text_spacing, ray.RAYWHITE);
     }
 
-    pub fn addTextAtTileCoordinates(self: *@This(), coordinates: ray.Vector2, comptime fmt: [:0]const u8, args: anytype) void {
-        const screen_position = cam.tileToScreen(coordinates, self.camera);
-        const font_size: f32 = 8;
-        self.addTextAtScreenPosition(screen_position, font_size * self.camera.zoom, fmt, args);
-    }
+    //pub fn addTextAtTileCoordinates(self: *@This(), coordinates: ray.Vector2, comptime fmt: [:0]const u8, args: anytype) void {
+    //    //const screen_position = cam.tileToScreen(coordinates, self.camera);
+    //    const font_size: f32 = 8;
+    //    self.addTextAtScreenPosition(screen_position, font_size * self.camera.zoom, fmt, args);
+    //}
 };
 
 //

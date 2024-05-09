@@ -70,7 +70,7 @@ function Animations()
 
    return {
       SubImage("player", "entities.png", 0, 0, 32, 32),
-      SubImage("particle", "entities.png", 14, 14, 4, 4),
+      SubImage("particle", "entities.png", 14, 14, 2, 2),
 
       --caves
       SubImage("cave_wall", "tilemap.png", 0, 0, 32, 32),
@@ -137,4 +137,8 @@ function Tiles()
       MakeTile("fort_floor", "floor"),
       MakeTile("fort_wall", "wall"),
    }
+end
+
+function TilemapResolution()
+   return 32
 end

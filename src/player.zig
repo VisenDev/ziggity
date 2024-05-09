@@ -24,7 +24,7 @@ pub fn updatePlayerSystem(
     a: std.mem.Allocator,
     l: *Lua,
     keys: key.KeyBindings,
-    camera: ray.Camera2D,
+    animation_state: anime.AnimationState,
     opt: options.Update,
 ) !void {
     _ = l;
@@ -59,7 +59,7 @@ pub fn updatePlayerSystem(
         //let player shoot projectiles
         if (ray.IsMouseButtonDown(ray.MOUSE_BUTTON_LEFT)) {
             const fireball = try arch.createFireball(self, a);
-            const pos = cam.mousePos(camera);
+            const pos = animation_state.mousePosition();
             self.setComponent(a, fireball, Component.Physics{
                 .pos = pos,
                 .vel = .{
@@ -73,7 +73,7 @@ pub fn updatePlayerSystem(
         if (ray.IsMouseButtonDown(ray.MOUSE_BUTTON_RIGHT)) {
             //const slime = try l.autoCall(?usize, "SpawnSlime", .{ self, &copy }) orelse break;
             const slime = arch.createSlime(self, a) catch continue;
-            const pos = cam.mousePos(camera);
+            const pos = animation_state.mousePosition();
             self.setComponent(a, slime, Component.Physics{
                 .pos = pos,
             }) catch continue;

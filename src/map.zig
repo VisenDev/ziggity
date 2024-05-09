@@ -201,8 +201,8 @@ pub const MapState = struct {
         for (0..self.animation_grid.items.len) |x| {
             for (0..self.animation_grid.items[x].len) |y| {
                 self.animation_grid.items[x][y].render(animation_state, .{
-                    .x = @floatFromInt(x * camera.render_resolution),
-                    .y = @floatFromInt(y * camera.render_resolution),
+                    .x = @floatFromInt(x),
+                    .y = @floatFromInt(y),
                 });
             }
         }

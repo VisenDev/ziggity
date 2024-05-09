@@ -69,7 +69,7 @@ pub fn main() !void {
     defer lua.deinit();
 
     raygui.GuiLoadStyleDark();
-    ray.SetTargetFPS(1000);
+    ray.SetTargetFPS(200);
 
     var current_window = menu.Window.main_menu;
     var save_id: []u8 = "";
@@ -108,15 +108,13 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
     var animation_state = try anime.AnimationState.init(a, lua);
     defer animation_state.animations.deinit();
 
-    var camera = cam.initCamera();
-
-    var light_shader = try light.LightShader.init(a, &camera);
+    var light_shader = try light.LightShader.init(a);
     defer light_shader.deinit(a);
 
     var target = ray.LoadRenderTexture(ray.GetScreenWidth(), ray.GetScreenHeight());
     defer ray.UnloadRenderTexture(target);
 
-    var debugger = try debug.DebugRenderer.init(a, &camera);
+    var debugger = try debug.DebugRenderer.init(a);
     defer debugger.deinit();
 
     var update_options = options.Update{ .debugger = &debugger };
@@ -133,12 +131,13 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
         }
 
         //configure update options
-        camera = cam.calculateCameraPosition(camera, lvl, &keybindings);
+        //camera = cam.calculateCameraPosition(camera, lvl, &keybindings, &animation_state);
+        animation_state.updateCameraPosition(lvl, &keybindings);
         update_options.update();
 
         try move.updateEntitySeparationSystem(lvl.ecs, a, update_options);
         try move.updateMovementSystem(lvl.ecs, a, lvl.map, update_options);
-        try play.updatePlayerSystem(lvl.ecs, a, lua, keybindings, camera, update_options);
+        try play.updatePlayerSystem(lvl.ecs, a, lua, keybindings, animation_state, update_options);
         try inv.updateInventorySystem(lvl.ecs, a, update_options);
         try sys.updateDeathSystem(lvl.ecs, a, lua, update_options);
         sys.updateHealthCooldownSystem(lvl.ecs, a, update_options);
@@ -150,7 +149,7 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
 
         ray.BeginTextureMode(target);
         {
-            ray.BeginMode2D(camera); // Begin 2D mode with custom camera (2D)
+            ray.BeginMode2D(animation_state.camera); // Begin 2D mode with custom camera (2D)
             ray.ClearBackground(ray.RAYWHITE);
 
             lvl.map.render(&animation_state, &tile_state);
@@ -196,7 +195,7 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
             //    .position = shade.convertTileToOpenGL(.{ .x = 9, .y = 9 }, camera),
             //}, camera);
 
-            light_shader.render();
+            light_shader.render(&animation_state);
         }
         ray.EndTextureMode();
 
@@ -224,7 +223,7 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
             );
             ray.EndShaderMode();
 
-            debugger.render();
+            debugger.render(&animation_state);
 
             // Draw some 2d text over drawn texture
             //ray.DrawFPS(15, 15);

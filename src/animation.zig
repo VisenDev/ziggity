@@ -1,4 +1,8 @@
 const std = @import("std");
+const shader = @import("shaders.zig");
+const key = @import("keybindings.zig");
+const level = @import("level.zig");
+const cam = @import("camera.zig");
 const tile = @import("tiles.zig");
 const Component = @import("components.zig");
 const ecs = @import("ecs.zig");
@@ -15,6 +19,25 @@ fn tof32(input: anytype) f32 {
     return @floatFromInt(input);
 }
 
+pub fn screenWidth() f32 {
+    return @floatFromInt(ray.GetScreenWidth());
+}
+
+pub fn screenHeight() f32 {
+    return @floatFromInt(ray.GetScreenHeight());
+}
+
+pub const SpriteComponent = struct {
+
+    //z level constants
+    pub const ZLevels = enum { background, middleground, foreground };
+    animation_player: AnimationPlayer = .{ .animation_name = "default" },
+    z_level: ZLevels = .middleground,
+    disabled: bool = false,
+    styling: ?enum { shrink } = null,
+    creation_time: ?f32 = null,
+};
+
 pub const AnimationFrame = struct {
     subrect: ray.Rectangle,
     milliseconds: f32 = 250,
@@ -25,7 +48,6 @@ pub const Animation = struct {
     filepath: []const u8,
     name: []const u8,
     loop: bool = true,
-    //rotation_speed: f32 = 0, //scalar to be multiplied by dt when rotating
     origin: ray.Vector2 = .{ .x = 0, .y = 0 },
     //render_style: enum { pixel_perfect, scaled } = .pixel_perfect,
     frames: []const AnimationFrame = &.{},
@@ -65,7 +87,7 @@ pub const AnimationPlayer = struct {
     disabled: bool = false,
 
     //renders the animation
-    pub fn render(self: *const @This(), state: *const AnimationState, position: ray.Vector2, opt: RenderOptions) void {
+    pub fn render(self: *const @This(), state: *const AnimationState, tilemap_position: ray.Vector2, opt: RenderOptions) void {
         if (self.disabled) return;
 
         const animation = state.animations.get(self.animation_name) orelse {
@@ -73,14 +95,12 @@ pub const AnimationPlayer = struct {
             return;
         };
 
-        const texture =
-            if (animation.texture != null)
+        const texture = if (animation.texture != null)
             animation.texture.?
         else
             @panic("missing texture, this should never happen");
 
-        const unflipped_subrect =
-            if (animation.frames.len > 0)
+        const unflipped_subrect = if (animation.frames.len > 0)
             animation.frames[self.current_frame].subrect
         else
             ray.Rectangle{
@@ -93,20 +113,12 @@ pub const AnimationPlayer = struct {
         const subrect = if (opt.flipped) flipSelection(unflipped_subrect) else unflipped_subrect;
 
         const render_rect =
-            if (opt.render_style == .scaled_to_grid)
             ray.Rectangle{
-                .x = position.x,
-                .y = position.y,
-                .width = camera.render_resolution + 0.1,
-                .height = camera.render_resolution + 0.1,
-            }
-        else
-            ray.Rectangle{
-                .x = position.x,
-                .y = position.y,
-                .width = @floatFromInt(texture.width),
-                .height = @floatFromInt(texture.height),
-            };
+            .x = tilemap_position.x * state.tilemap_resolution,
+            .y = tilemap_position.y * state.tilemap_resolution,
+            .width = unflipped_subrect.width,
+            .height = unflipped_subrect.height,
+        };
 
         ray.DrawTexturePro(texture, subrect, render_rect, animation.origin, opt.rotation, opt.tint);
     }
@@ -135,17 +147,72 @@ pub const AnimationPlayer = struct {
 pub const AnimationState = struct {
     animations: std.StringHashMap(Animation),
     textures: std.StringHashMap(ray.Texture2D),
+    tilemap_resolution: f32,
+    camera: ray.Camera2D,
 
     pub fn deinit(self: *@This()) void {
-        _ = self;
+        var iter = self.textures.iterator();
+        while (iter.next()) |entry| {
+            ray.UnloadTexture(entry.value_ptr.*);
+        }
+        self.animations.deinit();
+        self.textures.deinit();
+    }
 
-        //TODO implement
+    pub fn updateCameraPosition(self: *@This(), l: level.Level, keybindings: *const key.KeyBindings) void {
+        var zoom = self.camera.zoom;
+        if (keybindings.isDown("zoom_in") and zoom < 4.3) zoom *= 1.01;
+        if (keybindings.isDown("zoom_out") and zoom > 0.7) zoom *= 0.99;
+
+        const player_id = l.player_id;
+        var player_position: ray.Vector2 = l.ecs.get(Component.Physics, player_id).pos;
+
+        player_position.x *= self.tilemap_resolution;
+        player_position.y *= self.tilemap_resolution;
+
+        const min_camera_x: f32 = (screenWidth() / 2) / zoom;
+        const min_camera_y: f32 = (screenHeight() / 2) / zoom;
+
+        if (player_position.x < min_camera_x) {
+            player_position.x = min_camera_x;
+        }
+
+        if (player_position.y < min_camera_y) {
+            player_position.y = min_camera_y;
+        }
+
+        const map_width: f32 = tof32(l.map.width) * self.tilemap_resolution;
+        const map_height: f32 = tof32(l.map.height) * self.tilemap_resolution;
+        const max_camera_x: f32 = (map_width - min_camera_x);
+        const max_camera_y: f32 = (map_height - min_camera_y);
+
+        if (player_position.x > max_camera_x) {
+            player_position.x = max_camera_x;
+        }
+
+        if (player_position.y > max_camera_y) {
+            player_position.y = max_camera_y;
+        }
+
+        self.camera = ray.Camera2D{
+            .offset = .{ .x = screenWidth() / 2, .y = screenHeight() / 2 },
+            .rotation = 0.0,
+            .zoom = zoom,
+            .target = player_position,
+        };
     }
 
     pub fn init(a: std.mem.Allocator, lua: *Lua) !@This() {
         var self = .{
             .animations = std.StringHashMap(Animation).init(a),
             .textures = std.StringHashMap(ray.Texture2D).init(a),
+            .tilemap_resolution = try lua.autoCall(f32, "TilemapResolution", .{}),
+            .camera = ray.Camera2D{
+                .offset = .{ .x = 0, .y = 0 },
+                .rotation = 0.0,
+                .zoom = 2,
+                .target = .{ .x = 0, .y = 0 },
+            },
         };
         errdefer self.animations.deinit();
         errdefer self.textures.deinit();
@@ -175,6 +242,32 @@ pub const AnimationState = struct {
         }
 
         return self;
+    }
+
+    pub fn mousePosition(self: *const @This()) ray.Vector2 {
+        return scaleVector(
+            ray.GetScreenToWorld2D(ray.GetMousePosition(), self.camera),
+            1.0 / self.tilemap_resolution,
+        );
+    }
+
+    ///convert Tile Position to Screen Position
+    pub fn tileToScreen(self: *const @This(), tile_coordinates: ray.Vector2) ray.Vector2 {
+        const world_position = ray.Vector2{
+            .x = tile_coordinates.x * self.tilemap_resolution,
+            .y = tile_coordinates.y * self.tilemap_resolution,
+        };
+        return ray.GetWorldToScreen2D(world_position, self.camera);
+    }
+
+    ///convert Tile Position to OpenGl Screen Position (normalized coordinates)
+    pub fn TileToOpenGl(self: *const @This(), pos: shader.Vec2) shader.Vec2 {
+        const screenPos = self.tileToScreen(pos);
+
+        return shader.Vec2{
+            .x = ((screenPos.x / screenWidth())),
+            .y = (1 - (screenPos.y / screenHeight())),
+        };
     }
 };
 
@@ -213,10 +306,10 @@ pub fn renderSprites(
             if (sprite.z_level != current_z_level) continue;
 
             const opt = RenderOptions{
-                .flipped = physics.vel.x > 0,
+                //.flipped = physics.vel.x > 0,
             };
 
-            sprite.animation_player.render(animation_state, scaleVector(physics.pos, camera.render_resolution), opt);
+            sprite.animation_player.render(animation_state, physics.pos, opt);
         }
     }
 }

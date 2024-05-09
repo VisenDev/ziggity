@@ -5,7 +5,7 @@ const ray = @cImport({
     @cInclude("raylib.h");
 });
 
-pub const Vec2 = extern struct { x: f32 = 0, y: f32 = 0 };
+pub const Vec2 = ray.Vector2; //extern struct { x: f32 = 0, y: f32 = 0 };
 pub const Vec3 = extern struct { x: f32 = 0, y: f32 = 0, z: f32 = 0 };
 pub const Vec4 = extern struct { x: f32 = 0, y: f32 = 0, z: f32 = 0, a: f32 = 0 };
 pub const IVec2 = extern struct { x: i32 = 0, y: i32 = 0 };
@@ -35,14 +35,14 @@ pub fn getRaylibTypeFlag(comptime T: type) i32 {
     };
 }
 
-pub fn convertTileToOpenGL(pos: ray.Vector2, camera: ray.Camera2D) Vec2 {
-    const screenPos = cam.tileToScreen(pos, camera);
-
-    return Vec2{
-        .x = ((screenPos.x / cam.screenWidth())),
-        .y = (1 - (screenPos.y / cam.screenHeight())),
-    };
-}
+//pub fn convertTileToOpenGL(pos: ray.Vector2, camera: ray.Camera2D) Vec2 {
+//    const screenPos = cam.tileToScreen(pos, camera);
+//
+//    return Vec2{
+//        .x = ((screenPos.x / cam.screenWidth())),
+//        .y = (1 - (screenPos.y / cam.screenHeight())),
+//    };
+//}
 
 //pub const ShaderValue = struct {
 //    pub const Float = f32;

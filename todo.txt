@@ -2,7 +2,7 @@
 [DONE] add death animation component
 [DONE] add death particle component 
 [TODO] revamp particle system
-[TODO] learn GLSL for light system
+[DONE] learn GLSL for light system
 [DONE] make entities drop items on death
 [DONE] render player inventory
 [DONE] factor out player systems to their own file
@@ -17,3 +17,4 @@
 [TODO] add deinit method to animations
 [TODO] add basic hostile entity AI
 [TODO] add item script functionality
+[TODO] factor out all raylib rendering code to one file which manages the camera, animations, tile resolution, etc...

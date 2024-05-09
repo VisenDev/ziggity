@@ -13,6 +13,7 @@ const ray = @cImport({
 });
 const api = @import("api.zig");
 
+///range 0.0 to 1.0
 pub fn randomFloat() f32 {
     const state = struct {
         var rng = std.rand.DefaultPrng.init(0);

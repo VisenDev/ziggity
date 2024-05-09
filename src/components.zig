@@ -32,18 +32,9 @@ pub const Health = struct {
     cooldown_remaining: f32 = 0,
     pub const damage_cooldown: u32 = 150;
 };
-pub const Sprite = struct {
-
-    //z level constants
-    pub const ZLevels = enum { background, middleground, foreground };
-    animation_player: anime.AnimationPlayer = .{ .animation_name = "default" },
-    z_level: ZLevels = .middleground, //0 is the lowest
-    disabled: bool = false,
-    styling: ?enum { shrink } = null,
-    creation_time: ?f32 = null,
-};
+pub const Sprite = anime.SpriteComponent;
 //pub const Tracker = ai.Targeter;
-pub const Movement_particles = struct {
+pub const MovementParticles = struct {
     color: ray.Color = ray.WHITE,
     quantity: u32 = 1,
 };

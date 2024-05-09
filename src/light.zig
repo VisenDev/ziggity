@@ -1,10 +1,10 @@
 const ray = @cImport({
     @cInclude("raylib.h");
 });
+const anime = @import("animation.zig");
 const std = @import("std");
 const options = @import("options.zig");
 const shader = @import("shaders.zig");
-const cam = @import("camera.zig");
 const ecs = @import("ecs.zig");
 const Component = @import("components.zig");
 
@@ -23,12 +23,11 @@ pub const LightShader = struct {
     pub const max_num_lights = 1024;
 
     shader: ray.Shader,
-    camera: *const ray.Camera2D,
     lights: std.MultiArrayList(ShaderLight),
     locations: std.StringHashMap(i32),
     num_active_lights: i32,
 
-    pub fn init(a: std.mem.Allocator, camera: *const ray.Camera2D) !LightShader {
+    pub fn init(a: std.mem.Allocator) !LightShader {
         const my_shader = try shader.loadFragmentShader(a, "light.fs");
 
         var lights = std.MultiArrayList(ShaderLight){};
@@ -51,7 +50,6 @@ pub const LightShader = struct {
             .lights = lights,
             .num_active_lights = 0,
             .locations = locations,
-            .camera = camera,
         };
     }
 
@@ -66,14 +64,14 @@ pub const LightShader = struct {
 
         const shader_light = ShaderLight{
             .color = light.color,
-            .radius = light.radius * self.camera.zoom,
-            .position = shader.convertTileToOpenGL(tile_position, self.camera.*),
+            .radius = light.radius,
+            .position = .{ .x = tile_position.x, .y = tile_position.y }, //shader.convertTileToOpenGL(tile_position, self.camera.*),
         };
         self.lights.set(@intCast(self.num_active_lights), shader_light);
         self.num_active_lights += 1;
     }
 
-    pub fn render(self: *@This()) void {
+    pub fn render(self: *@This(), animation_state: *const anime.AnimationState) void {
         const num_loc = self.locations.get("num_active_lights").?;
         ray.SetShaderValue(self.shader, num_loc, &self.num_active_lights, shader.getRaylibTypeFlag(i32));
 
@@ -84,6 +82,16 @@ pub const LightShader = struct {
         const height_loc = self.locations.get("screen_height").?;
         const height = ray.GetScreenHeight();
         ray.SetShaderValue(self.shader, height_loc, &height, shader.getRaylibTypeFlag(i32));
+
+        //convert tile coordinates to OpenGl Coordinates
+        for (self.lights.items(.position)) |*pos| {
+            pos.* = animation_state.TileToOpenGl(pos.*);
+        }
+
+        //scale radius using zoom
+        for (self.lights.items(.radius)) |*rad| {
+            rad.* *= animation_state.camera.zoom;
+        }
 
         inline for (std.meta.fields(ShaderLight)) |field| {
             const loc = self.locations.get(field.name).?;

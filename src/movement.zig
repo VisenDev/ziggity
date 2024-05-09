@@ -144,19 +144,21 @@ pub fn updateMovementSystem(
         physics.vel.x *= physics.friction;
         physics.vel.y *= physics.friction;
 
-        if (self.getMaybe(Component.Movement_particles, member)) |_| {
+        if (self.getMaybe(Component.MovementParticles, member)) |_| {
             if (physics.pos.x != old_position.x or physics.pos.y != old_position.y) {
-                const particle = try arch.createParticle(self, a);
-                try self.setComponent(a, particle, Component.Physics{
-                    .pos = .{
-                        .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
-                        .y = physics.pos.y + 0.8 * (ecs.randomFloat() - 0.5),
-                    },
-                    .vel = .{
-                        .x = (ecs.randomFloat() - 0.5) * opt.dt,
-                        .y = (ecs.randomFloat() - 0.5) * opt.dt,
-                    },
-                });
+                if (ecs.randomFloat() > 0.8) {
+                    const particle = try arch.createParticle(self, a);
+                    try self.setComponent(a, particle, Component.Physics{
+                        .pos = .{
+                            .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
+                            .y = physics.pos.y + 0.8 * (ecs.randomFloat() - 0.5),
+                        },
+                        .vel = .{
+                            .x = (ecs.randomFloat() - 0.5) * opt.dt,
+                            .y = (ecs.randomFloat() - 0.5) * opt.dt,
+                        },
+                    });
+                }
             }
         }
     }
@@ -203,8 +205,8 @@ pub fn updateEntitySeparationSystem(
             if (self.hasComponent(Component.EntityCollisions, colliding_entity)) {
                 const colliding_entity_physics = self.get(Component.Physics, colliding_entity);
                 //moveAwayFrom(physics, colliding_entity_physics.pos, opt);
-                moveAwayFrom(colliding_entity_physics, physics.pos, opt);
-                moveAwayFrom(colliding_entity_physics, physics.pos, opt);
+                //moveAwayFrom(colliding_entity_physics, physics.pos, opt);
+                //moveAwayFrom(colliding_entity_physics, physics.pos, opt);
                 moveAwayFrom(colliding_entity_physics, physics.pos, opt);
             }
         }
