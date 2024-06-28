@@ -116,8 +116,8 @@ pub const AnimationPlayer = struct {
             ray.Rectangle{
             .x = tilemap_position.x * state.tilemap_resolution,
             .y = tilemap_position.y * state.tilemap_resolution,
-            .width = unflipped_subrect.width,
-            .height = unflipped_subrect.height,
+            .width = unflipped_subrect.width + 0.001,
+            .height = unflipped_subrect.height + 0.001,
         };
 
         ray.DrawTexturePro(texture, subrect, render_rect, animation.origin, opt.rotation, opt.tint);

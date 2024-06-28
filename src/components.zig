@@ -71,14 +71,9 @@ pub const Damage = struct {
 pub const Nametag = struct {
     value: []u8 = "",
 };
-pub const ExplodeOnDeath = struct {
-    filler: u8 = 0, //this field is here because zig does not like when the struct is empty
-};
-pub const IsPlayer = struct {
-    filler: u8 = 0, //this field is here because zig does not like when the struct is empty
-};
-pub const HealthTrickle = struct {
-    decrease_per_tick: f32 = 10,
+pub const IsPlayer = struct {};
+pub const Lifetime = struct {
+    milliseconds_life_remaining: f32,
 };
 pub const Invulnerable = struct {
     filler: u8 = 0, //this field is here because zig does not like when the struct is empty

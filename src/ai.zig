@@ -123,7 +123,7 @@ pub const Wanderer = struct {
                     .x = physics.pos.x + random_vector.x - 6,
                     .y = physics.pos.y + random_vector.y - 6,
                 };
-                std.debug.print("old: {}\nnew: {}\n\n", .{ wanderer.destination, random_destination });
+                //std.debug.print("old: {}\nnew: {}\n\n", .{ wanderer.destination, random_destination });
                 wanderer.destination = random_destination;
                 wanderer.state = .travelling;
                 wanderer.cooldown = 30 * ecs.randomFloat() * 1000;

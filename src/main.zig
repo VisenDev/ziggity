@@ -139,6 +139,7 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
         try move.updateMovementSystem(lvl.ecs, a, lvl.map, update_options);
         try play.updatePlayerSystem(lvl.ecs, a, lua, keybindings, animation_state, update_options);
         try inv.updateInventorySystem(lvl.ecs, a, update_options);
+        try sys.updateLifetimeSystem(lvl.ecs, a, update_options);
         try sys.updateDeathSystem(lvl.ecs, a, lua, update_options);
         sys.updateHealthCooldownSystem(lvl.ecs, a, update_options);
         try sys.updateDamageSystem(lvl.ecs, a, update_options);

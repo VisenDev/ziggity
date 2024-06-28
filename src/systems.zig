@@ -38,15 +38,12 @@ pub fn updateDeathSystem(
     l: *Lua,
     opt: options.Update,
 ) !void {
+    _ = opt; // autofix
     const systems = [_]type{Component.Health};
     const set = self.getSystemDomain(a, &systems);
 
     for (set) |member| {
         var health = self.get(Component.Health, member);
-
-        if (self.getMaybe(Component.HealthTrickle, member)) |health_trickle| {
-            health.hp -= health_trickle.decrease_per_tick * opt.dt;
-        }
 
         if (health.hp <= 0) {
             health.is_dead = true;
@@ -177,6 +174,24 @@ pub fn trimAnimationEntitySystem(
     for (set) |member| {
         const sprite = self.get(Component.Sprite, member);
         if (sprite.animation_player.disabled) {
+            try self.deleteEntity(a, member);
+        }
+    }
+}
+
+pub fn updateLifetimeSystem(
+    self: *ecs.ECS,
+    a: std.mem.Allocator,
+    opt: options.Update,
+) !void {
+    const systems = [_]type{Component.Lifetime};
+    const set = self.getSystemDomain(a, &systems);
+
+    for (set) |member| {
+        const lifetime = self.get(Component.Lifetime, member);
+        lifetime.milliseconds_life_remaining -= opt.dtInMs();
+
+        if (lifetime.milliseconds_life_remaining <= 0) {
             try self.deleteEntity(a, member);
         }
     }
