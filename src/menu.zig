@@ -38,7 +38,13 @@ pub fn drawMainMenu() Window {
 
 pub fn drawSaveSelectMenu(a: std.mem.Allocator, save_id: *[]u8) !Window {
     const path = try file.getSaveDirPath(a);
-    const save_dir = try std.fs.openDirAbsolute(path, .{});
+    const save_dir = std.fs.openDirAbsolute(path, .{ .iterate = true }) catch |e| switch (e) {
+        error.FileNotFound => blk: {
+            try std.fs.makeDirAbsolute(path);
+            break :blk try std.fs.openDirAbsolute(path, .{ .iterate = true });
+        },
+        else => return e,
+    };
     var i: f32 = 0;
 
     ray.SetMousePosition(0, 0);
