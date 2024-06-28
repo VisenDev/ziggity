@@ -13,7 +13,8 @@
 
 #define DARK_STYLE_PROPS_COUNT  22
 #include <stdlib.h>
-#include <strings.h>
+#include <string.h>
+#include <stdio.h>
 
 // Custom style name: dark
 static const GuiStyleProp darkStyleProps[DARK_STYLE_PROPS_COUNT] = {

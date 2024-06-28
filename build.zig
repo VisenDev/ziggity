@@ -6,9 +6,10 @@ pub fn build(b: *std.Build) void {
 
     const exe = b.addExecutable(.{
         .name = "dev",
-        .root_source_file = .{ .path = "src/main.zig" },
+        .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
+        .link_libc = true,
     });
 
     //link lua
@@ -33,13 +34,11 @@ pub fn build(b: *std.Build) void {
     exe.addIncludePath(b.path("./lib/"));
     exe.addIncludePath(b.path("./lib/raygui.h"));
     const cflags = [_][]const u8{ "-D RAYGUI_IMPLEMENTATION", "-lraylib" };
-    exe.addCSourceFile(.{ .file = .{
-        .path = "lib/raygui.c",
-    }, .flags = &cflags });
+    exe.addCSourceFile(.{ .file = b.path("lib/raygui.c"), .flags = &cflags });
     b.installArtifact(exe);
 
     //=============INSTALL GAME FILES===========
-    b.installDirectory(.{ .source_dir = .{ .path = "data" }, .install_dir = .bin, .install_subdir = "data" });
+    b.installDirectory(.{ .source_dir = b.path("data"), .install_dir = .bin, .install_subdir = "data" });
 
     const run_cmd = b.addRunArtifact(exe);
     run_cmd.step.dependOn(b.getInstallStep());
@@ -56,7 +55,7 @@ pub fn build(b: *std.Build) void {
     // Creates a step for unit testing. This only builds the test executable
     // but does not run it.
     var unit_tests = b.addTest(.{
-        .root_source_file = .{ .path = "src/main.zig" },
+        .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -68,15 +67,13 @@ pub fn build(b: *std.Build) void {
     //unit_tests.addModule("toml", zigtoml.module("toml"));
 
     //find raygui.h
-    unit_tests.addIncludePath(.{ .path = "lib" });
+    unit_tests.addIncludePath(b.path("lib"));
 
     //link lua
     //
     unit_tests.root_module.addImport("ziglua", ziglua.module("ziglua"));
 
-    unit_tests.addCSourceFile(.{ .file = .{
-        .path = "lib/raygui.c",
-    }, .flags = &cflags });
+    unit_tests.addCSourceFile(.{ .file = b.path("lib/raygui.c"), .flags = &cflags });
 
     var run_unit_tests = b.addRunArtifact(unit_tests);
     run_unit_tests.has_side_effects = true;
