@@ -26,7 +26,7 @@ pub fn createPlayer(self: *ecs.ECS, a: std.mem.Allocator) !usize {
     try self.setComponent(a, id, Component.Health{});
     try self.setComponent(a, id, Component.WallCollisions{});
     try self.setComponent(a, id, Component.Metadata{ .archetype = "player" });
-    try self.setComponent(a, id, Component.Sprite{ .animation_player = .{ .animation_name = "player" } });
+    try self.setComponent(a, id, Component.Sprite{ .animation_player = .{ .animation_name = "player" }, .styling = .bob });
     try self.setComponent(a, id, Component.IsPlayer{});
     try self.setComponent(a, id, Component.MovementParticles{});
     try self.setComponent(a, id, Component.Light{ .radius = 0.5 });

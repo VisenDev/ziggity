@@ -155,7 +155,7 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
 
             lvl.map.render(&animation_state, &tile_state);
 
-            anime.renderSprites(lvl.ecs, a, &animation_state);
+            anime.renderSprites(lvl.ecs, a, &animation_state, update_options);
 
             //{
             //    const systems = [_]type{ Component.IsPlayer, Component.Physics };

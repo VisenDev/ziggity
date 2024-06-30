@@ -6,7 +6,7 @@ const ray = @cImport({
 ///Standard Update options
 pub const Update = struct {
     ///time since game opening
-    total_time: f32 = 0,
+    total_time_ms: f32 = 0,
     dt: f32 = 0,
     debugger: *debug.DebugRenderer,
 
@@ -15,7 +15,7 @@ pub const Update = struct {
     }
     pub fn update(self: *Update) void {
         self.dt = ray.GetFrameTime();
-        self.total_time += self.dt;
+        self.total_time_ms += self.dtInMs();
     }
 };
 

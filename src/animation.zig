@@ -34,7 +34,7 @@ pub const SpriteComponent = struct {
     animation_player: AnimationPlayer = .{ .animation_name = "default" },
     z_level: ZLevels = .middleground,
     disabled: bool = false,
-    styling: ?enum { shrink } = null,
+    styling: ?enum { shrink, bob } = .bob,
     creation_time: ?f32 = null,
 };
 
@@ -292,6 +292,7 @@ pub fn renderSprites(
     self: *ecs.ECS,
     a: std.mem.Allocator,
     animation_state: *const AnimationState,
+    opt: options.Update,
 ) void {
     const systems = [_]type{ Component.Physics, Component.Sprite };
     const set = self.getSystemDomain(a, &systems);
@@ -305,11 +306,26 @@ pub fn renderSprites(
             if (sprite.disabled) continue;
             if (sprite.z_level != current_z_level) continue;
 
-            const opt = RenderOptions{
+            const render_options = RenderOptions{
                 //.flipped = physics.vel.x > 0,
             };
 
-            sprite.animation_player.render(animation_state, physics.pos, opt);
+            var render_position = physics.pos;
+
+            //account for bobbing
+            if (sprite.styling == .bob) {
+
+                //make sure creation time has been set
+                if (sprite.creation_time == null) {
+                    sprite.creation_time = opt.total_time_ms;
+                }
+
+                const bob_cycle_time_ms: f32 = 1000;
+                const normalized_cycle_progress = (std.math.mod(f32, (opt.total_time_ms - sprite.creation_time.?), bob_cycle_time_ms) catch 0) / bob_cycle_time_ms;
+                render_position.y += std.math.sin(normalized_cycle_progress * std.math.pi * 2) * 0.1;
+            }
+
+            sprite.animation_player.render(animation_state, render_position, render_options);
         }
     }
 }
