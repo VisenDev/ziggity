@@ -141,26 +141,30 @@ pub fn updateMovementSystem(
             }
         }
 
-        physics.vel.x *= physics.friction;
-        physics.vel.y *= physics.friction;
-
+        //adding movement particles
         if (self.getMaybe(Component.MovementParticles, member)) |_| {
-            if (physics.pos.x != old_position.x or physics.pos.y != old_position.y) {
-                if (ecs.randomFloat() > 0.8) {
-                    const particle = try arch.createParticle(self, a);
-                    try self.setComponent(a, particle, Component.Physics{
-                        .pos = .{
-                            .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
-                            .y = physics.pos.y + 0.8 * (ecs.randomFloat() - 0.5),
-                        },
-                        .vel = .{
-                            .x = (ecs.randomFloat() - 0.5) * opt.dt,
-                            .y = (ecs.randomFloat() - 0.5) * opt.dt,
-                        },
-                    });
-                }
+            const velocity_magnitude = @abs((physics.vel.x + physics.vel.y) / 2);
+
+            const adjustment_factor: f32 = 0.2;
+
+            if (velocity_magnitude > ecs.randomFloat() * adjustment_factor) {
+                const particle = try arch.createParticle(self, a);
+                const entity_hitbox = self.getMaybe(Component.Hitbox, member) orelse &Component.Hitbox{};
+                try self.setComponent(a, particle, Component.Physics{
+                    .pos = .{
+                        .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
+                        .y = physics.pos.y + (entity_hitbox.bottom - entity_hitbox.top),
+                    },
+                    .vel = .{
+                        .x = (ecs.randomFloat() - 0.5) * opt.dt,
+                        .y = (ecs.randomFloat() - 0.5) * opt.dt,
+                    },
+                });
             }
         }
+
+        physics.vel.x *= physics.friction;
+        physics.vel.y *= physics.friction;
     }
 
     //clear position cache

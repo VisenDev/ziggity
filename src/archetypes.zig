@@ -54,7 +54,6 @@ pub fn createParticle(self: *ecs.ECS, a: std.mem.Allocator) !usize {
         .z_level = .background,
     });
     try self.setComponent(a, id, Component.Metadata{ .archetype = "particle" });
-    //try self.setComponent(a, id, Component.DieWithAnimation{});
     try self.setComponent(a, id, Component.Lifetime{ .milliseconds_life_remaining = 5 * 1000 });
     return id;
 }

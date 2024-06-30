@@ -5,6 +5,7 @@ const ray = @cImport({
 
 ///Standard Update options
 pub const Update = struct {
+    ///time since game opening
     total_time: f32 = 0,
     dt: f32 = 0,
     debugger: *debug.DebugRenderer,
