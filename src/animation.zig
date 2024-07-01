@@ -34,7 +34,16 @@ pub const SpriteComponent = struct {
     animation_player: AnimationPlayer = .{ .animation_name = "default" },
     z_level: ZLevels = .middleground,
     disabled: bool = false,
-    styling: ?enum { shrink, bob } = .bob,
+    styling: struct {
+        bob: ?struct {
+            cycle_time_ms: f32 = 500,
+            distance: f32 = 0.1,
+        } = .{},
+        lean: ?struct {
+            max_angle_radians: f32 = std.math.pi,
+            resistance: f32 = 5,
+        } = .{},
+    } = .{},
     creation_time: ?f32 = null,
 };
 
@@ -62,7 +71,7 @@ pub const Animation = struct {
 };
 
 pub const RenderOptions = struct {
-    rotation: f32 = 0,
+    rotation_radians: f32 = 0,
     tint: ray.Color = ray.WHITE,
     flipped: bool = false,
     render_style: enum { scaled_to_grid, actual } = .scaled_to_grid,
@@ -120,10 +129,10 @@ pub const AnimationPlayer = struct {
             .height = unflipped_subrect.height + 0.001,
         };
 
-        ray.DrawTexturePro(texture, subrect, render_rect, animation.origin, opt.rotation, opt.tint);
+        ray.DrawTexturePro(texture, subrect, render_rect, animation.origin, std.math.radiansToDegrees(opt.rotation_radians), opt.tint);
     }
 
-    //updates animation frame and rotation
+    //updates animation frame and rotation_radians
     pub fn update(self: *@This(), state: *const AnimationState, opt: options.Update) void {
         const animation = state.animations.get(self.animation_name) orelse {
             std.log.warn("missing animation: {s}\n", .{self.animation_name});
@@ -161,8 +170,8 @@ pub const AnimationState = struct {
 
     pub fn updateCameraPosition(self: *@This(), l: level.Level, keybindings: *const key.KeyBindings) void {
         var zoom = self.camera.zoom;
-        if (keybindings.isDown("zoom_in") and zoom < 4.3) zoom *= 1.01;
-        if (keybindings.isDown("zoom_out") and zoom > 0.7) zoom *= 0.99;
+        if (keybindings.isDown("zoom_in") and zoom < 10) zoom *= 1.01;
+        if (keybindings.isDown("zoom_out") and zoom > 0.2) zoom *= 0.99;
 
         const player_id = l.player_id;
         var player_position: ray.Vector2 = l.ecs.get(Component.Physics, player_id).pos;
@@ -306,23 +315,30 @@ pub fn renderSprites(
             if (sprite.disabled) continue;
             if (sprite.z_level != current_z_level) continue;
 
-            const render_options = RenderOptions{
-                //.flipped = physics.vel.x > 0,
-            };
+            //make sure creation time has been set
+            if (sprite.creation_time == null) {
+                sprite.creation_time = opt.total_time_ms;
+            }
 
+            var render_options = RenderOptions{
+                .flipped = physics.vel.x > 0,
+            };
             var render_position = physics.pos;
 
             //account for bobbing
-            if (sprite.styling == .bob) {
+            if (sprite.styling.bob) |bob| {
+                const normalized_cycle_progress = (std.math.mod(f32, (opt.total_time_ms - sprite.creation_time.?), bob.cycle_time_ms) catch 0) / bob.cycle_time_ms;
+                render_position.y += std.math.sin(normalized_cycle_progress * std.math.pi * 2) * bob.distance;
+            }
 
-                //make sure creation time has been set
-                if (sprite.creation_time == null) {
-                    sprite.creation_time = opt.total_time_ms;
+            //account for lean
+            if (sprite.styling.lean) |lean| {
+                var raw_lean_angle: f32 = physics.vel.x * lean.resistance;
+                if (@abs(raw_lean_angle) > lean.max_angle_radians) {
+                    const sign: f32 = if (raw_lean_angle > 0) 1 else -1;
+                    raw_lean_angle = lean.max_angle_radians * sign;
                 }
-
-                const bob_cycle_time_ms: f32 = 1000;
-                const normalized_cycle_progress = (std.math.mod(f32, (opt.total_time_ms - sprite.creation_time.?), bob_cycle_time_ms) catch 0) / bob_cycle_time_ms;
-                render_position.y += std.math.sin(normalized_cycle_progress * std.math.pi * 2) * 0.1;
+                render_options.rotation_radians = raw_lean_angle * -1;
             }
 
             sprite.animation_player.render(animation_state, render_position, render_options);
