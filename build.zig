@@ -1,4 +1,5 @@
 const std = @import("std");
+const raylib_dep = @import("raylib");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
@@ -22,19 +23,21 @@ pub fn build(b: *std.Build) void {
     exe.root_module.addImport("ziglua", ziglua.module("ziglua"));
 
     //the actual raylib import
-    const ray = b.dependency("raylib", .{ .target = target, .optimize = optimize });
-    exe.linkLibrary(ray.artifact("raylib"));
+    //const ray = b.dependency("raylib", .{ .target = target, .optimize = optimize });
+    const ray = try raylib_dep.addRaylib(b, target, optimize, .{ .raygui = true });
+    exe.linkLibrary(ray);
+    //exe.linkLibrary(compile);
 
     //unnecessary ways i've been trying to show zls where raylib.h is
     //exe.addIncludePath(b.path("lib/raylib.h"));
     //exe.addSystemIncludePath(.{ .path = "/usr/local/include/raylib.h" });
 
     //flags to find raylib correctly
-    exe.addIncludePath(b.path("lib/"));
-    exe.addIncludePath(b.path("./lib/"));
-    exe.addIncludePath(b.path("./lib/raygui.h"));
-    const cflags = [_][]const u8{ "-D RAYGUI_IMPLEMENTATION", "-lraylib" };
-    exe.addCSourceFile(.{ .file = b.path("lib/raygui.c"), .flags = &cflags });
+    exe.addIncludePath(b.path("lib"));
+    //exe.addIncludePath(b.path("./lib/"));
+    //exe.addIncludePath(b.path("./lib/raygui.h"));
+    //const cflags = [_][]const u8{ "-D RAYGUI_IMPLEMENTATION", "-lraylib" };
+    //exe.addCSourceFile(.{ .file = b.path("lib/raygui.c"), .flags = &cflags });
     b.installArtifact(exe);
 
     //=============INSTALL GAME FILES===========
@@ -62,7 +65,7 @@ pub fn build(b: *std.Build) void {
 
     unit_tests.linkLibC();
     unit_tests.step.dependOn((b.getInstallStep()));
-    unit_tests.linkLibrary(ray.artifact("raylib"));
+    //unit_tests.linkLibrary(ray.artifact("raylib"));
 
     //unit_tests.addModule("toml", zigtoml.module("toml"));
 
@@ -73,7 +76,7 @@ pub fn build(b: *std.Build) void {
     //
     unit_tests.root_module.addImport("ziglua", ziglua.module("ziglua"));
 
-    unit_tests.addCSourceFile(.{ .file = b.path("lib/raygui.c"), .flags = &cflags });
+    //unit_tests.addCSourceFile(.{ .file = b.path("lib/raygui.c"), .flags = &cflags });
 
     var run_unit_tests = b.addRunArtifact(unit_tests);
     run_unit_tests.has_side_effects = true;

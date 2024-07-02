@@ -10,6 +10,10 @@
          .raylib = .{
             .url = "https://github.com/raysan5/raylib/archive/refs/heads/master.tar.gz",
             .hash = "122003dc383971e20d51a85686c95a113846377e19b3edcdc1dae8f9823fc8e2a49c", 
-         }
+         },
+	 .raygui = .{
+	 .url = "https://github.com/raysan5/raygui/archive/refs/heads/master.tar.gz",
+         .hash = "1220c62ef63613b8cb2893748d6baa344cd2d994328fbf3fe7559bec00a144c991e5",
+	 }
       },
 }
