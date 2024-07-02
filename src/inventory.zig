@@ -26,25 +26,45 @@ pub const ItemComponent = struct {
     type: [:0]const u8 = "unknown",
     max_stack_size: usize = 99,
     status: enum { in_inventory, in_world } = .in_world,
+    item_cooldown_ms: ?f32 = null,
 };
 
-pub const InventoryComponent = struct {
-    pub const name = "inventory";
-    const max_cap = 256;
-    const Slot = struct {
-        item_count: usize = 1,
-        id: usize = 0,
+pub const InventorySlot = struct {
+    item_count: usize = 1,
+    item_id: usize = 0,
+};
+
+pub fn Inventory(comptime width: usize, comptime height: usize, comptime internal_name: []const u8) type {
+    return struct {
+        pub const name = internal_name;
+        items: [width][height]?InventorySlot = .{.{null} ** width} ** height,
+        selected_index: struct { x: usize = 0, y: usize = 0 } = .{},
+
+        //pub inline fn slots(self: *@This()) []Slot {
+        //    return self.buffer[0..self.len];
+        //}
     };
-    buffer: [max_cap]Slot = [_]Slot{.{}} ** max_cap,
+}
 
-    len: usize = 0,
-    capacity: usize = 64,
-    selected_index: usize = 0,
+pub const InventoryComponent = Inventory(4, 4, "Inventory");
 
-    pub inline fn slots(self: *@This()) []Slot {
-        return self.buffer[0..self.len];
-    }
-};
+//pub const InventoryComponent = struct {
+//    pub const name = "inventory";
+//    const max_cap = 256;
+//    const Slot = struct {
+//        item_count: usize = 1,
+//        id: usize = 0,
+//    };
+//    buffer: [max_cap]Slot = [_]Slot{.{}} ** max_cap,
+//
+//    len: usize = 0,
+//    capacity: usize = 64,
+//    selected_index: usize = 0,
+//
+//    pub inline fn slots(self: *@This()) []Slot {
+//        return self.buffer[0..self.len];
+//    }
+//};
 
 ////======normal code=========
 
@@ -83,27 +103,29 @@ pub fn updateInventorySystem(
     opt: options.Update,
 ) !void {
     _ = opt;
-    const systems = [_]type{ Component.Inventory, Component.Hitbox };
-    const set = self.getSystemDomain(a, &systems);
+    _ = a;
+    _ = self;
+    // const systems = [_]type{ Component.Inventory, Component.Hitbox };
+    // const set = self.getSystemDomain(a, &systems);
 
-    for (set) |member| {
-        const colliders = try coll.findCollidingEntities(self, a, member);
+    // for (set) |member| {
+    //     const colliders = try coll.findCollidingEntities(self, a, member);
 
-        var inventory = self.get(Component.Inventory, member);
-        _ = &inventory;
-        if (inventory.len >= inventory.capacity) {
-            continue;
-        }
+    //     var inventory = self.get(Component.Inventory, member);
+    //     _ = &inventory;
+    //     if (inventory.len >= inventory.capacity) {
+    //         continue;
+    //     }
 
-        for (colliders) |entity| {
-            if (self.getMaybe(Component.Item, entity)) |item| {
-                if (item.status == .in_world) {
-                    addItem(self, a, inventory, entity) catch break;
-                    break;
-                }
-            }
-        }
-    }
+    //     for (colliders) |entity| {
+    //         if (self.getMaybe(Component.Item, entity)) |item| {
+    //             if (item.status == .in_world) {
+    //                 addItem(self, a, inventory, entity) catch break;
+    //                 break;
+    //             }
+    //         }
+    //     }
+    // }
 }
 
 pub fn renderPlayerInventory(
@@ -111,22 +133,25 @@ pub fn renderPlayerInventory(
     a: std.mem.Allocator,
     animation_state: *const anime.AnimationState,
 ) void {
-    const systems = [_]type{ Component.IsPlayer, Component.Inventory };
-    const set = self.getSystemDomain(a, &systems);
     _ = animation_state;
+    _ = a;
+    _ = self;
 
-    for (set) |member| {
-        const inventory = self.get(Component.Inventory, member);
-        for (0..inventory.len) |i| {
-            //_ = std.fmt.bufPrintZ(&buf, "{} entities", .{inventory.slots()[i].item_count}) catch unreachable;
-            const y: c_int = @intCast(i * 20);
-            const item = self.get(Component.Item, inventory.slots()[i].id);
-            ray.DrawText(item.type.ptr, 200, 25 + y, 15, ray.RAYWHITE);
+    //const systems = [_]type{ Component.IsPlayer, Component.Inventory };
+    //const set = self.getSystemDomain(a, &systems);
 
-            var buf: [1024:0]u8 = undefined;
-            _ = std.fmt.bufPrintZ(&buf, "{}", .{inventory.slots()[i].item_count}) catch unreachable;
-            ray.DrawText(&buf, 170, 25 + y, 15, ray.RAYWHITE);
-        }
-    }
+    //for (set) |member| {
+    //    const inventory = self.get(Component.Inventory, member);
+    //    for (0..inventory.len) |i| {
+    //        //_ = std.fmt.bufPrintZ(&buf, "{} entities", .{inventory.slots()[i].item_count}) catch unreachable;
+    //        const y: c_int = @intCast(i * 20);
+    //        const item = self.get(Component.Item, inventory.slots()[i].id);
+    //        ray.DrawText(item.type.ptr, 200, 25 + y, 15, ray.RAYWHITE);
+
+    //        var buf: [1024:0]u8 = undefined;
+    //        _ = std.fmt.bufPrintZ(&buf, "{}", .{inventory.slots()[i].item_count}) catch unreachable;
+    //        ray.DrawText(&buf, 170, 25 + y, 15, ray.RAYWHITE);
+    //    }
+    //}
 }
 //const inventory self.get(Component.Inventory, )
