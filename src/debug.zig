@@ -19,7 +19,7 @@ const ray = @cImport({
 
 pub const DebugEntry = struct {
     pub const max_string_length = 256;
-    pub const default_font_size = 8;
+    pub const default_font_size = 16;
     pub const PositionType = enum { screen_position, tile_position };
 
     font_size: f32 = default_font_size,

@@ -63,6 +63,13 @@ pub const Hitbox = struct {
             .height = self.top + self.bottom,
         };
     }
+
+    pub fn findCenterCoordinates(self: @This(), entity_position: ray.Vector2) ray.Vector2 {
+        return .{
+            .x = entity_position.x + (self.right - self.left) / 2,
+            .y = entity_position.y + (self.bottom - self.top) / 2,
+        };
+    }
 };
 pub const Damage = struct {
     type: []const u8 = "",

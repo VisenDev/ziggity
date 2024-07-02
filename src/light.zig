@@ -10,7 +10,7 @@ const Component = @import("components.zig");
 
 pub const LightComponent = struct {
     color: shader.Vec4 = .{ .x = 1.0, .y = 1.0, .z = 1.0, .a = 1.0 },
-    radius: f32 = 0.1,
+    radius_in_tiles: f32 = 2,
 };
 
 pub const ShaderLight = extern struct {
@@ -64,8 +64,8 @@ pub const LightShader = struct {
 
         const shader_light = ShaderLight{
             .color = light.color,
-            .radius = light.radius,
-            .position = .{ .x = tile_position.x, .y = tile_position.y }, //shader.convertTileToOpenGL(tile_position, self.camera.*),
+            .radius = light.radius_in_tiles,
+            .position = .{ .x = tile_position.x, .y = tile_position.y },
         };
         self.lights.set(@intCast(self.num_active_lights), shader_light);
         self.num_active_lights += 1;
@@ -85,12 +85,13 @@ pub const LightShader = struct {
 
         //convert tile coordinates to OpenGl Coordinates
         for (self.lights.items(.position)) |*pos| {
-            pos.* = animation_state.TileToOpenGl(pos.*);
+            pos.* = animation_state.tileToOpenGl(pos.*);
         }
 
-        //scale radius using zoom
+        //convert radius in tiles to opengl measurement
         for (self.lights.items(.radius)) |*rad| {
-            rad.* *= animation_state.camera.zoom;
+            //rad.* *= animation_state.camera.zoom;
+            rad.* = animation_state.tileDistanceHorizontalToOpenGl(rad.*);
         }
 
         inline for (std.meta.fields(ShaderLight)) |field| {
@@ -119,6 +120,12 @@ pub fn updateLightingSystem(
         const light = self.get(Component.Light, member);
         const physics = self.get(Component.Physics, member);
 
-        try light_shader.addLightToRender(light.*, physics.pos);
+        const render_position =
+            if (self.getMaybe(Component.Hitbox, member)) |hitbox|
+            hitbox.findCenterCoordinates(physics.pos)
+        else
+            physics.pos;
+
+        try light_shader.addLightToRender(light.*, render_position);
     }
 }

@@ -38,11 +38,16 @@ pub const SpriteComponent = struct {
         bob: ?struct {
             cycle_time_ms: f32 = 500,
             distance: f32 = 0.1,
-        } = .{},
+        } = null,
         lean: ?struct {
             max_angle_radians: f32 = std.math.pi,
             resistance: f32 = 5,
-        } = .{},
+        } = null,
+        scale: ?struct {
+            current: f32 = 1.0,
+            rate_of_change: f32 = 0.99,
+            min_scale: f32 = 0,
+        } = null,
     } = .{},
     creation_time: ?f32 = null,
 };
@@ -125,8 +130,8 @@ pub const AnimationPlayer = struct {
             ray.Rectangle{
             .x = tilemap_position.x * state.tilemap_resolution,
             .y = tilemap_position.y * state.tilemap_resolution,
-            .width = unflipped_subrect.width + 0.001,
-            .height = unflipped_subrect.height + 0.001,
+            .width = (unflipped_subrect.width * opt.horizontal_scale) + 0.001,
+            .height = (unflipped_subrect.height * opt.vertical_scale) + 0.001,
         };
 
         ray.DrawTexturePro(texture, subrect, render_rect, animation.origin, std.math.radiansToDegrees(opt.rotation_radians), opt.tint);
@@ -270,13 +275,32 @@ pub const AnimationState = struct {
     }
 
     ///convert Tile Position to OpenGl Screen Position (normalized coordinates)
-    pub fn TileToOpenGl(self: *const @This(), pos: shader.Vec2) shader.Vec2 {
-        const screenPos = self.tileToScreen(pos);
+    pub fn tileToOpenGl(self: *const @This(), pos: shader.Vec2) shader.Vec2 {
+        const screen_pos = self.tileToScreen(pos);
 
         return shader.Vec2{
-            .x = ((screenPos.x / screenWidth())),
-            .y = (1 - (screenPos.y / screenHeight())),
+            .x = ((screen_pos.x / screenWidth())),
+            .y = (1 - (screen_pos.y / screenHeight())),
         };
+    }
+
+    ///converts a distance in tiles to a distance in screen pixels
+    pub fn tileDistanceToScreen(self: *const @This(), distance_in_tiles: f32) f32 {
+        const unzoomed_distance = distance_in_tiles * self.tilemap_resolution;
+        const distance = unzoomed_distance * self.camera.zoom;
+        return distance;
+    }
+
+    ///converts a distance in tiles to a distance in OpenGL Shader Coordinates (Normalized coordinates)
+    pub fn tileDistanceHorizontalToOpenGl(self: *const @This(), distance_in_tiles: f32) f32 {
+        const screen_distance = self.tileDistanceToScreen(distance_in_tiles);
+        return screen_distance / screenWidth();
+    }
+
+    ///converts a distance in tiles to a distance in OpenGL Shader Coordinates (Normalized coordinates)
+    pub fn tileDistanceVerticalToOpenGl(self: *const @This(), distance_in_tiles: f32) f32 {
+        const screen_distance = self.tileDistanceToScreen(distance_in_tiles);
+        return screen_distance / screenHeight();
     }
 };
 
@@ -339,6 +363,17 @@ pub fn renderSprites(
                     raw_lean_angle = lean.max_angle_radians * sign;
                 }
                 render_options.rotation_radians = raw_lean_angle * -1;
+            }
+
+            //account for scaling styling
+            if (sprite.styling.scale) |*scale| {
+                if (scale.current > scale.min_scale) {
+                    scale.current *= scale.rate_of_change;
+                } else {
+                    scale.current = scale.min_scale;
+                }
+                render_options.horizontal_scale = scale.current;
+                render_options.vertical_scale = scale.current;
             }
 
             sprite.animation_player.render(animation_state, render_position, render_options);
