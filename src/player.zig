@@ -31,7 +31,7 @@ pub fn updatePlayerSystem(
     const systems = [_]type{ Component.IsPlayer, Component.Physics };
     const set = self.getSystemDomain(a, &systems);
 
-    const magnitude: f32 = 30;
+    const magnitude: f32 = 20;
 
     for (set) |member| {
         var direction = ray.Vector2{ .x = 0, .y = 0 };

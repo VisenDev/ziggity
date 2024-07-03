@@ -224,11 +224,6 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
             );
             ray.EndShaderMode();
 
-            const close = raygui.GuiWindowBox(.{ .x = 100, .y = 100, .width = 200, .height = 150 }, "Inventory");
-            if (close == 1) {
-                std.debug.print("raygui window closed", .{});
-            }
-
             debugger.render(&animation_state);
             inv.renderPlayerInventory(lvl.ecs, a, &animation_state);
         }

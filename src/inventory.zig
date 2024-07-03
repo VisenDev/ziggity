@@ -14,8 +14,14 @@ const cam = @import("camera.zig");
 const Lua = @import("ziglua").Lua;
 pub const Component = @import("components.zig");
 const intersection = @import("sparse_set.zig").intersection;
+
 const ray = @cImport({
     @cInclude("raylib.h");
+});
+
+const raygui = @cImport({
+    @cInclude("raygui.h");
+    @cInclude("style_dark.h");
 });
 
 const eql = std.mem.eql;
@@ -24,78 +30,143 @@ const eql = std.mem.eql;
 pub const ItemComponent = struct {
     pub const name = "item";
     type: [:0]const u8 = "unknown",
+    stack_size: usize = 1,
     max_stack_size: usize = 99,
-    status: enum { in_inventory, in_world } = .in_world,
     item_cooldown_ms: ?f32 = null,
 };
 
-pub const InventorySlot = struct {
-    item_count: usize = 1,
-    item_id: usize = 0,
-};
+//pub const InventorySlot = struct {
+//    item_count: usize = 1,
+//    item_id: usize = 0,
+//};
 
 pub fn Inventory(comptime width: usize, comptime height: usize, comptime internal_name: []const u8) type {
     return struct {
-        pub const name = internal_name;
-        items: [width][height]?InventorySlot = .{.{null} ** width} ** height,
-        selected_index: struct { x: usize = 0, y: usize = 0 } = .{},
+        const Self = @This();
 
-        //pub inline fn slots(self: *@This()) []Slot {
-        //    return self.buffer[0..self.len];
-        //}
+        /// Index struct
+        pub const Index = struct {
+            x: usize = 0,
+            y: usize = 0,
+
+            pub fn isAtStartingIndex(self: @This()) bool {
+                return self == @This(){};
+            }
+
+            ///returns true f incrementation has reset to the beginning
+            pub fn increment(self: *@This()) bool {
+                self.x += 1;
+                if (self.x >= width) {
+                    self.x = 0;
+                    self.y += 1;
+
+                    if (self.y >= height) {
+                        self.y = 0;
+                        self.x = 0;
+                        return false;
+                    }
+                }
+                return true;
+            }
+        };
+
+        pub const ItemId = ?usize;
+
+        pub const Iterator = struct {
+            inventory_ptr: *Self,
+            index: Index = .{},
+            pub fn next(self: *@This()) ?Index {
+                const result = self.index;
+                if (self.index.increment()) {
+                    return null;
+                }
+                return result;
+            }
+        };
+
+        pub const name = internal_name;
+        item_ids: [width][height]ItemId = .{.{null} ** width} ** height,
+        selected_index: Index = .{},
+
+        pub fn getIndex(self: *const @This(), index: Index) ItemId {
+            return self.item_ids[index.x][index.y];
+        }
+
+        pub fn getSelectedItemId(self: *const @This()) ItemId {
+            return self.getIndex(self.selected_index);
+        }
+
+        pub fn findFirstEmptySlot(self: *@This()) ?Index {
+            var iterator = self.iterate();
+            while (iterator.next()) |index| {
+                if (self.getIndex(index) == null) {
+                    return index;
+                }
+            }
+            return null;
+        }
+
+        /// transfers item to first available index in inventory
+        pub fn pickupItem(self: *@This(), item_id: usize) !void {
+            const maybe_index = self.findFirstEmptySlot();
+            if (maybe_index) |index| {
+                self.item_ids[index.x][index.y] = item_id;
+            } else {
+                return error.OutOfSpace;
+            }
+        }
+
+        pub fn iterate(self: *@This()) Iterator {
+            return Iterator{ .inventory_ptr = self };
+        }
+
+        pub const InventoryRenderOptions = struct {
+            pub const Corner = enum { top_left, top_right, bottom_left, bottom_right, center_point };
+            position: ray.Vector2,
+            which_corner: Corner = .center_point,
+        };
+
+        pub const default_slot_render_size = 32;
+
+        fn calculateRenderedWidth(self: *const @This(), animation_state: *const anime.AnimationState) f32 {
+            // TODO account for UI scaling
+            _ = self;
+            _ = animation_state;
+            return width * default_slot_render_size;
+        }
+
+        fn calculateRenderedHeight(self: *const @This(), animation_state: *const anime.AnimationState) f32 {
+            // TODO account for UI scaling
+            _ = self;
+            _ = animation_state;
+            return height * default_slot_render_size;
+        }
+
+        pub fn render(self: *@This(), animation_state: *const anime.AnimationState, render_opt: InventoryRenderOptions) bool {
+            const render_width = self.calculateRenderedWidth(animation_state);
+            const render_height = self.calculateRenderedHeight(animation_state);
+            const render_position: ray.Vector2 = switch (render_opt.which_corner) {
+                .center_point => .{ .x = render_opt.position.x - (render_width / 2), .y = render_opt.position.y - (render_height / 2) },
+                .top_left => render_opt.position,
+                else => @panic("not implemented yet"),
+            };
+            const close_inventory = raygui.GuiWindowBox(.{
+                .x = render_position.x,
+                .y = render_position.y,
+                .width = render_width,
+                .height = render_height,
+            }, "Inventory");
+
+            var iterator = self.iterate();
+            while (iterator.next()) |index| {
+                _ = index.x;
+            }
+            return close_inventory == 1;
+        }
     };
 }
 
 pub const InventoryComponent = Inventory(4, 4, "Inventory");
-
-//pub const InventoryComponent = struct {
-//    pub const name = "inventory";
-//    const max_cap = 256;
-//    const Slot = struct {
-//        item_count: usize = 1,
-//        id: usize = 0,
-//    };
-//    buffer: [max_cap]Slot = [_]Slot{.{}} ** max_cap,
-//
-//    len: usize = 0,
-//    capacity: usize = 64,
-//    selected_index: usize = 0,
-//
-//    pub inline fn slots(self: *@This()) []Slot {
-//        return self.buffer[0..self.len];
-//    }
-//};
-
-////======normal code=========
-
-fn findExistingSlot(self: *const ecs.ECS, inv: *Component.Inventory, item: Component.Item) ?usize {
-    if (item.max_stack_size == 1) {
-        return null;
-    }
-
-    for (inv.slots(), 0..) |slot, i| {
-        const inv_item = self.get(Component.Item, slot.id);
-        if (std.mem.eql(u8, item.type, inv_item.type) and slot.item_count < item.max_stack_size and item.max_stack_size == inv_item.max_stack_size) {
-            return i;
-        }
-    }
-    return null;
-}
-
-pub fn addItem(self: *ecs.ECS, a: std.mem.Allocator, inv: *Component.Inventory, new_item_id: usize) !void {
-    const new_item = self.getMaybe(Component.Item, new_item_id) orelse return error.id_missing_item_component;
-
-    if (findExistingSlot(self, inv, new_item.*)) |index| {
-        inv.slots()[index].item_count += 1;
-        try self.deleteEntity(a, new_item_id);
-    } else {
-        inv.buffer[inv.len] = .{
-            .id = new_item_id,
-        };
-        inv.len += 1;
-        self.get(Component.Item, new_item_id).status = .in_inventory;
-    }
-}
 
 pub fn updateInventorySystem(
     self: *ecs.ECS,
@@ -103,55 +174,44 @@ pub fn updateInventorySystem(
     opt: options.Update,
 ) !void {
     _ = opt;
-    _ = a;
-    _ = self;
-    // const systems = [_]type{ Component.Inventory, Component.Hitbox };
-    // const set = self.getSystemDomain(a, &systems);
+    const systems = [_]type{ Component.Inventory, Component.Hitbox };
+    const set = self.getSystemDomain(a, &systems);
 
-    // for (set) |member| {
-    //     const colliders = try coll.findCollidingEntities(self, a, member);
+    for (set) |member| {
+        const colliders = try coll.findCollidingEntities(self, a, member);
 
-    //     var inventory = self.get(Component.Inventory, member);
-    //     _ = &inventory;
-    //     if (inventory.len >= inventory.capacity) {
-    //         continue;
-    //     }
+        var inventory = self.get(Component.Inventory, member);
 
-    //     for (colliders) |entity| {
-    //         if (self.getMaybe(Component.Item, entity)) |item| {
-    //             if (item.status == .in_world) {
-    //                 addItem(self, a, inventory, entity) catch break;
-    //                 break;
-    //             }
-    //         }
-    //     }
-    // }
+        for (colliders) |entity| {
+            if (self.hasComponent(Component.Item, entity)) {
+                inventory.pickupItem(entity) catch continue;
+                try self.deleteComponent(entity, Component.Physics);
+            }
+        }
+    }
 }
 
 pub fn renderPlayerInventory(
     self: *ecs.ECS,
     a: std.mem.Allocator,
-    animation_state: *const anime.AnimationState,
+    animation_state: *anime.AnimationState,
 ) void {
-    _ = animation_state;
-    _ = a;
-    _ = self;
+    const systems = [_]type{ Component.IsPlayer, Component.Inventory };
+    const set = self.getSystemDomain(a, &systems);
 
-    //const systems = [_]type{ Component.IsPlayer, Component.Inventory };
-    //const set = self.getSystemDomain(a, &systems);
+    for (set) |member| {
+        const inventory = self.get(Component.Inventory, member);
+        _ = inventory.render(animation_state, .{ .position = .{ .x = anime.screenWidth() / 2, .y = anime.screenHeight() / 2 } });
+        //for (0..inventory.len) |i| {
+        //    //_ = std.fmt.bufPrintZ(&buf, "{} entities", .{inventory.slots()[i].item_count}) catch unreachable;
+        //    const y: c_int = @intCast(i * 20);
+        //    const item = self.get(Component.Item, inventory.slots()[i].id);
+        //    ray.DrawText(item.type.ptr, 200, 25 + y, 15, ray.RAYWHITE);
 
-    //for (set) |member| {
-    //    const inventory = self.get(Component.Inventory, member);
-    //    for (0..inventory.len) |i| {
-    //        //_ = std.fmt.bufPrintZ(&buf, "{} entities", .{inventory.slots()[i].item_count}) catch unreachable;
-    //        const y: c_int = @intCast(i * 20);
-    //        const item = self.get(Component.Item, inventory.slots()[i].id);
-    //        ray.DrawText(item.type.ptr, 200, 25 + y, 15, ray.RAYWHITE);
-
-    //        var buf: [1024:0]u8 = undefined;
-    //        _ = std.fmt.bufPrintZ(&buf, "{}", .{inventory.slots()[i].item_count}) catch unreachable;
-    //        ray.DrawText(&buf, 170, 25 + y, 15, ray.RAYWHITE);
-    //    }
-    //}
+        //    var buf: [1024:0]u8 = undefined;
+        //    _ = std.fmt.bufPrintZ(&buf, "{}", .{inventory.slots()[i].item_count}) catch unreachable;
+        //    ray.DrawText(&buf, 170, 25 + y, 15, ray.RAYWHITE);
+        //}
+    }
 }
 //const inventory self.get(Component.Inventory, )
