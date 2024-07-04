@@ -13,10 +13,6 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
     });
 
-    // This is where the interesting part begins.
-    // As you can see we are re-defining the same
-    // executable but we're binding it to a
-    // dedicated build step.
     const exe_check = b.addExecutable(.{
         .name = "dev",
         .root_source_file = b.path("src/main.zig"),
@@ -25,36 +21,24 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
     });
 
-    // These two lines you might want to copy
-    // (make sure to rename 'exe_check')
     const check = b.step("check", "Check if foo compiles");
     check.dependOn(&exe_check.step);
 
     //link lua
-    const ziglua = b.dependency("ziglua", .{
-        .target = target,
-        .optimize = optimize,
-    });
-
-    // add the ziglua module and lua artifact
+    const ziglua = b.dependency("ziglua", .{ .target = target, .optimize = optimize });
     exe.root_module.addImport("ziglua", ziglua.module("ziglua"));
+    exe_check.root_module.addImport("ziglua", ziglua.module("ziglua"));
 
     //the actual raylib import
-    //const ray = b.dependency("raylib", .{ .target = target, .optimize = optimize });
     const ray = try raylib_dep.addRaylib(b, target, optimize, .{ .raygui = true });
     exe.linkLibrary(ray);
-    //exe.linkLibrary(compile);
+    exe_check.linkLibrary(ray);
 
-    //unnecessary ways i've been trying to show zls where raylib.h is
-    //exe.addIncludePath(b.path("lib/raylib.h"));
-    //exe.addSystemIncludePath(.{ .path = "/usr/local/include/raylib.h" });
-
-    //flags to find raylib correctly
+    //flags to find styledark.h correctly
     exe.addIncludePath(b.path("lib"));
-    //exe.addIncludePath(b.path("./lib/"));
-    //exe.addIncludePath(b.path("./lib/raygui.h"));
-    //const cflags = [_][]const u8{ "-D RAYGUI_IMPLEMENTATION", "-lraylib" };
-    //exe.addCSourceFile(.{ .file = b.path("lib/raygui.c"), .flags = &cflags });
+    exe_check.addIncludePath(b.path("lib"));
+
+    //install
     b.installArtifact(exe);
 
     //=============INSTALL GAME FILES===========

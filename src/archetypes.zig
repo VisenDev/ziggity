@@ -15,6 +15,7 @@ pub fn createSlime(self: *ecs.ECS, a: std.mem.Allocator) !usize {
     try self.setComponent(a, id, Component.Controller{});
     try self.setComponent(a, id, Component.Wanderer{});
     try self.setComponent(a, id, Component.Light{});
+    try self.setComponent(a, id, Component.MovementParticles{});
     return id;
 }
 
@@ -30,7 +31,7 @@ pub fn createPlayer(self: *ecs.ECS, a: std.mem.Allocator) !usize {
     try self.setComponent(a, id, Component.Sprite{ .animation_player = .{ .animation_name = "player" }, .styling = .{ .lean = .{}, .bob = .{} } });
     try self.setComponent(a, id, Component.IsPlayer{});
     try self.setComponent(a, id, Component.MovementParticles{});
-    try self.setComponent(a, id, Component.Light{ .radius_in_tiles = 3 });
+    try self.setComponent(a, id, Component.Light{ .radius_in_tiles = 4 });
     return id;
 }
 
@@ -54,6 +55,6 @@ pub fn createParticle(self: *ecs.ECS, a: std.mem.Allocator) !usize {
         .scale = .{},
     } });
     try self.setComponent(a, id, Component.Metadata{ .archetype = "particle" });
-    try self.setComponent(a, id, Component.Lifetime{ .milliseconds_life_remaining = 5 * 1000 });
+    try self.setComponent(a, id, Component.Lifetime{ .milliseconds_life_remaining = 2 * 1000 });
     return id;
 }

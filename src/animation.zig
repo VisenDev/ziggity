@@ -19,6 +19,10 @@ fn tof32(input: anytype) f32 {
     return @floatFromInt(input);
 }
 
+pub fn addVector2(a: ray.Vector2, b: ray.Vector2) ray.Vector2 {
+    return .{ .x = a.x + b.x, .y = a.y + b.y };
+}
+
 pub fn screenWidth() f32 {
     return @floatFromInt(ray.GetScreenWidth());
 }
@@ -100,8 +104,18 @@ pub const AnimationPlayer = struct {
     remaining_frame_time: f32 = 0,
     disabled: bool = false,
 
+    pub fn renderOnScreen(self: *const @This(), state: *const AnimationState, screen_position: ray.Vector2, opt: RenderOptions) void {
+        self.renderInternal(state, screen_position, opt, .on_screen);
+
+    }
+
+    pub fn renderInWorld(self: *const @This(), state: *const AnimationState, tilemap_position: ray.Vector2, opt: RenderOptions) void {
+        self.renderInternal(state, tilemap_position, opt, .in_world);
+    }
+
     //renders the animation
-    pub fn render(self: *const @This(), state: *const AnimationState, tilemap_position: ray.Vector2, opt: RenderOptions) void {
+    const RenderLocation = enum { in_world, on_screen };
+    fn renderInternal(self: *const @This(), state: *const AnimationState, position: ray.Vector2, opt: RenderOptions, render_location: RenderLocation) void {
         if (self.disabled) return;
 
         const animation = state.animations.get(self.animation_name) orelse {
@@ -126,10 +140,12 @@ pub const AnimationPlayer = struct {
 
         const subrect = if (opt.flipped) flipSelection(unflipped_subrect) else unflipped_subrect;
 
+        const tilemap_adjustment_factor: f32 = if (render_location == .in_world) state.tilemap_resolution else 1;
+
         const render_rect =
             ray.Rectangle{
-            .x = tilemap_position.x * state.tilemap_resolution,
-            .y = tilemap_position.y * state.tilemap_resolution,
+            .x = position.x * tilemap_adjustment_factor,
+            .y = position.y * tilemap_adjustment_factor,
             .width = (unflipped_subrect.width * opt.horizontal_scale) + 0.001,
             .height = (unflipped_subrect.height * opt.vertical_scale) + 0.001,
         };
@@ -163,6 +179,7 @@ pub const AnimationState = struct {
     textures: std.StringHashMap(ray.Texture2D),
     tilemap_resolution: f32,
     camera: ray.Camera2D,
+    ui_zoom: f32 = 1.0, //TODO configure this in the lua config file
 
     pub fn deinit(self: *@This()) void {
         var iter = self.textures.iterator();
@@ -376,7 +393,7 @@ pub fn renderSprites(
                 render_options.vertical_scale = scale.current;
             }
 
-            sprite.animation_player.render(animation_state, render_position, render_options);
+            sprite.animation_player.renderInWorld(animation_state, render_position, render_options);
         }
     }
 }

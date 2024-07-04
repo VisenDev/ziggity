@@ -75,7 +75,7 @@ pub const TileRenderer = struct {
     pub fn render(self: *const TileRenderer, state: *const anime.AnimationState, pos: ray.Vector2) void {
         //TODO add border rendering
         if (self.main) |main| {
-            main.render(state, pos, .{});
+            main.renderInWorld(state, pos, .{});
         } else @panic("tile missing animation");
     }
 

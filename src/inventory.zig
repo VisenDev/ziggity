@@ -33,12 +33,16 @@ pub const ItemComponent = struct {
     stack_size: usize = 1,
     max_stack_size: usize = 99,
     item_cooldown_ms: ?f32 = null,
-};
+    animation: anime.AnimationPlayer = .{ .animation_name = "" },
 
-//pub const InventorySlot = struct {
-//    item_count: usize = 1,
-//    item_id: usize = 0,
-//};
+    pub fn renderInUi(self: *const @This(), animation_state: *const anime.AnimationState, screen_position: ray.Vector2) void {
+        self.animation.renderOnScreen(animation_state, screen_position, .{});
+    }
+
+    pub fn renderInWorld(self: *const @This(), animation_state: *const anime.AnimationState, tile_coordinates: ray.Vector2) void {
+        self.animation.renderInWorld(animation_state, tile_coordinates, .{});
+    }
+};
 
 pub fn Inventory(comptime width: usize, comptime height: usize, comptime internal_name: []const u8) type {
     return struct {
@@ -51,6 +55,10 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
 
             pub fn isAtStartingIndex(self: @This()) bool {
                 return self == @This(){};
+            }
+
+            pub fn vector2(self: @This()) ray.Vector2 {
+                return .{ .x = @floatFromInt(self.x), .y = @floatFromInt(self.y) };
             }
 
             ///returns true f incrementation has reset to the beginning
@@ -87,6 +95,9 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
         pub const name = internal_name;
         item_ids: [width][height]ItemId = .{.{null} ** width} ** height,
         selected_index: Index = .{},
+        default_slot_render_size: f32 = 32,
+        wants_to_close: bool = false,
+        state: enum { visible_focused, visible, hidden } = .hidden,
 
         pub fn getIndex(self: *const @This(), index: Index) ItemId {
             return self.item_ids[index.x][index.y];
@@ -126,23 +137,15 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
             which_corner: Corner = .center_point,
         };
 
-        pub const default_slot_render_size = 32;
-
         fn calculateRenderedWidth(self: *const @This(), animation_state: *const anime.AnimationState) f32 {
-            // TODO account for UI scaling
-            _ = self;
-            _ = animation_state;
-            return width * default_slot_render_size;
+            return width * self.default_slot_render_size * animation_state.ui_zoom;
         }
 
         fn calculateRenderedHeight(self: *const @This(), animation_state: *const anime.AnimationState) f32 {
-            // TODO account for UI scaling
-            _ = self;
-            _ = animation_state;
-            return height * default_slot_render_size;
+            return height * self.default_slot_render_size * animation_state.ui_zoom;
         }
 
-        pub fn render(self: *@This(), animation_state: *const anime.AnimationState, render_opt: InventoryRenderOptions) bool {
+        pub fn render(self: *@This(), animation_state: *const anime.AnimationState, entity_component_system: *const ecs.ECS, render_opt: InventoryRenderOptions) void {
             const render_width = self.calculateRenderedWidth(animation_state);
             const render_height = self.calculateRenderedHeight(animation_state);
             const render_position: ray.Vector2 = switch (render_opt.which_corner) {
@@ -159,9 +162,12 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
 
             var iterator = self.iterate();
             while (iterator.next()) |index| {
-                _ = index.x;
+                if (self.getIndex(index)) |item_id| {
+                    const item = entity_component_system.get(Component.Item, item_id);
+                    item.renderInUi(animation_state, anime.addVector2(index.vector2(), render_position));
+                }
             }
-            return close_inventory == 1;
+            self.wants_to_close = close_inventory == 1;
         }
     };
 }
@@ -201,7 +207,10 @@ pub fn renderPlayerInventory(
 
     for (set) |member| {
         const inventory = self.get(Component.Inventory, member);
-        _ = inventory.render(animation_state, .{ .position = .{ .x = anime.screenWidth() / 2, .y = anime.screenHeight() / 2 } });
+
+        if (inventory.state != .hidden) {
+            inventory.render(animation_state, self, .{ .position = .{ .x = anime.screenWidth() / 2, .y = anime.screenHeight() / 2 } });
+        }
         //for (0..inventory.len) |i| {
         //    //_ = std.fmt.bufPrintZ(&buf, "{} entities", .{inventory.slots()[i].item_count}) catch unreachable;
         //    const y: c_int = @intCast(i * 20);

@@ -148,18 +148,21 @@ pub fn updateMovementSystem(
             const adjustment_factor: f32 = 0.2;
 
             if (velocity_magnitude > ecs.randomFloat() * adjustment_factor) {
-                const particle = try arch.createParticle(self, a);
-                const entity_hitbox = self.getMaybe(Component.Hitbox, member) orelse &Component.Hitbox{};
-                try self.setComponent(a, particle, Component.Physics{
-                    .pos = .{
-                        .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
-                        .y = physics.pos.y + (entity_hitbox.bottom - entity_hitbox.top),
-                    },
-                    .vel = .{
-                        .x = (ecs.randomFloat() - 0.5) * opt.dt,
-                        .y = (ecs.randomFloat() - 0.5) * opt.dt,
-                    },
-                });
+                const num_particles: usize = @intFromFloat(@floor(ecs.randomFloat() * 5));
+                for (0..num_particles) |_| {
+                    const particle = try arch.createParticle(self, a);
+                    const entity_hitbox = self.getMaybe(Component.Hitbox, member) orelse &Component.Hitbox{};
+                    try self.setComponent(a, particle, Component.Physics{
+                        .pos = .{
+                            .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
+                            .y = physics.pos.y + (entity_hitbox.bottom - entity_hitbox.top),
+                        },
+                        .vel = .{
+                            .x = (ecs.randomFloat() - 0.5) * opt.dt,
+                            .y = (ecs.randomFloat() - 0.5) * opt.dt,
+                        },
+                    });
+                }
             }
         }
 
