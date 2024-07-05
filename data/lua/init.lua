@@ -88,7 +88,7 @@ function Animations()
       SlideShow("fireball", "fireball.png", 0, 0, 8, 8, 5, 100, false),
 
       --items
-      SubImage("potion", "entities.png", 0, 64, 16, 16),
+      SubImage("potion", "entities.png", 0, 32, 16, 16),
    }
 end
 
@@ -118,7 +118,7 @@ function KeyBindings()
       {['name'] = 'zoom_in',      ['key'] = '='},
       {['name'] = 'zoom_out',     ['key'] = '-'},
       {['name'] = 'debug_mode',   ['key'] = '/'},
-      {['name'] = 'inventory_mode',   ['key'] = 'I'},
+      {['name'] = 'inventory',   ['key'] = 'I'},
    }
 
    return bindings

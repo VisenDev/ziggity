@@ -35,7 +35,7 @@ pub const ItemComponent = struct {
     stack_size: usize = 1,
     max_stack_size: usize = 99,
     item_cooldown_ms: ?f32 = null,
-    animation_player: anime.AnimationPlayer = .{ .animation_name = "" },
+    animation_player: anime.AnimationPlayer = .{ .animation_name = "potion" },
 
     pub fn renderInUi(self: *const @This(), animation_state: *const anime.AnimationState, screen_position: ray.Vector2) void {
         self.animation_player.renderOnScreen(animation_state, screen_position, .{});
@@ -132,7 +132,6 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
             _ = self; // autofix
             _ = ecs; // autofix
             _ = item_type; // autofix
-
         }
 
         /// transfers item to first available index in inventory
@@ -202,7 +201,7 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
             while (iterator.next()) |index| {
                 if (self.getIndex(index)) |item_id| {
                     const item = entity_component_system.get(Component.Item, item_id);
-                    item.renderInUi(animation_state, anime.addVector2(index.vector2(), render_position));
+                    item.renderInUi(animation_state, anime.addVector2(anime.scaleVector(index.vector2(), self.default_slot_render_size), render_position));
                 }
             }
             self.wants_to_close = close_inventory == 1;
@@ -215,6 +214,7 @@ pub const InventoryComponent = Inventory(4, 4, "Inventory");
 pub fn updateInventorySystem(
     self: *ECS,
     a: std.mem.Allocator,
+    keybindings: key.KeyBindings,
     opt: options.Update,
 ) !void {
     _ = opt;
@@ -222,10 +222,19 @@ pub fn updateInventorySystem(
     const set = self.getSystemDomain(a, &systems);
 
     for (set) |member| {
-        const colliders = try coll.findCollidingEntities(self, a, member);
-
         var inventory = self.get(Component.Inventory, member);
 
+        if (inventory.wants_to_close) {
+            inventory.state = .hidden;
+        }
+
+        if (self.hasComponent(Component.IsPlayer, member)) {
+            if (keybindings.isPressed("inventory")) {
+                inventory.state = .visible_focused;
+            }
+        }
+
+        const colliders = try coll.findCollidingEntities(self, a, member);
         for (colliders) |entity| {
             if (self.hasComponent(Component.Item, entity)) {
                 inventory.pickupItem(entity) catch {
@@ -234,6 +243,22 @@ pub fn updateInventorySystem(
                 try self.deleteComponent(entity, Component.Physics);
             }
         }
+    }
+}
+
+pub fn renderItems(
+    self: *ECS,
+    a: std.mem.Allocator,
+    animation_state: *anime.AnimationState,
+) void {
+    const systems = [_]type{ Component.Item, Component.Physics };
+    const set = self.getSystemDomain(a, &systems);
+
+    for (set) |member| {
+        const item = self.get(Component.Item, member);
+        const physics = self.get(Component.Physics, member);
+
+        item.renderInWorld(animation_state, physics.pos);
     }
 }
 

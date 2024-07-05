@@ -138,7 +138,7 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
         try move.updateEntitySeparationSystem(lvl.ecs, a, update_options);
         try move.updateMovementSystem(lvl.ecs, a, lvl.map, update_options);
         try play.updatePlayerSystem(lvl.ecs, a, lua, keybindings, animation_state, update_options);
-        try inv.updateInventorySystem(lvl.ecs, a, update_options);
+        try inv.updateInventorySystem(lvl.ecs, a, keybindings, update_options);
         try sys.updateLifetimeSystem(lvl.ecs, a, update_options);
         try sys.updateDeathSystem(lvl.ecs, a, lua, update_options);
         sys.updateHealthCooldownSystem(lvl.ecs, a, update_options);
@@ -155,6 +155,7 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
 
             lvl.map.render(&animation_state, &tile_state);
 
+            inv.renderItems(lvl.ecs, a, &animation_state);
             anime.renderSprites(lvl.ecs, a, &animation_state, update_options);
 
             //{
