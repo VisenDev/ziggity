@@ -165,6 +165,8 @@ pub const ECS = struct {
 
     pub fn deleteComponent(self: *@This(), id: usize, comptime ComponentType: type) !void {
         try @field(self.components, @typeName(ComponentType)).delete(id);
+        const bitflag = intFromComponent(ComponentType);
+        self.bitflags.get(id).?.unset(bitflag);
     }
 
     //    pub fn addJsonComponent(self: *@This(), a: *const std.mem.Allocator, id: usize, component_name: []const u8, component_value: ?[]const u8) !void {

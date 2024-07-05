@@ -58,7 +58,8 @@ pub fn updatePlayerSystem(
 
         //let player shoot projectiles
         if (ray.IsMouseButtonDown(ray.MOUSE_BUTTON_LEFT)) {
-            const fireball = try arch.createFireball(self, a);
+            //const fireball = try arch.createFireball(self, a);
+            const fireball = try arch.createPotion(self, a);
             const pos = animation_state.mousePosition();
             self.setComponent(a, fireball, Component.Physics{
                 .pos = pos,

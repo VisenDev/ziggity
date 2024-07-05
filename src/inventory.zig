@@ -1,4 +1,5 @@
 const std = @import("std");
+const arch = @import("archetypes.zig");
 const api = @import("api.zig");
 const tile = @import("tiles.zig");
 const anime = @import("animation.zig");
@@ -6,7 +7,7 @@ const map = @import("map.zig");
 const texture = @import("textures.zig");
 const key = @import("keybindings.zig");
 const options = @import("options.zig");
-const ecs = @import("ecs.zig");
+const ECS = @import("ecs.zig").ECS;
 const SparseSet = @import("sparse_set.zig").SparseSet;
 const Grid = @import("grid.zig").Grid;
 const coll = @import("collisions.zig");
@@ -29,18 +30,19 @@ const eql = std.mem.eql;
 // =========Component types=========
 pub const ItemComponent = struct {
     pub const name = "item";
-    type: [:0]const u8 = "unknown",
+    type_of_item: [:0]const u8 = "unknown",
+    category_of_item: [:0]const u8 = "unknown",
     stack_size: usize = 1,
     max_stack_size: usize = 99,
     item_cooldown_ms: ?f32 = null,
-    animation: anime.AnimationPlayer = .{ .animation_name = "" },
+    animation_player: anime.AnimationPlayer = .{ .animation_name = "" },
 
     pub fn renderInUi(self: *const @This(), animation_state: *const anime.AnimationState, screen_position: ray.Vector2) void {
-        self.animation.renderOnScreen(animation_state, screen_position, .{});
+        self.animation_player.renderOnScreen(animation_state, screen_position, .{});
     }
 
     pub fn renderInWorld(self: *const @This(), animation_state: *const anime.AnimationState, tile_coordinates: ray.Vector2) void {
-        self.animation.renderInWorld(animation_state, tile_coordinates, .{});
+        self.animation_player.renderInWorld(animation_state, tile_coordinates, .{});
     }
 };
 
@@ -71,23 +73,26 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
                     if (self.y >= height) {
                         self.y = 0;
                         self.x = 0;
-                        return false;
+                        return true;
                     }
                 }
-                return true;
+                return false;
             }
         };
 
         pub const ItemId = ?usize;
 
         pub const Iterator = struct {
-            inventory_ptr: *Self,
+            inventory_ptr: *const Self,
             index: Index = .{},
+            iteration_complete: bool = false,
             pub fn next(self: *@This()) ?Index {
-                const result = self.index;
-                if (self.index.increment()) {
+                if (self.iteration_complete) {
                     return null;
                 }
+
+                const result = self.index;
+                self.iteration_complete = self.index.increment();
                 return result;
             }
         };
@@ -117,6 +122,19 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
             return null;
         }
 
+        pub fn findFirstSlotContaining(self: *const @This(), ecs: *ECS, item_type: []const u8) ?Index {
+            _ = self; // autofix
+            _ = ecs; // autofix
+            _ = item_type; // autofix
+        }
+
+        pub fn findSlotSameItemType(self: *const @This(), ecs: *ECS, item_type: []const u8) ?Index {
+            _ = self; // autofix
+            _ = ecs; // autofix
+            _ = item_type; // autofix
+
+        }
+
         /// transfers item to first available index in inventory
         pub fn pickupItem(self: *@This(), item_id: usize) !void {
             const maybe_index = self.findFirstEmptySlot();
@@ -127,7 +145,27 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
             }
         }
 
-        pub fn iterate(self: *@This()) Iterator {
+        pub inline fn numSlots(self: @This()) usize {
+            _ = self; // autofix
+            return width * height;
+        }
+
+        pub fn numFilledSlots(self: *const @This()) usize {
+            return self.numSlots() - self.numEmptySlots();
+        }
+
+        pub fn numEmptySlots(self: *const @This()) usize {
+            var iterator = self.iterate();
+            var num_empty_slots: usize = 0;
+            while (iterator.next()) |index| {
+                if (self.getIndex(index) == null) {
+                    num_empty_slots += 1;
+                }
+            }
+            return num_empty_slots;
+        }
+
+        pub fn iterate(self: *const @This()) Iterator {
             return Iterator{ .inventory_ptr = self };
         }
 
@@ -145,7 +183,7 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
             return height * self.default_slot_render_size * animation_state.ui_zoom;
         }
 
-        pub fn render(self: *@This(), animation_state: *const anime.AnimationState, entity_component_system: *const ecs.ECS, render_opt: InventoryRenderOptions) void {
+        pub fn render(self: *@This(), animation_state: *const anime.AnimationState, entity_component_system: *const ECS, render_opt: InventoryRenderOptions) void {
             const render_width = self.calculateRenderedWidth(animation_state);
             const render_height = self.calculateRenderedHeight(animation_state);
             const render_position: ray.Vector2 = switch (render_opt.which_corner) {
@@ -175,7 +213,7 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
 pub const InventoryComponent = Inventory(4, 4, "Inventory");
 
 pub fn updateInventorySystem(
-    self: *ecs.ECS,
+    self: *ECS,
     a: std.mem.Allocator,
     opt: options.Update,
 ) !void {
@@ -190,7 +228,9 @@ pub fn updateInventorySystem(
 
         for (colliders) |entity| {
             if (self.hasComponent(Component.Item, entity)) {
-                inventory.pickupItem(entity) catch continue;
+                inventory.pickupItem(entity) catch {
+                    continue;
+                };
                 try self.deleteComponent(entity, Component.Physics);
             }
         }
@@ -198,7 +238,7 @@ pub fn updateInventorySystem(
 }
 
 pub fn renderPlayerInventory(
-    self: *ecs.ECS,
+    self: *ECS,
     a: std.mem.Allocator,
     animation_state: *anime.AnimationState,
 ) void {
@@ -223,4 +263,53 @@ pub fn renderPlayerInventory(
         //}
     }
 }
-//const inventory self.get(Component.Inventory, )
+
+///for testing
+//fn expectEql(a: anytype, b: anytype) !void {
+//  std.testing.expectEqual()
+//}
+const expectEqual = std.testing.expectEqual;
+
+test "InventoryIterate" {
+    const InventoryType = Inventory(4, 4, "test_inv");
+    var inventory = InventoryType{};
+
+    var iterator = inventory.iterate();
+    try expectEqual(iterator.next().?, InventoryType.Index{ .x = 0, .y = 0 });
+    try expectEqual(iterator.next().?, InventoryType.Index{ .x = 1, .y = 0 });
+    try expectEqual(iterator.next().?, InventoryType.Index{ .x = 2, .y = 0 });
+    try expectEqual(iterator.next().?, InventoryType.Index{ .x = 3, .y = 0 });
+    try expectEqual(iterator.next().?, InventoryType.Index{ .x = 0, .y = 1 });
+    try expectEqual(iterator.next().?, InventoryType.Index{ .x = 1, .y = 1 });
+    try expectEqual(iterator.next().?, InventoryType.Index{ .x = 2, .y = 1 });
+    try expectEqual(iterator.next().?, InventoryType.Index{ .x = 3, .y = 1 });
+    try expectEqual(iterator.next().?, InventoryType.Index{ .x = 0, .y = 2 });
+    try expectEqual(iterator.next().?, InventoryType.Index{ .x = 1, .y = 2 });
+    try expectEqual(iterator.next().?, InventoryType.Index{ .x = 2, .y = 2 });
+    try expectEqual(iterator.next().?, InventoryType.Index{ .x = 3, .y = 2 });
+    try expectEqual(iterator.next().?, InventoryType.Index{ .x = 0, .y = 3 });
+    try expectEqual(iterator.next().?, InventoryType.Index{ .x = 1, .y = 3 });
+    try expectEqual(iterator.next().?, InventoryType.Index{ .x = 2, .y = 3 });
+    try expectEqual(iterator.next().?, InventoryType.Index{ .x = 3, .y = 3 });
+
+    try expectEqual(iterator.next(), null);
+}
+
+test "InventoryFirstEmpty" {
+    const InventoryType = Inventory(4, 4, "test_inv");
+    var inventory = InventoryType{};
+
+    const first_slot = inventory.findFirstEmptySlot();
+    try expectEqual(first_slot.?, InventoryType.Index{ .x = 0, .y = 0 });
+}
+
+test "InventoryPickupItem" {
+    const InventoryType = Inventory(4, 4, "test_inv");
+    var inventory = InventoryType{};
+
+    const item_id: usize = 1;
+    try inventory.pickupItem(item_id);
+    try std.testing.expect(inventory.numFilledSlots() == 1);
+    try std.testing.expect(inventory.numEmptySlots() == 15);
+    try expectEqual(inventory.getIndex(InventoryType.Index{}), item_id);
+}
