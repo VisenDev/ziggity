@@ -44,11 +44,11 @@ pub const DebugRenderer = struct {
         self.entries.deinit();
     }
 
-    pub fn render(self: *@This(), animation_state: *const anime.AnimationState) void {
+    pub fn render(self: *@This(), window_manager: *const anime.WindowManager) void {
         if (self.enabled) {
             for (self.entries.items) |entry| {
                 const position = if (entry.position_type == .tile_position)
-                    animation_state.tileToScreen(entry.position)
+                    window_manager.tileToScreen(entry.position)
                 else
                     entry.position;
 

@@ -104,18 +104,17 @@ pub const AnimationPlayer = struct {
     remaining_frame_time: f32 = 0,
     disabled: bool = false,
 
-    pub fn renderOnScreen(self: *const @This(), state: *const AnimationState, screen_position: ray.Vector2, opt: RenderOptions) void {
+    pub fn renderOnScreen(self: *const @This(), state: *const WindowManager, screen_position: ray.Vector2, opt: RenderOptions) void {
         self.renderInternal(state, screen_position, opt, .on_screen);
-
     }
 
-    pub fn renderInWorld(self: *const @This(), state: *const AnimationState, tilemap_position: ray.Vector2, opt: RenderOptions) void {
+    pub fn renderInWorld(self: *const @This(), state: *const WindowManager, tilemap_position: ray.Vector2, opt: RenderOptions) void {
         self.renderInternal(state, tilemap_position, opt, .in_world);
     }
 
     //renders the animation
     const RenderLocation = enum { in_world, on_screen };
-    fn renderInternal(self: *const @This(), state: *const AnimationState, position: ray.Vector2, opt: RenderOptions, render_location: RenderLocation) void {
+    fn renderInternal(self: *const @This(), state: *const WindowManager, position: ray.Vector2, opt: RenderOptions, render_location: RenderLocation) void {
         if (self.disabled) return;
 
         const animation = state.animations.get(self.animation_name) orelse {
@@ -154,7 +153,7 @@ pub const AnimationPlayer = struct {
     }
 
     //updates animation frame and rotation_radians
-    pub fn update(self: *@This(), state: *const AnimationState, opt: options.Update) void {
+    pub fn update(self: *@This(), state: *const WindowManager, opt: options.Update) void {
         const animation = state.animations.get(self.animation_name) orelse {
             std.log.warn("missing animation: {s}\n", .{self.animation_name});
             return;
@@ -174,12 +173,17 @@ pub const AnimationPlayer = struct {
     }
 };
 
-pub const AnimationState = struct {
+pub const WindowManager = struct {
     animations: std.StringHashMap(Animation),
     textures: std.StringHashMap(ray.Texture2D),
     tilemap_resolution: f32,
     camera: ray.Camera2D,
     ui_zoom: f32 = 1.0, //TODO configure this in the lua config file
+    keybindings: key.KeyBindings,
+    //mouse_owner_id: MouseOwner = .world,
+    mouse_ownership_queue: std.ArrayList(MouseOwner),
+
+    const MouseOwner = enum { inventory, popup, world };
 
     pub fn deinit(self: *@This()) void {
         var iter = self.textures.iterator();
@@ -190,10 +194,64 @@ pub const AnimationState = struct {
         self.textures.deinit();
     }
 
-    pub fn updateCameraPosition(self: *@This(), l: level.Level, keybindings: *const key.KeyBindings) void {
+    const MouseButton = enum {
+        left,
+        right,
+        middle,
+
+        pub fn getRayId(self: @This()) c_int {
+            return switch (self) {
+                .left => ray.MOUSE_BUTTON_LEFT,
+                .right => ray.MOUSE_BUTTON_RIGHT,
+                .middle => ray.MOUSE_BUTTON_MIDDLE,
+            };
+        }
+    };
+    pub fn isMouseDown(self: @This(), button: MouseButton) bool {
+        _ = self; // autofix
+        return ray.IsMouseButtonDown(button.getRayId());
+    }
+
+    pub fn isMousePressed(self: @This(), button: MouseButton) bool {
+        _ = self; // autofix
+        return ray.IsMouseButtonPressed(button.getRayId());
+    }
+
+    pub fn isMouseUp(self: @This(), button: MouseButton) bool {
+        _ = self; // autofix
+        return ray.IsMouseButtonUp(button.getRayId());
+    }
+
+    pub fn getMouseOwner(self: *const @This()) ?MouseOwner {
+        if (self.mouse_ownership_queue.items.len == 0) return null;
+        return self.mouse_ownership_queue.items[self.mouse_ownership_queue.items.len - 1];
+    }
+
+    pub fn takeMouseOwnership(self: *const @This(), new_owner: MouseOwner) !void {
+        try self.mouse_ownership_queue.append(new_owner);
+    }
+
+    pub fn relinquishMouseOwnership(self: *const @This(), relinquisher: MouseOwner) !void {
+        std.debug.assert(self.getMouseOwner() == relinquisher);
+        _ = self.mouse_ownership_queue.pop();
+    }
+
+    pub fn getMouseTileCoordinates(self: *const @This()) ray.Vector2 {
+        return scaleVector(
+            ray.GetScreenToWorld2D(ray.GetMousePosition(), self.camera),
+            1.0 / self.tilemap_resolution,
+        );
+    }
+
+    pub fn getMouseScreenPosition(self: *const @This()) ray.Vector2 {
+        _ = self; // autofix
+        return ray.GetMousePosition();
+    }
+
+    pub fn updateCameraPosition(self: *@This(), l: level.Level) void {
         var zoom = self.camera.zoom;
-        if (keybindings.isDown("zoom_in") and zoom < 10) zoom *= 1.01;
-        if (keybindings.isDown("zoom_out") and zoom > 0.2) zoom *= 0.99;
+        if (self.keybindings.isDown("zoom_in") and zoom < 10) zoom *= 1.01;
+        if (self.keybindings.isDown("zoom_out") and zoom > 0.2) zoom *= 0.99;
 
         const player_id = l.player_id;
         var player_position: ray.Vector2 = l.ecs.get(Component.Physics, player_id).pos;
@@ -244,7 +302,12 @@ pub const AnimationState = struct {
                 .zoom = 2,
                 .target = .{ .x = 0, .y = 0 },
             },
+            .keybindings = try key.KeyBindings.init(a, lua),
+            .mouse_ownership_queue = std.ArrayList(MouseOwner).init(a),
         };
+
+        try self.mouse_ownership_queue.append(.world);
+
         errdefer self.animations.deinit();
         errdefer self.textures.deinit();
 
@@ -275,12 +338,12 @@ pub const AnimationState = struct {
         return self;
     }
 
-    pub fn mousePosition(self: *const @This()) ray.Vector2 {
-        return scaleVector(
-            ray.GetScreenToWorld2D(ray.GetMousePosition(), self.camera),
-            1.0 / self.tilemap_resolution,
-        );
-    }
+    //pub fn rawMouseScreenPosition(self: *const @This()) ray.Vector2 {
+    //    return scaleVector(
+    //        ray.GetScreenToWorld2D(ray.GetMousePosition(), self.camera),
+    //        1.0 / self.tilemap_resolution,
+    //    );
+    //}
 
     ///convert Tile Position to Screen Position
     pub fn tileToScreen(self: *const @This(), tile_coordinates: ray.Vector2) ray.Vector2 {
@@ -341,7 +404,7 @@ pub inline fn scaleRectangle(a: ray.Rectangle, scalar: anytype) ray.Rectangle {
 pub fn renderSprites(
     self: *ecs.ECS,
     a: std.mem.Allocator,
-    animation_state: *const AnimationState,
+    window_manager: *const WindowManager,
     opt: options.Update,
 ) void {
     const systems = [_]type{ Component.Physics, Component.Sprite };
@@ -393,7 +456,7 @@ pub fn renderSprites(
                 render_options.vertical_scale = scale.current;
             }
 
-            sprite.animation_player.renderInWorld(animation_state, render_position, render_options);
+            sprite.animation_player.renderInWorld(window_manager, render_position, render_options);
         }
     }
 }

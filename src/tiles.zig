@@ -72,7 +72,7 @@ pub const TileRenderer = struct {
         return result;
     }
 
-    pub fn render(self: *const TileRenderer, state: *const anime.AnimationState, pos: ray.Vector2) void {
+    pub fn render(self: *const TileRenderer, state: *const anime.WindowManager, pos: ray.Vector2) void {
         //TODO add border rendering
         if (self.main) |main| {
             main.renderInWorld(state, pos, .{});

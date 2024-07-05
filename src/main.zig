@@ -99,14 +99,14 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
     defer json_parsed_level.deinit();
     var lvl = json_parsed_level.value;
 
-    var keybindings = try key.KeyBindings.init(a, lua);
-    defer keybindings.deinit();
+    //var keybindings = try key.KeyBindings.init(a, lua);
+    //defer keybindings.deinit();
 
     var tile_state = try tile.TileState.init(a, lua);
     defer tile_state.deinit();
 
-    var animation_state = try anime.AnimationState.init(a, lua);
-    defer animation_state.animations.deinit();
+    var window_manager = try anime.WindowManager.init(a, lua);
+    defer window_manager.animations.deinit();
 
     var light_shader = try light.LightShader.init(a);
     defer light_shader.deinit(a);
@@ -126,37 +126,37 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
         }
 
         //debug on or off
-        if (keybindings.isPressed("debug_mode")) {
+        if (window_manager.keybindings.isPressed("debug_mode")) {
             debugger.enabled = !debugger.enabled;
         }
 
         //configure update options
-        //camera = cam.calculateCameraPosition(camera, lvl, &keybindings, &animation_state);
-        animation_state.updateCameraPosition(lvl, &keybindings);
+        //camera = cam.calculateCameraPosition(camera, lvl, &keybindings, &window_manager);
+        window_manager.updateCameraPosition(lvl);
         update_options.update();
 
         try move.updateEntitySeparationSystem(lvl.ecs, a, update_options);
         try move.updateMovementSystem(lvl.ecs, a, lvl.map, update_options);
-        try play.updatePlayerSystem(lvl.ecs, a, lua, keybindings, animation_state, update_options);
-        try inv.updateInventorySystem(lvl.ecs, a, keybindings, update_options);
+        try play.updatePlayerSystem(lvl.ecs, a, lua, &window_manager, update_options);
+        try inv.updateInventorySystem(lvl.ecs, a, &window_manager, update_options);
         try sys.updateLifetimeSystem(lvl.ecs, a, update_options);
         try sys.updateDeathSystem(lvl.ecs, a, lua, update_options);
         sys.updateHealthCooldownSystem(lvl.ecs, a, update_options);
         try sys.updateDamageSystem(lvl.ecs, a, update_options);
-        sys.updateSpriteSystem(lvl.ecs, a, &animation_state, update_options);
+        sys.updateSpriteSystem(lvl.ecs, a, &window_manager, update_options);
         try sys.trimAnimationEntitySystem(lvl.ecs, a, update_options);
         try ai.updateControllerSystem(lvl.ecs, a, update_options);
         try light.updateLightingSystem(lvl.ecs, a, &light_shader, update_options);
 
         ray.BeginTextureMode(target);
         {
-            ray.BeginMode2D(animation_state.camera); // Begin 2D mode with custom camera (2D)
+            ray.BeginMode2D(window_manager.camera); // Begin 2D mode with custom camera (2D)
             ray.ClearBackground(ray.RAYWHITE);
 
-            lvl.map.render(&animation_state, &tile_state);
+            lvl.map.render(&window_manager, &tile_state);
 
-            inv.renderItems(lvl.ecs, a, &animation_state);
-            anime.renderSprites(lvl.ecs, a, &animation_state, update_options);
+            inv.renderItems(lvl.ecs, a, &window_manager);
+            anime.renderSprites(lvl.ecs, a, &window_manager, update_options);
 
             //{
             //    const systems = [_]type{ Component.IsPlayer, Component.Physics };
@@ -197,7 +197,7 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
             //    .position = shade.convertTileToOpenGL(.{ .x = 9, .y = 9 }, camera),
             //}, camera);
 
-            light_shader.render(&animation_state);
+            light_shader.render(&window_manager);
         }
         ray.EndTextureMode();
 
@@ -225,8 +225,8 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
             );
             ray.EndShaderMode();
 
-            debugger.render(&animation_state);
-            inv.renderPlayerInventory(lvl.ecs, a, &animation_state);
+            debugger.render(&window_manager);
+            inv.renderPlayerInventory(lvl.ecs, a, &window_manager);
         }
         ray.EndDrawing();
 

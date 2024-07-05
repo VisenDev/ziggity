@@ -120,7 +120,7 @@ pub fn updateHealthCooldownSystem(
 pub fn updateSpriteSystem(
     self: *ecs.ECS,
     a: std.mem.Allocator,
-    animation_state: *anime.AnimationState,
+    window_manager: *anime.WindowManager,
     opt: options.Update,
 ) void {
     const systems = [_]type{Component.Sprite};
@@ -129,7 +129,7 @@ pub fn updateSpriteSystem(
     for (set) |member| {
         const sprite_maybe = self.getMaybe(Component.Sprite, member);
         if (sprite_maybe) |sprite| {
-            sprite.animation_player.update(animation_state, opt);
+            sprite.animation_player.update(window_manager, opt);
         } else {
             std.debug.print("{} id has flags {b}", .{ member, self.bitflags.get(member).?.*.mask });
             @panic("Get system domain failed");

@@ -23,8 +23,7 @@ pub fn updatePlayerSystem(
     self: *ecs.ECS,
     a: std.mem.Allocator,
     l: *Lua,
-    keys: key.KeyBindings,
-    animation_state: anime.AnimationState,
+    window_manager: *const anime.WindowManager,
     opt: options.Update,
 ) !void {
     _ = l;
@@ -36,19 +35,19 @@ pub fn updatePlayerSystem(
     for (set) |member| {
         var direction = ray.Vector2{ .x = 0, .y = 0 };
 
-        if (keys.isDown("player_up")) {
+        if (window_manager.keybindings.isDown("player_up")) {
             direction.y -= magnitude;
         }
 
-        if (keys.isDown("player_down")) {
+        if (window_manager.keybindings.isDown("player_down")) {
             direction.y += magnitude;
         }
 
-        if (keys.isDown("player_left")) {
+        if (window_manager.keybindings.isDown("player_left")) {
             direction.x -= magnitude;
         }
 
-        if (keys.isDown("player_right")) {
+        if (window_manager.keybindings.isDown("player_right")) {
             direction.x += magnitude;
         }
 
@@ -56,11 +55,13 @@ pub fn updatePlayerSystem(
         physics.vel.x += direction.x * physics.acceleration * opt.dt;
         physics.vel.y += direction.y * physics.acceleration * opt.dt;
 
+        if (window_manager.getMouseOwner() == .world) {}
+
         //let player shoot projectiles
-        if (ray.IsMouseButtonDown(ray.MOUSE_BUTTON_LEFT)) {
+        if (window_manager.isMousePressed(.right)) {
             //const fireball = try arch.createFireball(self, a);
             const fireball = try arch.createPotion(self, a);
-            const pos = animation_state.mousePosition();
+            const pos = window_manager.getMouseTileCoordinates();
             self.setComponent(a, fireball, Component.Physics{
                 .pos = pos,
                 .vel = .{
@@ -71,10 +72,10 @@ pub fn updatePlayerSystem(
         }
 
         //spawnSlimes
-        if (ray.IsMouseButtonDown(ray.MOUSE_BUTTON_RIGHT)) {
+        if (window_manager.isMousePressed(.left)) {
             //const slime = try l.autoCall(?usize, "SpawnSlime", .{ self, &copy }) orelse break;
             const slime = arch.createSlime(self, a) catch continue;
-            const pos = animation_state.mousePosition();
+            const pos = window_manager.getMouseTileCoordinates();
             self.setComponent(a, slime, Component.Physics{
                 .pos = pos,
             }) catch continue;

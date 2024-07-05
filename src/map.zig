@@ -195,12 +195,12 @@ pub const MapState = struct {
         self.tile_grid.deinit(a);
     }
 
-    pub fn render(self: *const @This(), animation_state: *const anime.AnimationState, tile_state: *const tile.TileState) void {
+    pub fn render(self: *const @This(), window_manager: *const anime.WindowManager, tile_state: *const tile.TileState) void {
         _ = tile_state;
 
         for (0..self.animation_grid.items.len) |x| {
             for (0..self.animation_grid.items[x].len) |y| {
-                self.animation_grid.items[x][y].render(animation_state, .{
+                self.animation_grid.items[x][y].render(window_manager, .{
                     .x = @floatFromInt(x),
                     .y = @floatFromInt(y),
                 });

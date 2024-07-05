@@ -71,7 +71,7 @@ pub const LightShader = struct {
         self.num_active_lights += 1;
     }
 
-    pub fn render(self: *@This(), animation_state: *const anime.AnimationState) void {
+    pub fn render(self: *@This(), window_manager: *const anime.WindowManager) void {
         const num_loc = self.locations.get("num_active_lights").?;
         ray.SetShaderValue(self.shader, num_loc, &self.num_active_lights, shader.getRaylibTypeFlag(i32));
 
@@ -85,13 +85,13 @@ pub const LightShader = struct {
 
         //convert tile coordinates to OpenGl Coordinates
         for (self.lights.items(.position)) |*pos| {
-            pos.* = animation_state.tileToOpenGl(pos.*);
+            pos.* = window_manager.tileToOpenGl(pos.*);
         }
 
         //convert radius in tiles to opengl measurement
         for (self.lights.items(.radius)) |*rad| {
-            //rad.* *= animation_state.camera.zoom;
-            rad.* = animation_state.tileDistanceHorizontalToOpenGl(rad.*);
+            //rad.* *= window_manager.camera.zoom;
+            rad.* = window_manager.tileDistanceHorizontalToOpenGl(rad.*);
         }
 
         inline for (std.meta.fields(ShaderLight)) |field| {

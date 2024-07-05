@@ -37,12 +37,12 @@ pub const ItemComponent = struct {
     item_cooldown_ms: ?f32 = null,
     animation_player: anime.AnimationPlayer = .{ .animation_name = "potion" },
 
-    pub fn renderInUi(self: *const @This(), animation_state: *const anime.AnimationState, screen_position: ray.Vector2) void {
-        self.animation_player.renderOnScreen(animation_state, screen_position, .{});
+    pub fn renderInUi(self: *const @This(), window_manager: *const anime.WindowManager, screen_position: ray.Vector2) void {
+        self.animation_player.renderOnScreen(window_manager, screen_position, .{});
     }
 
-    pub fn renderInWorld(self: *const @This(), animation_state: *const anime.AnimationState, tile_coordinates: ray.Vector2) void {
-        self.animation_player.renderInWorld(animation_state, tile_coordinates, .{});
+    pub fn renderInWorld(self: *const @This(), window_manager: *const anime.WindowManager, tile_coordinates: ray.Vector2) void {
+        self.animation_player.renderInWorld(window_manager, tile_coordinates, .{});
     }
 };
 
@@ -174,17 +174,17 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
             which_corner: Corner = .center_point,
         };
 
-        fn calculateRenderedWidth(self: *const @This(), animation_state: *const anime.AnimationState) f32 {
-            return width * self.default_slot_render_size * animation_state.ui_zoom;
+        fn calculateRenderedWidth(self: *const @This(), window_manager: *const anime.WindowManager) f32 {
+            return width * self.default_slot_render_size * window_manager.ui_zoom;
         }
 
-        fn calculateRenderedHeight(self: *const @This(), animation_state: *const anime.AnimationState) f32 {
-            return height * self.default_slot_render_size * animation_state.ui_zoom;
+        fn calculateRenderedHeight(self: *const @This(), window_manager: *const anime.WindowManager) f32 {
+            return height * self.default_slot_render_size * window_manager.ui_zoom;
         }
 
-        pub fn render(self: *@This(), animation_state: *const anime.AnimationState, entity_component_system: *const ECS, render_opt: InventoryRenderOptions) void {
-            const render_width = self.calculateRenderedWidth(animation_state);
-            const render_height = self.calculateRenderedHeight(animation_state);
+        pub fn render(self: *@This(), window_manager: *const anime.WindowManager, entity_component_system: *const ECS, render_opt: InventoryRenderOptions) void {
+            const render_width = self.calculateRenderedWidth(window_manager);
+            const render_height = self.calculateRenderedHeight(window_manager);
             const render_position: ray.Vector2 = switch (render_opt.which_corner) {
                 .center_point => .{ .x = render_opt.position.x - (render_width / 2), .y = render_opt.position.y - (render_height / 2) },
                 .top_left => render_opt.position,
@@ -201,7 +201,7 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
             while (iterator.next()) |index| {
                 if (self.getIndex(index)) |item_id| {
                     const item = entity_component_system.get(Component.Item, item_id);
-                    item.renderInUi(animation_state, anime.addVector2(anime.scaleVector(index.vector2(), self.default_slot_render_size), render_position));
+                    item.renderInUi(window_manager, anime.addVector2(anime.scaleVector(index.vector2(), self.default_slot_render_size), render_position));
                 }
             }
             self.wants_to_close = close_inventory == 1;
@@ -214,7 +214,7 @@ pub const InventoryComponent = Inventory(4, 4, "Inventory");
 pub fn updateInventorySystem(
     self: *ECS,
     a: std.mem.Allocator,
-    keybindings: key.KeyBindings,
+    window_manager: *const anime.WindowManager,
     opt: options.Update,
 ) !void {
     _ = opt;
@@ -229,7 +229,7 @@ pub fn updateInventorySystem(
         }
 
         if (self.hasComponent(Component.IsPlayer, member)) {
-            if (keybindings.isPressed("inventory")) {
+            if (window_manager.keybindings.isPressed("inventory")) {
                 inventory.state = .visible_focused;
             }
         }
@@ -249,7 +249,7 @@ pub fn updateInventorySystem(
 pub fn renderItems(
     self: *ECS,
     a: std.mem.Allocator,
-    animation_state: *anime.AnimationState,
+    window_manager: *anime.WindowManager,
 ) void {
     const systems = [_]type{ Component.Item, Component.Physics };
     const set = self.getSystemDomain(a, &systems);
@@ -258,14 +258,14 @@ pub fn renderItems(
         const item = self.get(Component.Item, member);
         const physics = self.get(Component.Physics, member);
 
-        item.renderInWorld(animation_state, physics.pos);
+        item.renderInWorld(window_manager, physics.pos);
     }
 }
 
 pub fn renderPlayerInventory(
     self: *ECS,
     a: std.mem.Allocator,
-    animation_state: *anime.AnimationState,
+    window_manager: *anime.WindowManager,
 ) void {
     const systems = [_]type{ Component.IsPlayer, Component.Inventory };
     const set = self.getSystemDomain(a, &systems);
@@ -274,7 +274,7 @@ pub fn renderPlayerInventory(
         const inventory = self.get(Component.Inventory, member);
 
         if (inventory.state != .hidden) {
-            inventory.render(animation_state, self, .{ .position = .{ .x = anime.screenWidth() / 2, .y = anime.screenHeight() / 2 } });
+            inventory.render(window_manager, self, .{ .position = .{ .x = anime.screenWidth() / 2, .y = anime.screenHeight() / 2 } });
         }
         //for (0..inventory.len) |i| {
         //    //_ = std.fmt.bufPrintZ(&buf, "{} entities", .{inventory.slots()[i].item_count}) catch unreachable;
