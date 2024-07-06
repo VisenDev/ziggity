@@ -44,6 +44,10 @@ pub const ItemComponent = struct {
     pub fn renderInWorld(self: *const @This(), window_manager: *const anime.WindowManager, tile_coordinates: ray.Vector2) void {
         self.animation_player.renderInWorld(window_manager, tile_coordinates, .{});
     }
+
+    pub fn isSameTypeAs(self: @This(), other_item: @This()) bool {
+        return std.mem.eql(u8, self.type_of_item, other_item.type_of_item);
+    }
 };
 
 pub fn Inventory(comptime width: usize, comptime height: usize, comptime internal_name: []const u8) type {
@@ -97,6 +101,26 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
             }
         };
 
+        pub const ItemIterator = struct {
+            ecs_ptr: *const ECS,
+            iterator: Iterator,
+            last_item_index: ?Index = null,
+            pub fn next(self: *@This()) ?ItemComponent {
+                const index = self.iterator.next();
+                if (index == null) return null;
+
+                const item_id = self.iterator.inventory_ptr.getIndex(index.?);
+                if (item_id == null) return self.next();
+
+                self.last_item_index = index;
+                return self.ecs_ptr.get(Component.ItemComponent, item_id.?);
+            }
+
+            pub fn getIndexOfLastItem(self: @This()) ?Index {
+                return self.last_item_index;
+            }
+        };
+
         pub const name = internal_name;
         item_ids: [width][height]ItemId = .{.{null} ** width} ** height,
         selected_index: Index = .{},
@@ -122,17 +146,19 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
             return null;
         }
 
-        pub fn findFirstSlotContaining(self: *const @This(), ecs: *ECS, item_type: []const u8) ?Index {
-            _ = self; // autofix
-            _ = ecs; // autofix
-            _ = item_type; // autofix
+        pub fn findFirstSlotWithItemType(self: *const @This(), ecs: *ECS, item: ItemComponent) ?Index {
+            var iterator = self.iterate_items(ecs);
+            while (iterator.next()) |inventory_item| {
+                if(item.isSameTypeAs(inventory_item)) return iterator.getIndexOfLastItem(); 
+            }
+            return null;
         }
 
-        pub fn findSlotSameItemType(self: *const @This(), ecs: *ECS, item_type: []const u8) ?Index {
-            _ = self; // autofix
-            _ = ecs; // autofix
-            _ = item_type; // autofix
-        }
+        //pub fn findSlotWithSameItemType(self: *const @This(), ecs: *ECS, item_type: []const u8) ?Index {
+        //    _ = self; // autofix
+        //    _ = ecs; // autofix
+        //    _ = item_type; // autofix
+        //}
 
         /// transfers item to first available index in inventory
         pub fn pickupItem(self: *@This(), item_id: usize) !void {
@@ -166,6 +192,10 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
 
         pub fn iterate(self: *const @This()) Iterator {
             return Iterator{ .inventory_ptr = self };
+        }
+
+        pub fn iterate_items(self: *const @This(), ecs_ptr: *const ECS) ItemIterator {
+            return ItemIterator{ .iterator = self.iterate(), .ecs_ptr = ecs_ptr };
         }
 
         pub const InventoryRenderOptions = struct {
