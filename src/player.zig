@@ -58,7 +58,7 @@ pub fn updatePlayerSystem(
         if (window_manager.getMouseOwner() == .world) {}
 
         //let player shoot projectiles
-        if (window_manager.isMousePressed(.right)) {
+        if (window_manager.isMousePressed(.right) and window_manager.getMouseOwner() == .world) {
             //const fireball = try arch.createFireball(self, a);
             const fireball = try arch.createPotion(self, a);
             const pos = window_manager.getMouseTileCoordinates();
@@ -72,7 +72,7 @@ pub fn updatePlayerSystem(
         }
 
         //spawnSlimes
-        if (window_manager.isMousePressed(.left)) {
+        if (window_manager.isMousePressed(.left) and window_manager.getMouseOwner() == .world) {
             //const slime = try l.autoCall(?usize, "SpawnSlime", .{ self, &copy }) orelse break;
             const slime = arch.createSlime(self, a) catch continue;
             const pos = window_manager.getMouseTileCoordinates();

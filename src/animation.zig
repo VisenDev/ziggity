@@ -86,6 +86,8 @@ pub const RenderOptions = struct {
     render_style: enum { scaled_to_grid, actual } = .scaled_to_grid,
     vertical_scale: f32 = 1.0,
     horizontal_scale: f32 = 1.0,
+    width_override: ?f32 = null,
+    height_override: ?f32 = null,
 };
 
 ///flips a subrect
@@ -141,12 +143,15 @@ pub const AnimationPlayer = struct {
 
         const tilemap_adjustment_factor: f32 = if (render_location == .in_world) state.tilemap_resolution else 1;
 
+        const render_width = if (opt.width_override) |width| width else unflipped_subrect.width;
+        const render_height = if (opt.height_override) |height| height else unflipped_subrect.height;
+
         const render_rect =
             ray.Rectangle{
             .x = position.x * tilemap_adjustment_factor,
             .y = position.y * tilemap_adjustment_factor,
-            .width = (unflipped_subrect.width * opt.horizontal_scale) + 0.001,
-            .height = (unflipped_subrect.height * opt.vertical_scale) + 0.001,
+            .width = (render_width * opt.horizontal_scale) + 0.001,
+            .height = (render_height * opt.vertical_scale) + 0.001,
         };
 
         ray.DrawTexturePro(texture, subrect, render_rect, animation.origin, std.math.radiansToDegrees(opt.rotation_radians), opt.tint);
@@ -183,7 +188,7 @@ pub const WindowManager = struct {
     //mouse_owner_id: MouseOwner = .world,
     mouse_ownership_queue: std.ArrayList(MouseOwner),
 
-    const MouseOwner = enum { inventory, popup, world };
+    const MouseOwner = enum { player_inventory, popup, world };
 
     pub fn deinit(self: *@This()) void {
         var iter = self.textures.iterator();
@@ -227,11 +232,12 @@ pub const WindowManager = struct {
         return self.mouse_ownership_queue.items[self.mouse_ownership_queue.items.len - 1];
     }
 
-    pub fn takeMouseOwnership(self: *const @This(), new_owner: MouseOwner) !void {
+    pub fn takeMouseOwnership(self: *@This(), new_owner: MouseOwner) !void {
         try self.mouse_ownership_queue.append(new_owner);
     }
 
-    pub fn relinquishMouseOwnership(self: *const @This(), relinquisher: MouseOwner) !void {
+    pub fn relinquishMouseOwnership(self: *@This(), relinquisher: MouseOwner) !void {
+        //std.debug.print("active_owner: {?}\n relinquisher: {}\n\n", .{ self.getMouseOwner(), relinquisher });
         std.debug.assert(self.getMouseOwner() == relinquisher);
         _ = self.mouse_ownership_queue.pop();
     }
