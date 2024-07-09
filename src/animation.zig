@@ -344,6 +344,16 @@ pub const WindowManager = struct {
     //        1.0 / self.tilemap_resolution,
     //    );
     //}
+    //
+
+    ///
+    pub fn tileToWorld(self: *const @This(), tile_coordinates: ray.Vector2) ray.Vector2 {
+        const world_position = ray.Vector2{
+            .x = tile_coordinates.x * self.tilemap_resolution,
+            .y = tile_coordinates.y * self.tilemap_resolution,
+        };
+        return world_position;
+    }
 
     ///convert Tile Position to Screen Position
     pub fn tileToScreen(self: *const @This(), tile_coordinates: ray.Vector2) ray.Vector2 {

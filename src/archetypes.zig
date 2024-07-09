@@ -31,7 +31,7 @@ pub fn createPlayer(self: *ecs.ECS, a: std.mem.Allocator) !usize {
     try self.setComponent(a, id, Component.Sprite{ .animation_player = .{ .animation_name = "player" }, .styling = .{ .lean = .{}, .bob = .{} } });
     try self.setComponent(a, id, Component.IsPlayer{});
     try self.setComponent(a, id, Component.MovementParticles{});
-    try self.setComponent(a, id, Component.Light{ .radius_in_tiles = 4 });
+    try self.setComponent(a, id, Component.Light{ .radius_in_tiles = 8 });
     return id;
 }
 

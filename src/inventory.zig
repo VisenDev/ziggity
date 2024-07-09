@@ -33,16 +33,25 @@ pub const ItemComponent = struct {
     type_of_item: [:0]const u8 = "unknown",
     category_of_item: [:0]const u8 = "unknown",
     stack_size: usize = 1,
-    max_stack_size: usize = 99,
+    max_stack_size: usize = 16,
     item_cooldown_ms: ?f32 = null,
     animation_player: anime.AnimationPlayer = .{ .animation_name = "potion" },
 
     pub fn renderInUi(self: *const @This(), window_manager: *const anime.WindowManager, screen_position: ray.Vector2) void {
         self.animation_player.renderOnScreen(window_manager, screen_position, .{});
+
+        var buffer: [256]u8 = [_]u8{0} ** 256;
+        _ = std.fmt.bufPrintZ(&buffer, "{}", .{self.stack_size}) catch {};
+        ray.DrawTextEx(ray.GetFontDefault(), (&buffer).ptr, screen_position, 10, 1, ray.RAYWHITE);
     }
 
     pub fn renderInWorld(self: *const @This(), window_manager: *const anime.WindowManager, tile_coordinates: ray.Vector2) void {
         self.animation_player.renderInWorld(window_manager, tile_coordinates, .{});
+
+        const world_position = window_manager.tileToWorld(tile_coordinates);
+        var buffer: [256]u8 = [_]u8{0} ** 256;
+        _ = std.fmt.bufPrintZ(&buffer, "{}", .{self.stack_size}) catch {};
+        ray.DrawTextEx(ray.GetFontDefault(), (&buffer).ptr, world_position, 10, 1, ray.RAYWHITE);
     }
 
     pub fn isSameTypeAs(self: *const @This(), other_item: *const @This()) bool {
@@ -51,6 +60,20 @@ pub const ItemComponent = struct {
 
     pub fn capacityRemaining(self: *const @This()) usize {
         return self.max_stack_size - self.stack_size;
+    }
+
+    pub fn combineWith(self: *@This(), combined_item: *@This()) void {
+        if (combined_item.stack_size <= self.capacityRemaining()) {
+            self.stack_size += combined_item.stack_size;
+            combined_item.stack_size = 0;
+        } else {
+            combined_item.stack_size -= self.capacityRemaining();
+            self.stack_size = self.max_stack_size;
+        }
+    }
+
+    pub fn shouldBeDeleted(self: @This()) bool {
+        return self.stack_size <= 0;
     }
 };
 
@@ -140,15 +163,15 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
             return self.getIndex(self.selected_index);
         }
 
-        pub fn findFirstEmptySlot(self: *@This()) ?Index {
-            var iterator = self.iterate();
-            while (iterator.next()) |index| {
-                if (self.getIndex(index) == null) {
-                    return index;
-                }
-            }
-            return null;
-        }
+        //pub fn findFirstEmptySlot(self: *@This()) ?Index {
+        //    var iterator = self.iterate();
+        //    while (iterator.next()) |index| {
+        //        if (self.getIndex(index) == null) {
+        //            return index;
+        //        }
+        //    }
+        //    return null;
+        //}
 
         const SearchType = union(enum) {
             find_empty_slot: void,
@@ -184,73 +207,52 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
                         }
                     },
                     .find_slot_same_type => {
-                        const slot_item = ecs.get(Component.Item, slot_item_id.?);
-                        if (slot_item.isSameTypeAs(match_item.?)) return index;
+                        if (slot_item_id) |id| {
+                            const slot_item = ecs.get(Component.Item, id);
+                            if (slot_item.isSameTypeAs(match_item.?)) return index;
+                        }
                     },
                     .find_slot_for_stacking => {
-                        const slot_item = ecs.get(Component.Item, slot_item_id.?);
-                        if (slot_item.isSameTypeAs(match_item.?) and slot_item.capacityRemaining() > 0) return index;
+                        if (slot_item_id) |id| {
+                            const slot_item = ecs.get(Component.Item, id);
+                            if (slot_item.isSameTypeAs(match_item.?) and slot_item.capacityRemaining() > 0) return index;
+                        }
                     },
                 }
             }
 
-            //switch(search_type) {
-            //     .find_empty_slot => |find| {
-            //        while (iterator.next()) |index| {
-            //            const item_id =
-            //            if (item_id == null) {
-            //                return index;
-            //            }
-            //        }
-            //     },
-            //        .find_slot_same_type => |find| {
-
-            //        while (iterator.next()) |index| {
-            //            const item = ecs.get(Component.ItemComponent, item_id.?);
-            //            if (item.isSameTypeAs(find.item_to_match)) return index;
-            //        }
-            //        },
-            //}
-
-            //var matching_item = ecs.get(Component.ItemComponent, switch(search_type) {.find});
             return null;
         }
 
-        //pub fn findFirstSlotSameItemType(self: *const @This(), ecs: *ECS, item: ItemComponent) ?Index {
-        //    var iterator = self.iterate_items(ecs);
-        //    while (iterator.next()) |inventory_item| {
-        //        if (item.isSameTypeAs(inventory_item)) return iterator.getIndexOfLastItem();
-        //    }
-        //    return null;
-        //}
-
-        //pub fn findSlotWithSameItemType(self: *const @This(), ecs: *ECS, item_type: []const u8) ?Index {
-        //    _ = self; // autofix
-        //    _ = ecs; // autofix
-        //    _ = item_type; // autofix
-        //}
-
         /// transfers item to first available index in inventory
-        pub fn pickupItem(self: *@This(), ecs: *const ECS, item_id: usize) !void {
+        pub fn pickupItem(self: *@This(), a: std.mem.Allocator, ecs: *ECS, item_id: usize) !void {
             const stacking_index = self.findSlot(ecs, .{ .find_slot_for_stacking = .{ .item_id_to_match = item_id } });
+            const empty_index = self.findSlot(ecs, .{ .find_empty_slot = {} });
             if (stacking_index) |index| {
-                self.item_ids[index.x][index.y] = item_id;
-            } else {
-                const empty_index = self.findSlot(ecs, .{ .find_slot_for_stacking = .{ .item_id_to_match = item_id } });
-                if (empty_index) |index| {
-                    self.item_ids[index.x][index.y] = item_id;
-                } else {
-                    return error.OutOfSpace;
+                const status = try self.addItemsToSlot(a, ecs, item_id, index);
+                if (status == .not_all_items_merged) {
+                    try self.pickupItem(a, ecs, item_id);
                 }
+            } else if (empty_index) |index| {
+                self.item_ids[index.x][index.y] = item_id;
+
+                try ecs.deleteComponent(item_id, Component.Physics);
+            } else {
+                return error.OutOfSpace;
             }
         }
 
-        pub fn addItemsToSlot(self: *@This(), ecs: *const ECS, input_item_id: usize, destination_slot: Index) usize {
-            _ = self; // autofix
-            _ = ecs; // autofix
-            _ = input_item_id; // autofix
-            _ = destination_slot; // autofix
-
+        const AddItemStatus = enum { all_items_merged, not_all_items_merged };
+        pub fn addItemsToSlot(self: *@This(), a: std.mem.Allocator, ecs: *ECS, input_item_id: usize, destination_slot: Index) !AddItemStatus {
+            const input_item = ecs.get(Component.Item, input_item_id);
+            const destination_item = ecs.get(Component.Item, self.getIndex(destination_slot).?);
+            destination_item.combineWith(input_item);
+            if (input_item.shouldBeDeleted()) {
+                try ecs.deleteEntity(a, input_item_id);
+                return .all_items_merged;
+            } else {
+                return .not_all_items_merged;
+            }
         }
 
         pub inline fn numSlots(self: @This()) usize {
@@ -350,10 +352,7 @@ pub fn updateInventorySystem(
         const colliders = try coll.findCollidingEntities(self, a, member);
         for (colliders) |entity| {
             if (self.hasComponent(Component.Item, entity)) {
-                inventory.pickupItem(self, entity) catch {
-                    continue;
-                };
-                try self.deleteComponent(entity, Component.Physics);
+                inventory.pickupItem(a, self, entity) catch continue;
             }
         }
     }
@@ -433,22 +432,65 @@ test "InventoryIterate" {
     try expectEqual(iterator.next(), null);
 }
 
-test "InventoryFirstEmpty" {
+test "FindEmpty" {
     const InventoryType = Inventory(4, 4, "test_inv");
     var inventory = InventoryType{};
 
-    const first_slot = inventory.findFirstEmptySlot();
+    const a = std.testing.allocator;
+    var ecs = try ECS.init(a, 101);
+    defer ecs.deinit(a);
+
+    const first_slot = inventory.findSlot(&ecs, .{ .find_empty_slot = {} });
     try expectEqual(first_slot.?, InventoryType.Index{ .x = 0, .y = 0 });
 }
 
-//test "InventoryPickupItem" {
-//    //return std.testing.s
-//    const InventoryType = Inventory(4, 4, "test_inv");
-//    var inventory = InventoryType{};
-//
-//    const item_id: usize = 1;
-//    try inventory.pickupItem(item_id);
-//    try std.testing.expect(inventory.numFilledSlots() == 1);
-//    try std.testing.expect(inventory.numEmptySlots() == 15);
-//    try expectEqual(inventory.getIndex(InventoryType.Index{}), item_id);
-//}
+test "InventoryEmptyPickupItem" {
+    const a = std.testing.allocator;
+
+    var ecs = try ECS.init(a, 101);
+    defer ecs.deinit(a);
+
+    const item_id_1 = ecs.newEntity(a).?;
+    try ecs.setComponent(a, item_id_1, Component.Item{});
+
+    const InventoryType = Inventory(4, 4, "test_inv");
+    var inventory = InventoryType{};
+
+    try inventory.pickupItem(a, &ecs, item_id_1);
+    try std.testing.expect(inventory.numFilledSlots() == 1);
+    try std.testing.expect(inventory.numEmptySlots() == 15);
+    try expectEqual(inventory.getIndex(InventoryType.Index{}), item_id_1);
+}
+
+test "FindSameType" {
+    const InventoryType = Inventory(4, 4, "test_inv");
+    var inventory = InventoryType{};
+
+    const a = std.testing.allocator;
+    var ecs = try ECS.init(a, 101);
+    defer ecs.deinit(a);
+
+    const item_id_1 = ecs.newEntity(a).?;
+    try ecs.setComponent(a, item_id_1, Component.Item{});
+    try inventory.pickupItem(a, &ecs, item_id_1);
+
+    const found_slot = inventory.findSlot(&ecs, .{ .find_slot_same_type = .{ .item_id_to_match = item_id_1 } });
+    try expectEqual(found_slot.?, InventoryType.Index{ .x = 0, .y = 0 });
+}
+
+test "StackingPickupItem" {
+    const InventoryType = Inventory(4, 4, "test_inv");
+    var inventory = InventoryType{};
+
+    const a = std.testing.allocator;
+    var ecs = try ECS.init(a, 101);
+    defer ecs.deinit(a);
+
+    const item_id_1 = ecs.newEntity(a).?;
+    try ecs.setComponent(a, item_id_1, Component.Item{});
+    try inventory.pickupItem(a, &ecs, item_id_1);
+
+    const item_id_2 = ecs.newEntity(a).?;
+    try ecs.setComponent(a, item_id_2, Component.Item{});
+    try inventory.pickupItem(a, &ecs, item_id_2);
+}
