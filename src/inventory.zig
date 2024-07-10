@@ -13,7 +13,8 @@ const Grid = @import("grid.zig").Grid;
 const coll = @import("collisions.zig");
 const cam = @import("camera.zig");
 const Lua = @import("ziglua").Lua;
-pub const Component = @import("components.zig");
+const item_actions = @import("item_actions.zig");
+const Component = @import("components.zig");
 const intersection = @import("sparse_set.zig").intersection;
 
 const ray = @cImport({
@@ -27,15 +28,33 @@ const raygui = @cImport({
 
 const eql = std.mem.eql;
 
+//pub const ItemActions = struct {
+//    pub  fireball =
+//}
+
+//pub const ItemAction = enum {fireball, spawn_slime
+//
+//    pub fn do(self: @This()) void {
+//        inline for(ItemAction) |action| {
+//            if(
+//        }
+////        switch(self) {
+//
+//        //}
+//    }
+//};
+
 // =========Component types=========
 pub const ItemComponent = struct {
     pub const name = "item";
+
+    pub const ItemActionEnum = std.meta.DeclEnum(item_actions);
     type_of_item: [:0]const u8 = "unknown",
     category_of_item: [:0]const u8 = "unknown",
     stack_size: usize = 1,
     max_stack_size: usize = 16,
-    item_cooldown_ms: ?f32 = null,
     animation_player: anime.AnimationPlayer = .{ .animation_name = "potion" },
+    action: ?ItemActionEnum = null,
 
     pub fn renderInUi(self: *const @This(), window_manager: *const anime.WindowManager, screen_position: ray.Vector2, ui_render_size: f32) void {
         //const scale_adjustment = ui_render_size / window_manager.animations.get(self.animation_player.animation_name).?.frames[0].subrect.width;
@@ -382,6 +401,29 @@ pub fn updateInventorySystem(
         for (colliders) |entity| {
             if (self.hasComponent(Component.Item, entity)) {
                 inventory.pickupItem(a, self, entity) catch continue;
+            }
+        }
+    }
+}
+
+pub fn updateItemSystem(
+    self: *ECS,
+    a: std.mem.Allocator,
+    window_manager: *anime.WindowManager,
+    opt: options.Update,
+) !void {
+    const systems = [_]type{Component.Item};
+    const set = self.getSystemDomain(a, &systems);
+
+    for (set) |member| {
+        const item = self.get(Component.Item, member);
+        if (item.action) |action| {
+            //std.meta.tags(Component.Item.ItemActionEnum)
+            //try @field(item_actions, @tagName(action)).do(member, self, window_manager, opt);
+            inline for (@typeInfo(item_actions).Struct.decls) |decl| {
+                if (std.mem.eql(u8, decl.name, @tagName(action))) {
+                    try @field(item_actions, decl.name).do(member, self, window_manager, opt);
+                }
             }
         }
     }

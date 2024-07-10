@@ -64,7 +64,7 @@ pub fn createPotion(self: *ecs.ECS, a: std.mem.Allocator) !usize {
     try self.setComponent(a, id, Component.Physics{});
     try self.setComponent(a, id, Component.Hitbox{ .bottom = 0.2, .left = 0.2 });
     try self.setComponent(a, id, Component.WallCollisions{});
-    try self.setComponent(a, id, Component.Item{ .animation_player = .{ .animation_name = "potion" }, .type_of_item = "healing_potion" });
+    try self.setComponent(a, id, Component.Item{ .animation_player = .{ .animation_name = "potion" }, .type_of_item = "healing_potion", .action = .fireball });
     try self.setComponent(a, id, Component.Metadata{ .archetype = "item" });
     //try self.setComponent(a, id, Component.Light{ .color = .{ .x = 0.5, .y = 0.1, .z = 0.1, .a = 0.9 }, .radius_in_tiles = 0.5 });
     return id;
