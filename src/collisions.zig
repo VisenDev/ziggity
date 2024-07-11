@@ -27,6 +27,7 @@ pub fn checkCollision(
 pub fn findCollidingEntities(
     self: *ecs.ECS,
     a: std.mem.Allocator,
+    m: *const map.MapState,
     id: usize,
 ) ![]usize {
     self.collision_id_buffer.clearRetainingCapacity();
@@ -34,16 +35,21 @@ pub fn findCollidingEntities(
     const physics = self.getMaybe(Component.Physics, id) orelse return self.collision_id_buffer.items;
     const hitbox = self.getMaybe(Component.Hitbox, id) orelse return self.collision_id_buffer.items;
 
-    const pos = physics.getCachePosition();
-    const neighbor_list = self.position_cache.findNeighbors(a, pos.x, pos.y);
-    for (neighbor_list) |neighbor| {
-        for (neighbor.items) |neighbor_id| {
-            if (neighbor_id == id) continue;
-            const neighbor_physics = self.getMaybe(Component.Physics, neighbor_id) orelse continue;
-            const neighbor_hitbox = self.getMaybe(Component.Hitbox, neighbor_id) orelse continue;
+    const pos = physics.getCachePosition() orelse return self.collision_id_buffer.items;
 
-            if (checkCollision(physics.*, hitbox.*, neighbor_physics.*, neighbor_hitbox.*)) {
-                try self.collision_id_buffer.append(a, neighbor_id);
+    const nearby_cell_data = m.grid.findNearbyCells(pos.x, pos.y);
+    for (nearby_cell_data) |maybe_cell_data| {
+        if (maybe_cell_data) |cell_data| {
+            for (cell_data.entity_location_cache) |maybe_neighbor_id| {
+                if (maybe_neighbor_id) |neighbor_id| {
+                    if (neighbor_id == id) continue;
+                    const neighbor_physics = self.getMaybe(Component.Physics, neighbor_id) orelse continue;
+                    const neighbor_hitbox = self.getMaybe(Component.Hitbox, neighbor_id) orelse continue;
+
+                    if (checkCollision(physics.*, hitbox.*, neighbor_physics.*, neighbor_hitbox.*)) {
+                        try self.collision_id_buffer.append(a, neighbor_id);
+                    }
+                } else break;
             }
         }
     }

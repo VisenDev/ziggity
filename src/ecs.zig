@@ -93,7 +93,7 @@ pub const ECS = struct {
     domain_id_buffer_in_use: bool = false,
     collision_id_buffer: std.ArrayListUnmanaged(usize), //used by collision calculations
     collision_id_buffer_in_use: bool = false,
-    position_cache: Grid(std.ArrayListUnmanaged(usize)),
+    //position_cache: Grid(std.ArrayListUnmanaged(usize)),
 
     //0s remainding capacities to avoid errors when parsing from json
     pub fn prepForStringify(self: *@This(), a: std.mem.Allocator) void {
@@ -107,7 +107,7 @@ pub const ECS = struct {
         self.bitflags.dense.capacity = 0;
         self.domain_id_buffer.capacity = 0;
         self.collision_id_buffer.capacity = 0;
-        self.position_cache = .{ .default_value = .{} };
+        //self.position_cache = .{ .default_value = .{} };
     }
 
     pub fn init(a: std.mem.Allocator, capacity: usize) !@This() {
@@ -132,7 +132,7 @@ pub const ECS = struct {
             .bitflags = try SparseSet(std.bit_set.StaticBitSet(comptime sliceComponentNames().len)).init(a, capacity),
             .domain_id_buffer = domain_id_buffer,
             .collision_id_buffer = collision_id_buffer,
-            .position_cache = try Grid(std.ArrayListUnmanaged(usize)).init(a, 32, 32, .{}),
+            //.position_cache = try Grid(std.ArrayListUnmanaged(usize)).init(a, 32, 32, .{}),
         };
     }
 
@@ -194,7 +194,7 @@ pub const ECS = struct {
         self.bitflags.deinit(a);
         self.collision_id_buffer.deinit(a);
         self.domain_id_buffer.deinit(a);
-        self.position_cache.deinit(a);
+        //self.position_cache.deinit(a);
     }
 
     ///Get component, asserts component exists

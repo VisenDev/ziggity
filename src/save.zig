@@ -24,7 +24,7 @@ pub fn createNewSave(a: std.mem.Allocator, lua: *Lua, options: NewSaveOptions) !
     const first_level_id = "level_1";
 
     const biomes = [_]level.Record{.{ .name = "cave", .weight = 10 }};
-    const first_level = try level.generateLevel(a, lua, .{ .name = first_level_id, .biomes = &biomes });
+    const first_level = try level.Level.generate(a, lua, .{ .name = first_level_id, .biomes = &biomes });
     //TODO add a deinit method to level
     try file.writeLevel(a, first_level, options.name, first_level_id);
 

@@ -1,4 +1,5 @@
 const std = @import("std");
+const MapState = @import("map.zig").MapState;
 const Grid = @import("grid.zig").Grid;
 const options = @import("options.zig");
 const anime = @import("animation.zig");
@@ -10,12 +11,12 @@ const tex = @import("textures.zig");
 const file = @import("file_utils.zig");
 const Lua = @import("ziglua").Lua;
 
-const Borders = struct {
-    const Row = struct { left: bool = false, middle: bool = false, right: bool = false };
-    top: Row,
-    center: Row,
-    bottom: Row,
-};
+//const Borders = struct {
+//const Row = struct { left: bool = false, middle: bool = false, right: bool = false };
+//top: Row,
+//center: Row,
+//bottom: Row,
+//};
 
 //pub const TileRenderConfig = struct {
 //    wall_top: bool = false,
@@ -42,16 +43,20 @@ const Category = enum { wall, floor };
 
 pub const Tile = struct {
     name: []const u8 = "",
-    animations: ?struct {
+    animations: struct {
         main: ?[]const u8 = null,
-        border: ?struct {
+        border: struct {
             left: ?[]const u8 = null,
             right: ?[]const u8 = null,
             top: ?[]const u8 = null,
             bottom: ?[]const u8 = null,
-        } = null,
-    } = null,
+        } = .{},
+    } = .{},
     category: Category = .floor,
+
+    pub fn eql(self: @This(), other: @This()) bool {
+        return std.meta.eql(self, other);
+    }
 };
 
 pub const TileRenderer = struct {
@@ -63,12 +68,42 @@ pub const TileRenderer = struct {
         bottom: ?anime.AnimationPlayer = null,
     } = .{},
 
-    pub fn init(neighbors: Grid(Tile).Neighborhood) TileRenderer {
-        //TODO take into account neighbors
+    const top_left = 0;
+    const top_center = 1;
+    const top_right = 2;
+    const center_left = 3;
+    const center = 4;
+    const center_right = 5;
+    const bottom_left = 6;
+    const bottom_center = 7;
+    const bottom_right = 8;
+
+    pub fn init(neighbors: [9]?*MapState.CellData) TileRenderer {
         var result = TileRenderer{};
-        if (neighbors.center.middle) |self| {
-            result.main = .{ .animation_name = self.name };
+
+        const main = neighbors[center] orelse @panic("invalid center cell");
+        result.main = .{ .animation_name = main.tile.animations.main.? };
+
+        if (main.tile.category == .wall) {
+            if (neighbors[top_center]) |cell| {
+                if (!cell.tile.eql(main.tile)) {
+                    result.border.top = .{ .animation_name = main.tile.animations.border.top.? };
+                }
+            }
+
+            if (neighbors[center_left]) |cell| {
+                if (!cell.tile.eql(main.tile)) {
+                    result.border.left = .{ .animation_name = main.tile.animations.border.left.? };
+                }
+            }
+
+            if (neighbors[center_right]) |cell| {
+                if (!cell.tile.eql(main.tile)) {
+                    result.border.right = .{ .animation_name = main.tile.animations.border.right.? };
+                }
+            }
         }
+
         return result;
     }
 
@@ -99,10 +134,10 @@ pub const TileState = struct {
         for (parsed.value) |*tile| {
 
             //if no animations are provided, assume there is an animation that goes by the tile name
-            if (tile.animations == null) {
-                tile.animations = .{};
-                tile.animations.?.main = tile.name;
-            }
+            //if (tile.animations == null) {
+            //    tile.animations = .{};
+            //    tile.animations.?.main = tile.name;
+            //}
             try result.put(tile.name, tile.*);
         }
 

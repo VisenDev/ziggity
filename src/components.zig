@@ -18,7 +18,10 @@ pub const Physics = struct {
     acceleration: f32 = 0.03,
     friction: f32 = 0.98,
 
-    pub fn getCachePosition(self: @This()) struct { x: usize, y: usize } {
+    pub fn getCachePosition(self: @This()) ?struct { x: usize, y: usize } {
+        if (self.pos.x < 0 or self.pos.y < 0) {
+            return null;
+        }
         return .{
             .x = @intFromFloat(@max(@divFloor(self.pos.x, sys.position_cache_scale), 0)),
             .y = @intFromFloat(@max(@divFloor(self.pos.y, sys.position_cache_scale), 0)),

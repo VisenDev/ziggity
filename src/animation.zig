@@ -254,13 +254,14 @@ pub const WindowManager = struct {
         return ray.GetMousePosition();
     }
 
-    pub fn updateCameraPosition(self: *@This(), l: level.Level) void {
+    pub fn updateCameraPosition(self: *@This(), a: std.mem.Allocator, l: level.Level) void {
         var zoom = self.camera.zoom;
         if (self.keybindings.isDown("zoom_in") and zoom < 10) zoom *= 1.01;
         if (self.keybindings.isDown("zoom_out") and zoom > 0.2) zoom *= 0.99;
 
-        const player_id = l.player_id;
-        var player_position: ray.Vector2 = l.ecs.get(Component.Physics, player_id).pos;
+        const systems = [_]type{ Component.IsPlayer, Component.Physics };
+        const set = l.ecs.getSystemDomain(a, &systems);
+        var player_position = l.ecs.get(Component.Physics, set[0]).pos;
 
         player_position.x *= self.tilemap_resolution;
         player_position.y *= self.tilemap_resolution;
@@ -276,8 +277,8 @@ pub const WindowManager = struct {
             player_position.y = min_camera_y;
         }
 
-        const map_width: f32 = tof32(l.map.width) * self.tilemap_resolution;
-        const map_height: f32 = tof32(l.map.height) * self.tilemap_resolution;
+        const map_width: f32 = tof32(l.map.grid.width) * self.tilemap_resolution;
+        const map_height: f32 = tof32(l.map.grid.height) * self.tilemap_resolution;
         const max_camera_x: f32 = (map_width - min_camera_x);
         const max_camera_y: f32 = (map_height - min_camera_y);
 

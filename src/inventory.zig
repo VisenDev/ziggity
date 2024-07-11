@@ -374,6 +374,7 @@ pub fn updateInventorySystem(
     self: *ECS,
     a: std.mem.Allocator,
     window_manager: *anime.WindowManager,
+    m: *map.MapState,
     opt: options.Update,
 ) !void {
     _ = opt;
@@ -397,7 +398,7 @@ pub fn updateInventorySystem(
             }
         }
 
-        const colliders = try coll.findCollidingEntities(self, a, member);
+        const colliders = try coll.findCollidingEntities(self, a, m, member);
         for (colliders) |entity| {
             if (self.hasComponent(Component.Item, entity)) {
                 inventory.pickupItem(a, self, entity) catch continue;

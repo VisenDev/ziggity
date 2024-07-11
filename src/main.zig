@@ -132,18 +132,19 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
 
         //configure update options
         //camera = cam.calculateCameraPosition(camera, lvl, &keybindings, &window_manager);
-        window_manager.updateCameraPosition(lvl);
+        window_manager.updateCameraPosition(a, lvl);
         update_options.update();
 
-        try move.updateEntitySeparationSystem(lvl.ecs, a, update_options);
+        try move.updateEntitySeparationSystem(lvl.ecs, a, lvl.map, update_options);
         try move.updateMovementSystem(lvl.ecs, a, lvl.map, update_options);
+        try move.updatePositionCacheSystem(lvl.ecs, a, lvl.map, update_options);
         try play.updatePlayerSystem(lvl.ecs, a, lua, &window_manager, update_options);
-        try inv.updateInventorySystem(lvl.ecs, a, &window_manager, update_options);
+        try inv.updateInventorySystem(lvl.ecs, a, &window_manager, lvl.map, update_options);
         try inv.updateItemSystem(lvl.ecs, a, &window_manager, update_options);
         try sys.updateLifetimeSystem(lvl.ecs, a, update_options);
         try sys.updateDeathSystem(lvl.ecs, a, lua, update_options);
         sys.updateHealthCooldownSystem(lvl.ecs, a, update_options);
-        try sys.updateDamageSystem(lvl.ecs, a, update_options);
+        try sys.updateDamageSystem(lvl.ecs, a, lvl.map, update_options);
         sys.updateSpriteSystem(lvl.ecs, a, &window_manager, update_options);
         try sys.trimAnimationEntitySystem(lvl.ecs, a, update_options);
         try ai.updateControllerSystem(lvl.ecs, a, update_options);

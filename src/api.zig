@@ -28,7 +28,7 @@ pub fn initLuaApi(a: *const std.mem.Allocator) !*ziglua.Lua {
     // try l.set("api", api);
 
     //try l.doString(@embedFile("scripts/archetypes.lua"));
-    try l.doString(@embedFile("scripts/procgen.lua"));
+    //try l.doString(@embedFile("scripts/procgen.lua"));
 
     //load the entry
     const entry = try file.getLuaEntryFile(a.*);

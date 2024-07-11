@@ -169,12 +169,19 @@ pub fn updateMovementSystem(
         physics.vel.x *= physics.friction;
         physics.vel.y *= physics.friction;
     }
+}
+
+pub fn updatePositionCacheSystem(
+    self: *ecs.ECS,
+    a: std.mem.Allocator,
+    m: *const map.MapState,
+    opt: options.Update,
+) !void {
+    _ = opt; // autofix
 
     //clear position cache
-    for (0..self.position_cache.getWidth()) |x| {
-        for (0..self.position_cache.getHeight()) |y| {
-            self.position_cache.get(x, y).?.clearRetainingCapacity();
-        }
+    for (m.grid.items) |*cell_data| {
+        cell_data.clearCache();
     }
 
     //only cache entities with both a physics and hitbox component
@@ -183,22 +190,18 @@ pub fn updateMovementSystem(
     //cache positions
     for (self.getSystemDomain(a, &cache_systems)) |member| {
         const physics = self.get(Component.Physics, member);
-
-        const pos = physics.getCachePosition();
-
-        if (pos.x < 0 or pos.y < 0) continue;
-
-        var cache_list = try self.position_cache.getOrSet(a, pos.x, pos.y, .{});
-        try cache_list.append(a, member);
+        if (physics.getCachePosition()) |cache_pos| {
+            m.grid.at(cache_pos.x, cache_pos.y).?.appendCache(member) catch |e| {
+                std.debug.print("{!}\n", .{e});
+            };
+        }
     }
-
-    //calculate collisions
 }
 
 pub fn updateEntitySeparationSystem(
     self: *ecs.ECS,
     a: std.mem.Allocator,
-    //m: *const map.MapState,
+    m: *const map.MapState,
     opt: options.Update,
 ) !void {
     const systems = [_]type{ Component.Physics, Component.Hitbox, Component.EntityCollisions };
@@ -207,13 +210,10 @@ pub fn updateEntitySeparationSystem(
     for (set) |member| {
         const physics = self.get(Component.Physics, member);
 
-        const colliders = try coll.findCollidingEntities(self, a, member);
+        const colliders = try coll.findCollidingEntities(self, a, m, member);
         for (colliders) |colliding_entity| {
             if (self.hasComponent(Component.EntityCollisions, colliding_entity)) {
                 const colliding_entity_physics = self.get(Component.Physics, colliding_entity);
-                //moveAwayFrom(physics, colliding_entity_physics.pos, opt);
-                //moveAwayFrom(colliding_entity_physics, physics.pos, opt);
-                //moveAwayFrom(colliding_entity_physics, physics.pos, opt);
                 moveAwayFrom(colliding_entity_physics, physics.pos, opt);
             }
         }

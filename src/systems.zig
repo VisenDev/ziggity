@@ -140,6 +140,7 @@ pub fn updateSpriteSystem(
 pub fn updateDamageSystem(
     self: *ecs.ECS,
     a: std.mem.Allocator,
+    m: *map.MapState,
     opt: options.Update,
 ) !void {
     _ = opt;
@@ -149,7 +150,7 @@ pub fn updateDamageSystem(
     for (set) |member| {
         const damage = self.get(Component.Damage, member);
 
-        const colliders = try coll.findCollidingEntities(self, a, member);
+        const colliders = try coll.findCollidingEntities(self, a, m, member);
         for (colliders) |entity| {
             if (self.getMaybe(Component.Invulnerable, entity)) |_| continue;
             var health = self.getMaybe(Component.Health, entity) orelse continue;

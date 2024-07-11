@@ -75,7 +75,8 @@ function Animations()
       --caves
       SubImage("cave_wall", "tilemap.png", 0, 0, 32, 32),
       SubImage("cave_floor", "tilemap.png", 32, 0, 32, 32),
-      SubImage("cave_border_side", "tilemap.png", 0, 32, 32, 32),
+      SubImage("cave_border_left", "tilemap.png", 0, 32, 32, 32),
+      SubImage("cave_border_right", "tilemap.png", 0, 32, 32, 32),
       SubImage("cave_border_top", "tilemap.png", 0, 64, 32, 32),
 
       --monsters
@@ -131,6 +132,15 @@ function MakeTile(name, category)
       {
          ['name'] = name,
          ['category'] = category,
+         ['animations'] = {
+            ['main'] = name,
+            ['border'] = {
+                ['top'] = name.."_border_top",
+                ['left'] = name.."_border_left",
+                ['right'] = name.."_border_right",
+                ['bottom'] = "null"
+            },
+         }
       }
 end
 
