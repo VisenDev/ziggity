@@ -178,10 +178,22 @@ pub fn updatePositionCacheSystem(
     opt: options.Update,
 ) !void {
     _ = opt; // autofix
+    //
+    const data = struct {
+        const Location = struct { x: usize = 0, y: usize = 0 };
+        const size = 1024;
+        var cache_locations_to_clear: [size]Location = .{.{}} ** size;
+        var num_cache_locations: usize = 0;
 
-    //clear position cache
-    for (m.grid.items) |*cell_data| {
-        cell_data.clearCache();
+        pub fn addLocation(location: Location) void {
+            if (num_cache_locations >= size) return;
+            cache_locations_to_clear[num_cache_locations] = location;
+            num_cache_locations += 1;
+        }
+    };
+
+    for (data.cache_locations_to_clear[0..data.num_cache_locations]) |loc| {
+        m.grid.at(loc.x, loc.y).?.clearCache();
     }
 
     //only cache entities with both a physics and hitbox component
@@ -191,9 +203,8 @@ pub fn updatePositionCacheSystem(
     for (self.getSystemDomain(a, &cache_systems)) |member| {
         const physics = self.get(Component.Physics, member);
         if (physics.getCachePosition()) |cache_pos| {
-            m.grid.at(cache_pos.x, cache_pos.y).?.appendCache(member) catch |e| {
-                std.debug.print("{!}\n", .{e});
-            };
+            m.grid.at(cache_pos.x, cache_pos.y).?.appendCache(member);
+            data.addLocation(.{ .x = cache_pos.x, .y = cache_pos.y });
         }
     }
 }

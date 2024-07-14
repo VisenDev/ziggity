@@ -155,7 +155,7 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
             ray.BeginMode2D(window_manager.camera); // Begin 2D mode with custom camera (2D)
             ray.ClearBackground(ray.RAYWHITE);
 
-            lvl.map.render(&window_manager, &tile_state);
+            lvl.map.render(a, &window_manager, lvl.ecs);
 
             inv.renderItems(lvl.ecs, a, &window_manager);
             anime.renderSprites(lvl.ecs, a, &window_manager, update_options);

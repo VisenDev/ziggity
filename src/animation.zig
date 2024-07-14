@@ -1,11 +1,12 @@
 const std = @import("std");
+const MapState = @import("map.zig").MapState;
 const shader = @import("shaders.zig");
 const key = @import("keybindings.zig");
 const level = @import("level.zig");
 const cam = @import("camera.zig");
 const tile = @import("tiles.zig");
 const Component = @import("components.zig");
-const ecs = @import("ecs.zig");
+const ECS = @import("ecs.zig").ECS;
 const camera = @import("camera.zig");
 const Lua = @import("ziglua").Lua;
 const file = @import("file_utils.zig");
@@ -254,12 +255,50 @@ pub const WindowManager = struct {
         return ray.GetMousePosition();
     }
 
+    pub const SubSection = struct {
+        min_x: usize,
+        min_y: usize,
+        max_x: usize,
+        max_y: usize,
+    };
+
+    pub fn getVisibleBounds(self: *const @This(), a: std.mem.Allocator, ecs: *ECS, map: *const MapState) SubSection {
+        const systems = [_]type{Component.IsPlayer};
+        const set = ecs.getSystemDomain(a, &systems);
+        const player_position = ecs.get(Component.Physics, set[0]).pos;
+
+        return .{
+            .min_x = @intFromFloat(@floor(@max(player_position.x - (self.screenWidthInTiles() / 2) - 1, 0))),
+            .min_y = @intFromFloat(@floor(@max(player_position.y - (self.screenHeightInTiles() / 2) - 1, 0))),
+            .max_x = @intFromFloat(@floor(@min(player_position.x + (self.screenWidthInTiles() / 2) + 1, @as(f32, @floatFromInt(map.grid.width - 1))))),
+            .max_y = @intFromFloat(@floor(@min(player_position.y + (self.screenWidthInTiles() / 2) + 1, @as(f32, @floatFromInt(map.grid.height - 1))))),
+        };
+
+        //@max(@as(usize, @intFromFloat(@floor(player_position.x - self.screenWidthInTiles() / 2))), 0),
+        //@max(@as(usize, @intFromFloat(@floor(player_position.y - self.screenHeightInTiles() / 2))), 0),
+        //@min(@as(usize, @intFromFloat(@floor(player_position.x + self.screenWidthInTiles() / 2))), map.grid.width),
+        //@min(@as(usize, @intFromFloat(@floor(player_position.y + self.screenHeightInTiles() / 2))), map.grid.height),
+    }
+
+    /// get the width of a tile in pixels once it is rendered on screen
+    pub fn getTileScreenWidth(self: *const @This()) f32 {
+        return self.camera.zoom * self.tilemap_resolution;
+    }
+
+    pub fn screenHeightInTiles(self: *const @This()) f32 {
+        return screenHeight() / self.getTileScreenWidth();
+    }
+
+    pub fn screenWidthInTiles(self: *const @This()) f32 {
+        return screenWidth() / self.getTileScreenWidth();
+    }
+
     pub fn updateCameraPosition(self: *@This(), a: std.mem.Allocator, l: level.Level) void {
         var zoom = self.camera.zoom;
         if (self.keybindings.isDown("zoom_in") and zoom < 10) zoom *= 1.01;
         if (self.keybindings.isDown("zoom_out") and zoom > 0.2) zoom *= 0.99;
 
-        const systems = [_]type{ Component.IsPlayer, Component.Physics };
+        const systems = [_]type{Component.IsPlayer};
         const set = l.ecs.getSystemDomain(a, &systems);
         var player_position = l.ecs.get(Component.Physics, set[0]).pos;
 
@@ -419,7 +458,7 @@ pub inline fn scaleRectangle(a: ray.Rectangle, scalar: anytype) ray.Rectangle {
 }
 
 pub fn renderSprites(
-    self: *ecs.ECS,
+    self: *ECS,
     a: std.mem.Allocator,
     window_manager: *const WindowManager,
     opt: options.Update,

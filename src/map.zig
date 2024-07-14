@@ -1,5 +1,5 @@
 const std = @import("std");
-const ecs = @import("ecs.zig");
+const ECS = @import("ecs.zig").ECS;
 const camera = @import("camera.zig");
 const Component = @import("components.zig");
 const anime = @import("animation.zig");
@@ -91,29 +91,47 @@ inline fn getCorners(r: ray.Rectangle) [4]ray.Vector2 {
 //
 //    return result;
 //}
+//
 
 pub const MapState = struct {
     grid: Grid(CellData),
     pub const CellData = struct {
         tile: tile.Tile = undefined,
         renderer: tile.TileRenderer = undefined,
-        //has_collisions: bool = false,
-        entity_location_cache: [16]?usize = [_]?usize{null} ** 16,
+        entity_location_cache: [cache_capacity]?usize = .{null} ** cache_capacity,
+        const cache_capacity = 2;
+
+        pub fn appendCache(self: *@This(), entity_id: usize) void {
+            if (self.entity_location_cache[0] != entity_id) {
+                for (0..cache_capacity - 1) |i| {
+                    self.entity_location_cache[cache_capacity - 1 - i] = self.entity_location_cache[cache_capacity - 2 - i];
+                }
+                self.entity_location_cache[0] = entity_id;
+            }
+        }
+        //entity_location_cache: CacheType = std.math.maxInt(CacheType),
+        //cache_len: usize = 0,
+
+        //const cache_capacity = 4;
+        //const CacheType = @Type(.{ .Int = .{ .signedness = .unsigned, .bits = @sizeOf(usize) * cache_capacity * 8 } });
+
+        //fn accessCacheIndex(self: *const @This(), index: u8) usize {
+        //    const resultValue = (self.entity_location_cache >> (index * @sizeOf(usize))) & std.math.maxInt(usize);
+        //    return @intCast(resultValue);
+        //}
+
+        pub fn getCache(self: *const @This()) []const ?usize {
+            return &self.entity_location_cache;
+        }
 
         pub fn clearCache(self: *@This()) void {
             @memset(&self.entity_location_cache, null);
         }
 
-        pub fn appendCache(self: *@This(), entity_id: usize) !void {
-            for (0..self.entity_location_cache.len) |i| {
-                if (self.entity_location_cache[i] == null) {
-                    self.entity_location_cache[i] = entity_id;
-                    return;
-                }
-            }
+        //    const ptr: *const [4]usize = @ptrCast(&self.entity_location_cache);
+        //    return ptr.*[cache_capacity - 1 .. cache_capacity];
+        //}
 
-            return error.cacheFull;
-        }
     };
 
     pub fn checkCollision(self: *const @This(), hitbox: ray.Rectangle) bool {
@@ -219,11 +237,11 @@ pub const MapState = struct {
         self.tile_grid.deinit(a);
     }
 
-    pub fn render(self: *const @This(), window_manager: *const anime.WindowManager, tile_state: *const tile.TileState) void {
-        _ = tile_state;
+    pub fn render(self: *const @This(), a: std.mem.Allocator, window_manager: *const anime.WindowManager, ecs: *ECS) void {
+        const bounds = window_manager.getVisibleBounds(a, ecs, self);
 
-        for (0..self.grid.width) |x| {
-            for (0..self.grid.height) |y| {
+        for (bounds.min_x..bounds.max_x) |x| {
+            for (bounds.min_y..bounds.max_y) |y| {
                 self.grid.at(x, y).?.renderer.render(window_manager, .{
                     .x = @floatFromInt(x),
                     .y = @floatFromInt(y),
@@ -232,3 +250,48 @@ pub const MapState = struct {
         }
     }
 };
+
+test "cache" {
+    var cell = MapState.CellData{};
+
+    cell.appendCache(100);
+    try std.testing.expect(cell.entity_location_cache[0] == 100);
+
+    cell.appendCache(101);
+    try std.testing.expect(cell.entity_location_cache[0] == 101);
+    try std.testing.expect(cell.entity_location_cache[1] == 100);
+
+    cell.appendCache(102);
+    try std.testing.expect(cell.entity_location_cache[0] == 102);
+    try std.testing.expect(cell.entity_location_cache[1] == 101);
+    try std.testing.expect(cell.entity_location_cache[2] == 100);
+
+    cell.appendCache(103);
+    try std.testing.expect(cell.entity_location_cache[0] == 103);
+    try std.testing.expect(cell.entity_location_cache[1] == 102);
+    try std.testing.expect(cell.entity_location_cache[2] == 101);
+    try std.testing.expect(cell.entity_location_cache[3] == 100);
+}
+
+//test "cache" {
+//    var cell = MapState.CellData{};
+//
+//    cell.appendCache(100);
+//    std.debug.print("{any}\n", .{cell.getCache()});
+//    try std.testing.expect(cell.getCache()[0] == 100);
+//
+//    cell.appendCache(101);
+//    try std.testing.expect(cell.getCache()[0] == 100);
+//    try std.testing.expect(cell.getCache()[1] == 101);
+//
+//    cell.appendCache(102);
+//    try std.testing.expect(cell.getCache()[0] == 100);
+//    try std.testing.expect(cell.getCache()[1] == 101);
+//    try std.testing.expect(cell.getCache()[2] == 102);
+//
+//    cell.appendCache(103);
+//    try std.testing.expect(cell.getCache()[0] == 100);
+//    try std.testing.expect(cell.getCache()[1] == 101);
+//    try std.testing.expect(cell.getCache()[2] == 102);
+//    try std.testing.expect(cell.getCache()[3] == 103);
+//}

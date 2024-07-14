@@ -136,10 +136,11 @@ pub const ECS = struct {
         };
     }
 
+    /// std.math.maxInt(usize) will never be returned from this function
     pub fn newEntity(self: *@This(), a: std.mem.Allocator) ?usize {
         const id = self.availible_ids.popOrNull();
+        std.debug.assert(id != std.math.maxInt(usize));
         if (id) |real_id| {
-            //std.debug.print("created new entity {}\n", .{real_id});
             self.bitflags.insert(a, real_id, std.bit_set.StaticBitSet(comptime sliceComponentNames().len).initEmpty()) catch return null;
         }
         return id;
@@ -217,7 +218,9 @@ pub const ECS = struct {
     }
 
     pub inline fn hasComponent(self: *const @This(), comptime ComponentType: type, id: usize) bool {
-        return self.bitflags.get(id).?.isSet(intFromComponent(ComponentType));
+        const maybe_bitflag = self.bitflags.get(id);
+
+        if (maybe_bitflag) |bitflag| return bitflag.isSet(intFromComponent(ComponentType)) else return false;
     }
 
     ///Gets component if it exists;

@@ -62,7 +62,7 @@ pub fn createParticle(self: *ecs.ECS, a: std.mem.Allocator) !usize {
 pub fn createPotion(self: *ecs.ECS, a: std.mem.Allocator) !usize {
     const id = self.newEntity(a) orelse return error.EntityCapReached;
     try self.setComponent(a, id, Component.Physics{});
-    try self.setComponent(a, id, Component.Hitbox{ .bottom = 0.2, .left = 0.2 });
+    try self.setComponent(a, id, Component.Hitbox{});
     try self.setComponent(a, id, Component.WallCollisions{});
     try self.setComponent(a, id, Component.Item{ .animation_player = .{ .animation_name = "potion" }, .type_of_item = "healing_potion", .action = .fireball });
     try self.setComponent(a, id, Component.Metadata{ .archetype = "item" });

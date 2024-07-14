@@ -400,6 +400,7 @@ pub fn updateInventorySystem(
 
         const colliders = try coll.findCollidingEntities(self, a, m, member);
         for (colliders) |entity| {
+            //std.debug.print("colliding item found: {}\n", .{entity});
             if (self.hasComponent(Component.Item, entity)) {
                 inventory.pickupItem(a, self, entity) catch continue;
             }
