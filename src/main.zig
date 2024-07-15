@@ -153,7 +153,7 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
         ray.BeginTextureMode(target);
         {
             ray.BeginMode2D(window_manager.camera); // Begin 2D mode with custom camera (2D)
-            ray.ClearBackground(ray.RAYWHITE);
+            ray.ClearBackground(ray.BLACK);
 
             lvl.map.render(a, &window_manager, lvl.ecs);
 

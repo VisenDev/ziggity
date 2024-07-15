@@ -85,22 +85,62 @@ pub const TileRenderer = struct {
         result.main = .{ .animation_name = main.tile.animations.main.? };
 
         if (main.tile.category == .wall) {
+
+            // how many bordering cells share the same tile top
+            var num_same_borders: usize = 0;
+
+            // Add top border if above tile is of a different type
             if (neighbors[top_center]) |cell| {
                 if (!cell.tile.eql(main.tile)) {
                     result.border.top = .{ .animation_name = main.tile.animations.border.top.? };
-                }
+                } else num_same_borders += 1;
             }
 
+            // Add top border if below tile is of a different type
+            if (neighbors[bottom_center]) |cell| {
+                if (!cell.tile.eql(main.tile)) {
+                    result.border.top = .{ .animation_name = main.tile.animations.border.top.? };
+                } else num_same_borders += 1;
+            }
+
+            // Add side borders if cell to the left is of a different type
             if (neighbors[center_left]) |cell| {
                 if (!cell.tile.eql(main.tile)) {
                     result.border.left = .{ .animation_name = main.tile.animations.border.left.? };
-                }
+                    result.border.right = .{ .animation_name = main.tile.animations.border.right.? };
+                } else num_same_borders += 1;
             }
 
+            // Add side borders if cell to the right is of a different type
             if (neighbors[center_right]) |cell| {
                 if (!cell.tile.eql(main.tile)) {
+                    result.border.left = .{ .animation_name = main.tile.animations.border.left.? };
                     result.border.right = .{ .animation_name = main.tile.animations.border.right.? };
-                }
+                } else num_same_borders += 1;
+            }
+
+            // add to border similarity count
+            if (neighbors[bottom_right]) |cell| {
+                if (!cell.tile.eql(main.tile)) {} else num_same_borders += 1;
+            }
+
+            // add to border similarity count
+            if (neighbors[bottom_left]) |cell| {
+                if (!cell.tile.eql(main.tile)) {} else num_same_borders += 1;
+            }
+
+            // add to border similarity count
+            if (neighbors[top_right]) |cell| {
+                if (!cell.tile.eql(main.tile)) {} else num_same_borders += 1;
+            }
+
+            // add to border similarity count
+            if (neighbors[top_left]) |cell| {
+                if (!cell.tile.eql(main.tile)) {} else num_same_borders += 1;
+            }
+
+            if (num_same_borders >= 8) {
+                result.main = null;
             }
         }
 
@@ -108,14 +148,33 @@ pub const TileRenderer = struct {
     }
 
     pub fn render(self: *const TileRenderer, state: *const anime.WindowManager, pos: ray.Vector2) void {
-        //TODO add border rendering
         if (self.main) |main| {
             main.renderInWorld(state, pos, .{});
-        } else @panic("tile missing animation");
+        }
+
+        if (self.border.left) |left| {
+            const adjusted: ray.Vector2 = .{ .x = pos.x - 0.5, .y = pos.y };
+            left.renderInWorld(state, adjusted, .{});
+        }
+
+        if (self.border.right) |right| {
+            const adjusted: ray.Vector2 = .{ .x = pos.x + 0.4, .y = pos.y };
+            right.renderInWorld(state, adjusted, .{});
+        }
+
+        if (self.border.top) |top| {
+            const adjusted: ray.Vector2 = .{ .x = pos.x, .y = pos.y - 0.5 };
+            top.renderInWorld(state, adjusted, .{});
+        }
+
+        if (self.border.bottom) |bottom| {
+            const adjusted: ray.Vector2 = .{ .x = pos.x, .y = pos.y + 0.40 };
+            bottom.renderInWorld(state, adjusted, .{});
+        }
     }
 
     pub fn update(self: *TileRenderer, opt: options.Update) void {
-        //TODO update animations if appllicable
+        //TODO update animations if applicable
         _ = self;
         _ = opt;
     }

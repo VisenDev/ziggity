@@ -10,10 +10,6 @@ const options = @import("options.zig");
 const Allocator = std.mem.Allocator;
 const Grid = @import("grid.zig").Grid;
 
-//const perlin = @cImport({
-//    @cInclude("perlin.c");
-//});
-
 const ray = @cImport({
     @cInclude("raylib.h");
 });
@@ -160,7 +156,7 @@ pub const MapState = struct {
     }
 
     pub fn generate(a: std.mem.Allocator, tile_state: *const tile.TileState, opt: level.LevelGenOptions) !@This() {
-        const perlin_image = ray.GenImagePerlinNoise(@intCast(opt.width), @intCast(opt.height), 0, 0, 5);
+        const perlin_image = ray.GenImagePerlinNoise(@intCast(opt.width), @intCast(opt.height), 0, 0, 1);
         defer ray.UnloadImage(perlin_image);
         const perlin = ray.LoadImageColors(perlin_image);
 

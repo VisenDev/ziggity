@@ -33,8 +33,8 @@ pub fn Grid(comptime T: type) type {
             var i: usize = 0;
             var nearbyCells: [9]?*T = undefined;
 
-            for (0..3) |offset_x| {
-                for (0..3) |offset_y| {
+            for (0..3) |offset_y| {
+                for (0..3) |offset_x| {
                     const final_x: usize = @intCast(@max(@as(isize, @intCast(x + offset_x)) - 1, 0));
                     const final_y: usize = @intCast(@max(@as(isize, @intCast(y + offset_y)) - 1, 0));
                     nearbyCells[i] = self.at(final_x, final_y);
