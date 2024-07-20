@@ -119,6 +119,9 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
 
     var update_options = options.Update{ .debugger = &debugger };
 
+    //temporary variable, TODO add this functionality to window manager
+    var shaders = true;
+
     while (!ray.WindowShouldClose()) {
         if (target.texture.width != ray.GetScreenWidth() or target.texture.height != ray.GetScreenHeight()) {
             ray.UnloadRenderTexture(target);
@@ -205,6 +208,7 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
 
         debugger.addText("FPS: {}", .{ray.GetFPS()});
         debugger.addText("Entity Count: {}", .{lvl.ecs.getNumEntities()});
+        if (debugger.addTextButton(&window_manager, "[Toggle Shaders]", .{})) shaders = !shaders;
 
         ray.BeginDrawing();
         {
@@ -212,7 +216,9 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
             ray.ClearBackground(ray.RAYWHITE); // Clear screen background
 
             // Enable shader using the custom uniform
-            ray.BeginShaderMode(light_shader.shader);
+            if (shaders) {
+                ray.BeginShaderMode(light_shader.shader);
+            }
             // NOTE: Render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
             ray.DrawTextureRec(
                 target.texture,

@@ -1,32 +1,6 @@
+--require "definitions.lua"
 
----@class Vector
----@field x integer
----@field y integer
-
----@class Rectangle
----@field x integer
----@field y integer
----@field width integer
----@field height integer
-
----@class Frame
----@field subrect Rectangle[]
----@field milliseconds integer|nil
-
----@class Animation
----@field name string
----@field filepath string
----@field rotation_speed integer|nil
----@field origin Vector|nil
----@field frames Frame[]|nil
-
----@return Animation
----@param name string
----@param filepath string
----@param x integer
----@param y integer
----@param width integer
----@param height integer
+---@type SubImage
 function SubImage(name, filepath, x, y, width, height)
    return {
       ['name'] = name,

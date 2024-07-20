@@ -23,6 +23,7 @@ pub const DebugEntry = struct {
     pub const PositionType = enum { screen_position, tile_position };
 
     font_size: f32 = default_font_size,
+    font_color: ray.Color,
     text_spacing: f32 = 2,
     position: ray.Vector2,
     position_type: PositionType = .screen_position,
@@ -58,12 +59,35 @@ pub const DebugRenderer = struct {
                     position,
                     entry.font_size,
                     entry.text_spacing,
-                    ray.RAYWHITE,
+                    entry.font_color,
                 );
             }
         }
         self.entries.clearRetainingCapacity();
         self.num_debug_text_rows = 0;
+    }
+
+    pub fn addTextButton(self: *@This(), wm: *const anime.WindowManager, comptime fmt: [:0]const u8, args: anytype) bool {
+        const default_offset: f32 = 1;
+        const font_size: f32 = 10;
+        const coordinates = ray.Vector2{
+            .x = default_offset,
+            .y = default_offset + font_size * self.num_debug_text_rows,
+        };
+        self.num_debug_text_rows += 1;
+
+        const mpos = wm.getMouseScreenPosition();
+
+        if (mpos.x > coordinates.x and mpos.y > coordinates.y and mpos.x < coordinates.x + (font_size * fmt.len) and mpos.y < coordinates.y + font_size) {
+            self.addTextAtPosition(coordinates, .screen_position, font_size, ray.GRAY, fmt, args);
+            if (wm.isMousePressed(.left)) {
+                return true;
+            }
+        } else {
+            self.addTextAtPosition(coordinates, .screen_position, font_size, ray.RAYWHITE, fmt, args);
+        }
+
+        return false;
     }
 
     pub fn addText(self: *@This(), comptime fmt: [:0]const u8, args: anytype) void {
@@ -74,7 +98,7 @@ pub const DebugRenderer = struct {
             .y = default_offset + font_size * self.num_debug_text_rows,
         };
         self.num_debug_text_rows += 1;
-        self.addTextAtPosition(coordinates, .screen_position, font_size, fmt, args);
+        self.addTextAtPosition(coordinates, .screen_position, font_size, ray.RAYWHITE, fmt, args);
     }
 
     pub fn addTextAtPosition(
@@ -82,6 +106,7 @@ pub const DebugRenderer = struct {
         position: ray.Vector2,
         position_type: DebugEntry.PositionType,
         font_size: f32,
+        font_color: ray.Color,
         comptime fmt: [:0]const u8,
         args: anytype,
     ) void {
@@ -89,6 +114,7 @@ pub const DebugRenderer = struct {
             .position = position,
             .position_type = position_type,
             .font_size = font_size,
+            .font_color = font_color,
         }) catch {
             std.debug.print("failed to allocate debug memory\n", .{});
             return;

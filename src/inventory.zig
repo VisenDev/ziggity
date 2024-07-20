@@ -243,6 +243,7 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
 
         /// transfers item to first available index in inventory
         pub fn pickupItem(self: *@This(), a: std.mem.Allocator, ecs: *ECS, item_id: usize) !void {
+            if (!ecs.hasComponent(Component.Item, item_id)) return error.NotAnItem;
             const stacking_index = self.findSlot(ecs, .{ .find_slot_for_stacking = .{ .item_id_to_match = item_id } });
             const empty_index = self.findSlot(ecs, .{ .find_empty_slot = {} });
             if (stacking_index) |index| {

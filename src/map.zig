@@ -95,7 +95,7 @@ pub const MapState = struct {
         tile: tile.Tile = undefined,
         renderer: tile.TileRenderer = undefined,
         entity_location_cache: [cache_capacity]?usize = .{null} ** cache_capacity,
-        const cache_capacity = 2;
+        const cache_capacity = 4;
 
         pub fn appendCache(self: *@This(), entity_id: usize) void {
             if (self.entity_location_cache[0] != entity_id) {
