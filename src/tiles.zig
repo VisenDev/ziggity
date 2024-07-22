@@ -78,6 +78,11 @@ pub const TileRenderer = struct {
     const bottom_center = 7;
     const bottom_right = 8;
 
+    fn eql(main: *MapState.CellData, neighbor: ?*MapState.CellData) bool {
+        if (neighbor != null and neighbor.?.tile.eql(main.tile)) return true;
+        return false;
+    }
+
     pub fn init(neighbors: [9]?*MapState.CellData) TileRenderer {
         var result = TileRenderer{};
 
@@ -86,61 +91,44 @@ pub const TileRenderer = struct {
 
         if (main.tile.category == .wall) {
 
-            // how many bordering cells share the same tile top
-            var num_same_borders: usize = 0;
-
             // Add top border if above tile is of a different type
-            if (neighbors[top_center]) |cell| {
-                if (!cell.tile.eql(main.tile)) {
-                    result.border.top = .{ .animation_name = main.tile.animations.border.top.? };
-                } else num_same_borders += 1;
+            if (!eql(main, neighbors[top_center])) {
+                result.border.top = .{ .animation_name = main.tile.animations.border.top.? };
             }
 
             // Add top border if below tile is of a different type
-            if (neighbors[bottom_center]) |cell| {
-                if (!cell.tile.eql(main.tile)) {
-                    result.border.top = .{ .animation_name = main.tile.animations.border.top.? };
-                } else num_same_borders += 1;
+            if (!eql(main, neighbors[bottom_center])) {
+                result.border.top = .{ .animation_name = main.tile.animations.border.top.? };
             }
 
             // Add side borders if cell to the left is of a different type
-            if (neighbors[center_left]) |cell| {
-                if (!cell.tile.eql(main.tile)) {
-                    result.border.left = .{ .animation_name = main.tile.animations.border.left.? };
-                    result.border.right = .{ .animation_name = main.tile.animations.border.right.? };
-                } else num_same_borders += 1;
+            if (!eql(main, neighbors[center_left])) {
+                result.border.left = .{ .animation_name = main.tile.animations.border.right.? };
             }
 
             // Add side borders if cell to the right is of a different type
-            if (neighbors[center_right]) |cell| {
-                if (!cell.tile.eql(main.tile)) {
-                    result.border.left = .{ .animation_name = main.tile.animations.border.left.? };
-                    result.border.right = .{ .animation_name = main.tile.animations.border.right.? };
-                } else num_same_borders += 1;
+            if (!eql(main, neighbors[center_right])) {
+                result.border.right = .{ .animation_name = main.tile.animations.border.right.? };
             }
+            {
+                // how many bordering cells share the same tile top
+                var num_same_borders: usize = 0;
 
-            // add to border similarity count
-            if (neighbors[bottom_right]) |cell| {
-                if (!cell.tile.eql(main.tile)) {} else num_same_borders += 1;
-            }
+                // add to border similarity count
+                if (eql(main, neighbors[bottom_right])) num_same_borders += 1;
+                if (eql(main, neighbors[bottom_center])) num_same_borders += 1;
+                if (eql(main, neighbors[bottom_left])) num_same_borders += 1;
 
-            // add to border similarity count
-            if (neighbors[bottom_left]) |cell| {
-                if (!cell.tile.eql(main.tile)) {} else num_same_borders += 1;
-            }
+                if (eql(main, neighbors[center_right])) num_same_borders += 1;
+                if (eql(main, neighbors[center_left])) num_same_borders += 1;
 
-            // add to border similarity count
-            if (neighbors[top_right]) |cell| {
-                if (!cell.tile.eql(main.tile)) {} else num_same_borders += 1;
-            }
+                if (eql(main, neighbors[top_right])) num_same_borders += 1;
+                if (eql(main, neighbors[top_center])) num_same_borders += 1;
+                if (eql(main, neighbors[top_left])) num_same_borders += 1;
 
-            // add to border similarity count
-            if (neighbors[top_left]) |cell| {
-                if (!cell.tile.eql(main.tile)) {} else num_same_borders += 1;
-            }
-
-            if (num_same_borders >= 8) {
-                result.main = null;
+                if (num_same_borders >= 7) {
+                    result.main = null;
+                }
             }
         }
 

@@ -316,13 +316,14 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
         }
 
         pub fn updateMouseInteractions(self: *@This(), window_manager: *const anime.WindowManager, entity_component_system: *const ECS) !void {
-            _ = entity_component_system; // autofix
             if (window_manager.getMouseOwner() == .player_inventory) {
                 if (self.hovered_index != null and window_manager.isMousePressed(.left)) {
                     self.selected_index = self.hovered_index.?;
                     std.debug.print("selected_index: {}\n", .{self.selected_index});
                 }
             }
+
+            self.audit(entity_component_system);
         }
 
         pub fn render(self: *@This(), window_manager: *const anime.WindowManager, entity_component_system: *const ECS, render_opt: InventoryRenderOptions) void {
@@ -365,6 +366,20 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
                     item.renderInUi(window_manager, final_position, self.slot_render_size * 0.9);
                 }
             }
+
+            self.audit(entity_component_system);
+        }
+
+        pub fn audit(self: *@This(), ecs: *const ECS) void {
+            var iterator = self.iterate();
+            while (iterator.next()) |index| {
+                if (self.getIndex(index)) |id| {
+                    if (!ecs.hasComponent(Component.Item, id) or !ecs.hasComponent(Component.Hitbox, id) or ecs.hasComponent(Component.Physics, id)) {
+                        ecs.dumpEntityData(id);
+                        @panic("Audit Found Error: Item in inventory has invalid type");
+                    }
+                }
+            }
         }
     };
 }
@@ -402,10 +417,16 @@ pub fn updateInventorySystem(
         const colliders = try coll.findCollidingEntities(self, a, m, member);
         for (colliders) |entity| {
             //std.debug.print("colliding item found: {}\n", .{entity});
-            if (self.hasComponent(Component.Item, entity)) {
+            if (self.hasComponent(Component.Item, entity) and self.hasComponent(Component.Physics, entity)) {
+                if (!self.hasComponent(Component.Item, entity) or !self.hasComponent(Component.Hitbox, entity) or !self.hasComponent(Component.Physics, entity)) {
+                    self.dumpEntityData(entity);
+                    @panic("Item in inventory has invalid type");
+                }
                 inventory.pickupItem(a, self, entity) catch continue;
             }
         }
+
+        inventory.audit(self);
     }
 }
 

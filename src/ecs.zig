@@ -204,27 +204,44 @@ pub const ECS = struct {
         if (maybe) |comp| {
             return comp;
         } else {
-            const meta = self.getMaybe(Component.Metadata, id) orelse &Component.Metadata{};
-            std.debug.print(
-                "\nFailed to find component {} on entity {} with archetype {s}\n",
-                .{ component_T, id, meta.archetype },
-            );
-
-            const components = self.listComponents(std.heap.c_allocator, id) catch unreachable;
-            defer components.deinit();
-            std.debug.print("All components of {}: {s}\n", .{ id, components.items });
-            unreachable;
+            self.dumpEntityData(id);
+            @panic("missing component");
         }
     }
 
-    pub inline fn hasComponent(self: *const @This(), comptime ComponentType: type, id: usize) bool {
+    /// dumps info about an entity for debugging
+    pub fn dumpEntityData(self: *const ECS, id: usize) void {
+        const meta = self.getMaybe(Component.Metadata, id) orelse &Component.Metadata{};
+        std.debug.print(
+            "\n Data of Entity {} with archetype {s}\n",
+            .{ id, meta.archetype },
+        );
+        const components = self.listComponents(std.heap.c_allocator, id) catch unreachable;
+        defer components.deinit();
+        std.debug.print("All components of {}: {s}\n", .{ id, components.items });
+
+        //dump bitflags
+        std.debug.print("\n[Bitflags]\n", .{});
+        const bitflag = self.bitflags.get(id) orelse {
+            std.debug.print("Entity missing bitflags\n", .{});
+            return;
+        };
+        inline for (comptime sliceComponentNames()) |decl| {
+            const is_set = bitflag.isSet(intFromComponent(@field(Component, decl.name)));
+            std.debug.print("{s}: {s}\n", .{ decl.name, if (is_set) "true" else "false" });
+        }
+    }
+
+    pub fn hasComponent(self: *const @This(), comptime ComponentType: type, id: usize) bool {
         const maybe_bitflag = self.bitflags.get(id);
 
-        if (maybe_bitflag) |bitflag| return bitflag.isSet(intFromComponent(ComponentType)) else return false;
+        if (maybe_bitflag) |bitflag| {
+            return bitflag.isSet(intFromComponent(ComponentType));
+        } else return false;
     }
 
     ///Gets component if it exists;
-    pub inline fn getMaybe(self: *const ECS, comptime ComponentType: type, id: usize) ?*ComponentType {
+    pub fn getMaybe(self: *const ECS, comptime ComponentType: type, id: usize) ?*ComponentType {
         return @field(self.components, @typeName(ComponentType)).get(id);
     }
 
@@ -408,4 +425,38 @@ test "system domain" {
             unreachable;
         }
     }
+}
+
+test "remove component" {
+    var ecs = try ECS.init(std.testing.allocator, 101);
+    defer ecs.deinit(std.testing.allocator);
+    const a = std.testing.allocator;
+
+    const id = ecs.newEntity(a).?;
+    try ecs.setComponent(a, id, Component.Physics{ .pos = randomVector2(50, 50) });
+    try ecs.setComponent(a, id, Component.Sprite{ .animation_player = .{ .animation_name = "slime" } });
+    try ecs.setComponent(a, id, Component.Wanderer{});
+    try ecs.setComponent(a, id, Component.Health{});
+
+    try std.testing.expect(ecs.hasComponent(Component.Physics, id));
+    try std.testing.expect(ecs.hasComponent(Component.Sprite, id));
+    try std.testing.expect(ecs.hasComponent(Component.Wanderer, id));
+    try std.testing.expect(ecs.hasComponent(Component.Health, id));
+
+    try std.testing.expect(ecs.getMaybe(Component.Physics, id) != null);
+    try std.testing.expect(ecs.getMaybe(Component.Sprite, id) != null);
+    try std.testing.expect(ecs.getMaybe(Component.Wanderer, id) != null);
+    try std.testing.expect(ecs.getMaybe(Component.Health, id) != null);
+
+    try ecs.deleteComponent(id, Component.Physics);
+
+    try std.testing.expect(!ecs.hasComponent(Component.Physics, id));
+    try std.testing.expect(ecs.hasComponent(Component.Sprite, id));
+    try std.testing.expect(ecs.hasComponent(Component.Wanderer, id));
+    try std.testing.expect(ecs.hasComponent(Component.Health, id));
+
+    try std.testing.expect(ecs.getMaybe(Component.Physics, id) == null);
+    try std.testing.expect(ecs.getMaybe(Component.Sprite, id) != null);
+    try std.testing.expect(ecs.getMaybe(Component.Wanderer, id) != null);
+    try std.testing.expect(ecs.getMaybe(Component.Health, id) != null);
 }

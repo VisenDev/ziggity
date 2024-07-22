@@ -91,16 +91,13 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
     const manifest = try file.readManifest(a, current_save);
     defer manifest.deinit();
 
-    var json_parsed_level = file.readLevel(a, current_save, manifest.value.active_level_id) catch |e| {
+    var json_parsed_level = level.Level.read(a, current_save, manifest.value.active_level_id) catch |e| {
         std.debug.print("ERROR: Failed to load {s} due to {}\n", .{ manifest.value.active_level_id, e });
         return err.crashToMainMenu("failed to load selected save");
     };
 
     defer json_parsed_level.deinit();
     var lvl = json_parsed_level.value;
-
-    //var keybindings = try key.KeyBindings.init(a, lua);
-    //defer keybindings.deinit();
 
     var tile_state = try tile.TileState.init(a, lua);
     defer tile_state.deinit();
@@ -134,7 +131,6 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
         }
 
         //configure update options
-        //camera = cam.calculateCameraPosition(camera, lvl, &keybindings, &window_manager);
         window_manager.updateCameraPosition(a, lvl);
         update_options.update();
 
@@ -209,6 +205,8 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
         debugger.addText("FPS: {}", .{ray.GetFPS()});
         debugger.addText("Entity Count: {}", .{lvl.ecs.getNumEntities()});
         if (debugger.addTextButton(&window_manager, "[Toggle Shaders]", .{})) shaders = !shaders;
+        if (debugger.addTextButton(&window_manager, "[Save]", .{})) try lvl.save(a);
+        if (debugger.addTextButton(&window_manager, "[Main Menu]", .{})) return .main_menu;
 
         ray.BeginDrawing();
         {

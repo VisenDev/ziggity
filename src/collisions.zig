@@ -55,5 +55,10 @@ pub fn findCollidingEntities(
         }
     }
 
+    for (self.collision_id_buffer.items) |item| {
+        std.debug.assert(self.hasComponent(Component.Physics, item));
+        std.debug.assert(self.hasComponent(Component.Hitbox, item));
+    }
+
     return self.collision_id_buffer.items;
 }

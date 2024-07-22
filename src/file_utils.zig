@@ -91,36 +91,6 @@ pub fn getSavePath(a: std.mem.Allocator, save_id: []const u8) ![]const u8 {
 //};
 
 //========LEVEL IO========
-pub fn readLevel(a: std.mem.Allocator, save_id: []const u8, level_id: []const u8) !std.json.Parsed(level.Level) {
-    const file_path = try getLevelPath(a, save_id, level_id);
-    defer a.free(file_path);
-
-    const file_handle = try std.fs.openFileAbsolute(file_path, .{ .mode = .read_write });
-    defer file_handle.close();
-
-    var string = std.ArrayList(u8).init(a);
-    defer string.deinit();
-
-    try std.compress.zlib.decompress(file_handle.reader(), string.writer());
-    return try std.json.parseFromSlice(level.Level, a, string.items, .{ .allocate = .alloc_always });
-}
-
-pub fn writeLevel(a: std.mem.Allocator, l: level.Level, save_id: []const u8, level_id: []const u8) !void {
-    const file_path = try getLevelPath(a, save_id, level_id);
-    defer a.free(file_path);
-
-    var file_handle = try std.fs.createFileAbsolute(file_path, .{});
-    defer file_handle.close();
-
-    l.ecs.prepForStringify(a);
-
-    const string = try std.json.stringifyAlloc(a, l, .{ .emit_null_optional_fields = false });
-    defer a.free(string);
-
-    var reader = std.io.fixedBufferStream(string);
-
-    try std.compress.zlib.compress(reader.reader(), file_handle.writer(), .{ .level = .best });
-}
 
 //========CONFIG IO========
 pub fn toSlice(str: [*c]u8) []u8 {

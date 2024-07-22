@@ -96,7 +96,7 @@ pub fn drawNewSaveMenu(a: std.mem.Allocator, lua: *Lua) !Window {
             }
 
             //TODO update this save generation code
-            try save.createNewSave(a, lua, .{ .name = textBoxText[0..strlen] });
+            try level.createNewSave(a, lua, .{ .save_id = textBoxText[0..strlen] });
             return .save_menu;
         }
 

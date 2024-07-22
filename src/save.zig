@@ -6,39 +6,6 @@ const level = @import("level.zig");
 const err = @import("error.zig");
 const Lua = @import("ziglua").Lua;
 
-pub const NewSaveOptions = struct {
-    name: []const u8,
-};
-
-pub fn createNewSave(a: std.mem.Allocator, lua: *Lua, options: NewSaveOptions) !void {
-
-    //Create directories
-    const save_path = try file.getSavePath(a, options.name);
-    defer a.free(save_path);
-    const save_levels_path = try std.fmt.allocPrint(a, "{s}/levels", .{save_path});
-    defer a.free(save_levels_path);
-    try std.fs.makeDirAbsolute(save_path);
-    try std.fs.makeDirAbsolute(save_levels_path);
-
-    //populate levels
-    const first_level_id = "level_1";
-
-    const biomes = [_]level.Record{.{ .name = "cave", .weight = 10 }};
-    const first_level = try level.Level.generate(a, lua, .{ .name = first_level_id, .biomes = &biomes });
-    //TODO add a deinit method to level
-    try file.writeLevel(a, first_level, options.name, first_level_id);
-
-    //create the save manifest file
-    const manifest = file.Manifest{ .active_level_id = first_level_id };
-    const manifest_string = try std.json.stringifyAlloc(a, manifest, .{});
-    defer a.free(manifest_string);
-
-    const manifest_path = try std.fmt.allocPrint(a, "{s}{s}", .{ save_path, file.Manifest.filename });
-    defer a.free(manifest_path);
-    var manifest_file = try std.fs.createFileAbsolute(manifest_path, .{});
-    try manifest_file.writeAll(manifest_string);
-}
-
 //
 //pub const Manifest = struct {
 //    const filename = "manifest.json";

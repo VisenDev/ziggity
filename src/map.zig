@@ -165,7 +165,7 @@ pub const MapState = struct {
         for (0..opt.width) |x| {
             for (0..opt.height) |y| {
                 const sample_value = perlin[x * opt.width + y].r;
-                if (sample_value > 50) {
+                if (sample_value > 70) {
                     grid.at(x, y).?.tile = tile_state.get("cave_floor").?;
                     //grid.at(x, y).?.collision = false;
 
