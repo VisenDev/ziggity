@@ -186,9 +186,24 @@ pub const WindowManager = struct {
     camera: ray.Camera2D,
     ui_zoom: f32 = 1.0, //TODO configure this in the lua config file
     keybindings: key.KeyBindings,
-    mouse_ownership_queue: std.ArrayList(MouseOwner),
+    mouse_state: MouseState = .{},
+    const MouseOwner = std.meta.FieldEnum(MouseState);
 
-    const MouseOwner = enum { player_inventory, debugger, world };
+    ///Possible owners ranked in terms of priority
+    const MouseState = struct {
+        debugger: bool = false,
+        inventory: bool = false,
+        level: bool = true, //should always be true
+
+        pub fn getCurrentOwner(self: @This()) MouseOwner {
+            inline for (@typeInfo(@This()).Struct.fields) |field| {
+                if (@field(self, field.name)) {
+                    return @field(MouseOwner, field.name);
+                }
+            }
+            return .level;
+        }
+    };
 
     pub fn deinit(self: *@This()) void {
         var iter = self.textures.iterator();
@@ -227,20 +242,20 @@ pub const WindowManager = struct {
         return ray.IsMouseButtonUp(button.getRayId());
     }
 
-    pub fn getMouseOwner(self: *const @This()) ?MouseOwner {
-        if (self.mouse_ownership_queue.items.len == 0) return null;
-        return self.mouse_ownership_queue.items[self.mouse_ownership_queue.items.len - 1];
+    pub fn getMouseOwner(self: *const @This()) MouseOwner {
+        return self.mouse_state.getCurrentOwner();
     }
 
-    pub fn takeMouseOwnership(self: *@This(), new_owner: MouseOwner) !void {
-        std.debug.print("New Mouse Owner: {}\n", .{new_owner});
-        try self.mouse_ownership_queue.append(new_owner);
+    pub fn activateMouseOwnership(self: *@This(), comptime owner: MouseOwner) void {
+        @field(self.mouse_state, @tagName(owner)) = true;
     }
 
-    pub fn relinquishMouseOwnership(self: *@This(), relinquisher: MouseOwner) !void {
-        //std.debug.print("active_owner: {?}\n relinquisher: {}\n\n", .{ self.getMouseOwner(), relinquisher });
-        std.debug.assert(self.getMouseOwner() == relinquisher);
-        _ = self.mouse_ownership_queue.pop();
+    pub fn deactivateMouseOwnership(self: *@This(), comptime owner: MouseOwner) void {
+        @field(self.mouse_state, @tagName(owner)) = false;
+    }
+
+    pub fn resetMouseOwner(self: *@This()) void {
+        self.mouse_state = .{};
     }
 
     pub fn getMouseTileCoordinates(self: *const @This()) ray.Vector2 {
@@ -349,10 +364,7 @@ pub const WindowManager = struct {
                 .target = .{ .x = 0, .y = 0 },
             },
             .keybindings = try key.KeyBindings.init(a, lua),
-            .mouse_ownership_queue = std.ArrayList(MouseOwner).init(a),
         };
-
-        try self.mouse_ownership_queue.append(.world);
 
         errdefer self.animations.deinit();
         errdefer self.textures.deinit();

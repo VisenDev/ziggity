@@ -316,7 +316,7 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
         }
 
         pub fn updateMouseInteractions(self: *@This(), window_manager: *const anime.WindowManager, entity_component_system: *const ECS) !void {
-            if (window_manager.getMouseOwner() == .player_inventory) {
+            if (window_manager.getMouseOwner() == .inventory) {
                 if (self.hovered_index != null and window_manager.isMousePressed(.left)) {
                     self.selected_index = self.hovered_index.?;
                     std.debug.print("selected_index: {}\n", .{self.selected_index});
@@ -400,23 +400,21 @@ pub fn updateInventorySystem(
     for (set) |member| {
         var inventory = self.get(Component.Inventory, member);
 
-        try inventory.updateMouseInteractions(window_manager, self);
-
         if (self.hasComponent(Component.IsPlayer, member)) {
             if (window_manager.keybindings.isPressed("inventory")) {
                 if (inventory.state == .hidden) {
                     inventory.state = .visible_focused;
-                    if (window_manager.getMouseOwner() != .player_inventory) {
-                        try window_manager.takeMouseOwnership(.player_inventory);
-                    }
                 } else {
                     inventory.state = .hidden;
-                    if (window_manager.getMouseOwner() == .player_inventory) {
-                        try window_manager.relinquishMouseOwnership(.player_inventory);
-                    }
                 }
             }
+
+            if (inventory.state == .visible_focused) {
+                window_manager.activateMouseOwnership(.inventory);
+            }
         }
+
+        try inventory.updateMouseInteractions(window_manager, self);
 
         const colliders = try coll.findCollidingEntities(self, a, m, member);
         for (colliders) |entity| {

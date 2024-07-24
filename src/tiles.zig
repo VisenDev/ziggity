@@ -75,7 +75,7 @@ pub const TileRenderer = struct {
 
             // Add side borders if cell to the left is of a different type
             if (!eql(main, neighbors[center_left])) {
-                result.border.left = .{ .animation_name = main.tile.animations.border.right.? };
+                result.border.left = .{ .animation_name = main.tile.animations.border.left.? };
             }
 
             // Add side borders if cell to the right is of a different type
@@ -86,6 +86,26 @@ pub const TileRenderer = struct {
             //disable main for side walls
             if (result.border.top == null) {
                 result.main = null;
+            }
+
+            // Add extra borders if neighbors are likely to be walls only(null main)
+            if (eql(main, neighbors[center_left]) and
+                eql(main, neighbors[top_left]) and
+                eql(main, neighbors[bottom_left]) and
+                result.main != null)
+            {
+                //result.border.right = .{ .animation_name = main.tile.animations.border.left.? };
+                result.border.left = .{ .animation_name = main.tile.animations.border.right.? };
+            }
+
+            // Add extra borders if neighbors are likely to be walls only(null main)
+            if (eql(main, neighbors[center_right]) and
+                eql(main, neighbors[top_right]) and
+                eql(main, neighbors[bottom_right]) and
+                result.main != null)
+            {
+                //result.border.left = .{ .animation_name = main.tile.animations.border.right.? };
+                result.border.right = .{ .animation_name = main.tile.animations.border.left.? };
             }
         }
 

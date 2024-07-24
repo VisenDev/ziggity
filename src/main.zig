@@ -134,11 +134,20 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
         window_manager.updateCameraPosition(a, lvl);
         update_options.update();
 
+        //reset mouse layers
+        window_manager.resetMouseOwner();
+
+        debugger.addText("FPS: {}", .{ray.GetFPS()});
+        debugger.addText("Entity Count: {}", .{lvl.ecs.getNumEntities()});
+        if (debugger.addTextButton(&window_manager, "[Toggle Shaders]", .{})) shaders = !shaders;
+        if (debugger.addTextButton(&window_manager, "[Save]", .{})) try lvl.save(a);
+        if (debugger.addTextButton(&window_manager, "[Main Menu]", .{})) return .main_menu;
+
         try move.updateEntitySeparationSystem(lvl.ecs, a, lvl.map, update_options);
         try move.updateMovementSystem(lvl.ecs, a, lvl.map, update_options);
         try move.updatePositionCacheSystem(lvl.ecs, a, lvl.map, update_options);
-        try play.updatePlayerSystem(lvl.ecs, a, lua, &window_manager, update_options);
         try inv.updateInventorySystem(lvl.ecs, a, &window_manager, lvl.map, update_options);
+        try play.updatePlayerSystem(lvl.ecs, a, lua, &window_manager, update_options);
         try inv.updateItemSystem(lvl.ecs, a, &window_manager, update_options);
         try sys.updateLifetimeSystem(lvl.ecs, a, update_options);
         try sys.updateDeathSystem(lvl.ecs, a, lua, update_options);
@@ -202,12 +211,6 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
             light_shader.render(&window_manager);
         }
         ray.EndTextureMode();
-
-        debugger.addText("FPS: {}", .{ray.GetFPS()});
-        debugger.addText("Entity Count: {}", .{lvl.ecs.getNumEntities()});
-        if (debugger.addTextButton(&window_manager, "[Toggle Shaders]", .{})) shaders = !shaders;
-        if (debugger.addTextButton(&window_manager, "[Save]", .{})) try lvl.save(a);
-        if (debugger.addTextButton(&window_manager, "[Main Menu]", .{})) return .main_menu;
 
         ray.BeginDrawing();
         {

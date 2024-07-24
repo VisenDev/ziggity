@@ -21,13 +21,19 @@ pub fn drawMainMenu() Window {
 
         ray.ClearBackground(backgroundColor());
         ray.DrawText("Hello, World!", 190, 200, 20, ray.LIGHTGRAY);
-        if (ray.GuiButton(ray.Rectangle{ .x = 20.0, .y = 20.0, .width = 115.0, .height = 30.0 }, "PLAY") == 1) {
+        if (ray.GuiButton(ray.Rectangle{ .x = 20.0, .y = 20.0, .width = 115.0, .height = 30.0 }, "PLAY") == 1 and
+            ray.IsMouseButtonPressed(ray.MOUSE_BUTTON_LEFT))
+        {
             return .save_menu;
         }
-        if (ray.GuiButton(ray.Rectangle{ .x = 20.0, .y = 60.0, .width = 115.0, .height = 30.0 }, "CONFIG") == 1) {
+        if (ray.GuiButton(ray.Rectangle{ .x = 20.0, .y = 60.0, .width = 115.0, .height = 30.0 }, "CONFIG") == 1 and
+            ray.IsMouseButtonPressed(ray.MOUSE_BUTTON_LEFT))
+        {
             return .config_menu;
         }
-        if (ray.GuiButton(ray.Rectangle{ .x = 20.0, .y = 100.0, .width = 115.0, .height = 30.0 }, "QUIT") == 1) {
+        if (ray.GuiButton(ray.Rectangle{ .x = 20.0, .y = 100.0, .width = 115.0, .height = 30.0 }, "QUIT") == 1 and
+            ray.IsMouseButtonPressed(ray.MOUSE_BUTTON_LEFT))
+        {
             return .quit;
         }
 

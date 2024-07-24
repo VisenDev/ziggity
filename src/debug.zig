@@ -80,11 +80,9 @@ pub const DebugRenderer = struct {
 
         if (mpos.x > coordinates.x and mpos.y > coordinates.y and mpos.x < coordinates.x + (font_size * fmt.len) and mpos.y < coordinates.y + font_size) {
             if (wm.getMouseOwner() != .debugger) {
-                std.debug.print("Current Owner Before Takeover: {?}\n", .{wm.getMouseOwner()});
-                wm.takeMouseOwnership(.debugger) catch |e| {
-                    std.debug.print("Taking mouse ownership failed {!}\n", .{e});
-                };
-                std.debug.print("Current Owner After Takeover: {?}\n\n", .{wm.getMouseOwner()});
+                //std.debug.print("Current Owner Before Takeover: {?}\n", .{wm.getMouseOwner()});
+                wm.activateMouseOwnership(.debugger);
+                //std.debug.print("Current Owner After Takeover: {?}\n\n", .{wm.getMouseOwner()});
             }
 
             self.addTextAtPosition(coordinates, .screen_position, font_size, ray.GRAY, fmt, args);
@@ -94,11 +92,11 @@ pub const DebugRenderer = struct {
                 }
             }
         } else {
-            if (wm.getMouseOwner() == .debugger) {
-                //wm.relinquishMouseOwnership(.debugger) catch |e| {
-                //    std.debug.print("Taking mouse ownership failed {!}\n", .{e});
-                //};
-            }
+            //wm.relinquishMouseOwnership(.debugger) catch |e| {
+            //    std.debug.print("Taking mouse ownership failed {!}\n", .{e});
+            //wm.deactivateMouseOwnership(.debugger);
+            //std.debug.print("Deactivating Debugger Ownership. New Owner: {?}\n\n", .{wm.getMouseOwner()});
+            //};
             self.addTextAtPosition(coordinates, .screen_position, font_size, ray.RAYWHITE, fmt, args);
         }
 
