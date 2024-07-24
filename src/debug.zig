@@ -67,7 +67,7 @@ pub const DebugRenderer = struct {
         self.num_debug_text_rows = 0;
     }
 
-    pub fn addTextButton(self: *@This(), wm: *const anime.WindowManager, comptime fmt: [:0]const u8, args: anytype) bool {
+    pub fn addTextButton(self: *@This(), wm: *anime.WindowManager, comptime fmt: [:0]const u8, args: anytype) bool {
         const default_offset: f32 = 1;
         const font_size: f32 = 10;
         const coordinates = ray.Vector2{
@@ -79,11 +79,26 @@ pub const DebugRenderer = struct {
         const mpos = wm.getMouseScreenPosition();
 
         if (mpos.x > coordinates.x and mpos.y > coordinates.y and mpos.x < coordinates.x + (font_size * fmt.len) and mpos.y < coordinates.y + font_size) {
+            if (wm.getMouseOwner() != .debugger) {
+                std.debug.print("Current Owner Before Takeover: {?}\n", .{wm.getMouseOwner()});
+                wm.takeMouseOwnership(.debugger) catch |e| {
+                    std.debug.print("Taking mouse ownership failed {!}\n", .{e});
+                };
+                std.debug.print("Current Owner After Takeover: {?}\n\n", .{wm.getMouseOwner()});
+            }
+
             self.addTextAtPosition(coordinates, .screen_position, font_size, ray.GRAY, fmt, args);
-            if (wm.isMousePressed(.left)) {
-                return true;
+            if (wm.getMouseOwner() == .debugger) {
+                if (wm.isMousePressed(.left)) {
+                    return true;
+                }
             }
         } else {
+            if (wm.getMouseOwner() == .debugger) {
+                //wm.relinquishMouseOwnership(.debugger) catch |e| {
+                //    std.debug.print("Taking mouse ownership failed {!}\n", .{e});
+                //};
+            }
             self.addTextAtPosition(coordinates, .screen_position, font_size, ray.RAYWHITE, fmt, args);
         }
 

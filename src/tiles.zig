@@ -11,34 +11,6 @@ const tex = @import("textures.zig");
 const file = @import("file_utils.zig");
 const Lua = @import("ziglua").Lua;
 
-//const Borders = struct {
-//const Row = struct { left: bool = false, middle: bool = false, right: bool = false };
-//top: Row,
-//center: Row,
-//bottom: Row,
-//};
-
-//pub const TileRenderConfig = struct {
-//    wall_top: bool = false,
-//    wall_side_left: bool = false,
-//    wall_side_right: bool = false,
-//    main: bool = false,
-//
-//    pub fn generate(b: Borders) TileRenderConfig {
-//        if (!b.center.middle) return .{ .main = true };
-//
-//        var result = TileRenderConfig{};
-//        if (!b.top.middle) result.wall_top = true;
-//        if (b.bottom.middle) result.wall_top = false;
-//
-//        if (b.bottom.left and b.bottom.right and b.bottom.middle and b.top.middle) {
-//            return TileRenderConfig{ .wall_top = true };
-//        }
-//
-//        return result;
-//    }
-//};
-
 const Category = enum { wall, floor };
 
 pub const Tile = struct {
@@ -110,54 +82,41 @@ pub const TileRenderer = struct {
             if (!eql(main, neighbors[center_right])) {
                 result.border.right = .{ .animation_name = main.tile.animations.border.right.? };
             }
-            {
-                // how many bordering cells share the same tile top
-                var num_same_borders: usize = 0;
 
-                // add to border similarity count
-                if (eql(main, neighbors[bottom_right])) num_same_borders += 1;
-                if (eql(main, neighbors[bottom_center])) num_same_borders += 1;
-                if (eql(main, neighbors[bottom_left])) num_same_borders += 1;
-
-                if (eql(main, neighbors[center_right])) num_same_borders += 1;
-                if (eql(main, neighbors[center_left])) num_same_borders += 1;
-
-                if (eql(main, neighbors[top_right])) num_same_borders += 1;
-                if (eql(main, neighbors[top_center])) num_same_borders += 1;
-                if (eql(main, neighbors[top_left])) num_same_borders += 1;
-
-                if (num_same_borders >= 7) {
-                    result.main = null;
-                }
+            //disable main for side walls
+            if (result.border.top == null) {
+                result.main = null;
             }
         }
 
         return result;
     }
 
-    pub fn render(self: *const TileRenderer, state: *const anime.WindowManager, pos: ray.Vector2) void {
-        if (self.main) |main| {
-            main.renderInWorld(state, pos, .{});
-        }
-
+    pub fn renderBorders(self: *const TileRenderer, state: *const anime.WindowManager, pos: ray.Vector2) void {
         if (self.border.left) |left| {
-            const adjusted: ray.Vector2 = .{ .x = pos.x - 0.5, .y = pos.y };
+            const adjusted: ray.Vector2 = .{ .x = pos.x - 0.25, .y = pos.y - 0.25 };
             left.renderInWorld(state, adjusted, .{});
         }
 
         if (self.border.right) |right| {
-            const adjusted: ray.Vector2 = .{ .x = pos.x + 0.4, .y = pos.y };
+            const adjusted: ray.Vector2 = .{ .x = pos.x + 0.75, .y = pos.y - 0.25 };
             right.renderInWorld(state, adjusted, .{});
         }
 
         if (self.border.top) |top| {
-            const adjusted: ray.Vector2 = .{ .x = pos.x, .y = pos.y - 0.5 };
+            const adjusted: ray.Vector2 = .{ .x = pos.x - 0.25, .y = pos.y - 0.25 };
             top.renderInWorld(state, adjusted, .{});
         }
 
         if (self.border.bottom) |bottom| {
-            const adjusted: ray.Vector2 = .{ .x = pos.x, .y = pos.y + 0.40 };
+            const adjusted: ray.Vector2 = .{ .x = pos.x, .y = pos.y + 0.25 };
             bottom.renderInWorld(state, adjusted, .{});
+        }
+    }
+
+    pub fn renderMain(self: *const TileRenderer, state: *const anime.WindowManager, pos: ray.Vector2) void {
+        if (self.main) |main| {
+            main.renderInWorld(state, pos, .{});
         }
     }
 

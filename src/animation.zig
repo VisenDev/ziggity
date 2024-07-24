@@ -186,10 +186,9 @@ pub const WindowManager = struct {
     camera: ray.Camera2D,
     ui_zoom: f32 = 1.0, //TODO configure this in the lua config file
     keybindings: key.KeyBindings,
-    //mouse_owner_id: MouseOwner = .world,
     mouse_ownership_queue: std.ArrayList(MouseOwner),
 
-    const MouseOwner = enum { player_inventory, popup, world };
+    const MouseOwner = enum { player_inventory, debugger, world };
 
     pub fn deinit(self: *@This()) void {
         var iter = self.textures.iterator();
@@ -234,6 +233,7 @@ pub const WindowManager = struct {
     }
 
     pub fn takeMouseOwnership(self: *@This(), new_owner: MouseOwner) !void {
+        std.debug.print("New Mouse Owner: {}\n", .{new_owner});
         try self.mouse_ownership_queue.append(new_owner);
     }
 

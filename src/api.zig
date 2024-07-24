@@ -9,26 +9,17 @@ const ray = @cImport({
     @cInclude("raylib.h");
 });
 
+pub fn getAbsPath() []u8 {
+    var buffer: [1024]u8 = .{0} ** 1024;
+    const path = std.fs.selfExeDirPath(&buffer) catch @panic("getAbsPath Failed");
+    return buffer[0 .. path.len + 1];
+}
+
 pub fn initLuaApi(a: *const std.mem.Allocator) !*ziglua.Lua {
     var l = try ziglua.Lua.init(a);
     l.openLibs();
 
-    // const api = .{
-    //     .console = .{
-    //         .clear = cmd.Console.clear,
-    //         .log = cmd.Console.log,
-    //     },
-    //     //        .lvl = .{
-    //     //            .newEntity = ecs.ECS.newEntityPtr,
-    //     //            .addComponent = ecs.ECS.addJsonComponent,
-    //     //        },
-    //     .file = .{},
-    // };
-
-    // try l.set("api", api);
-
-    //try l.doString(@embedFile("scripts/archetypes.lua"));
-    //try l.doString(@embedFile("scripts/procgen.lua"));
+    try l.set("GetAbsPath", getAbsPath);
 
     //load the entry
     const entry = try file.getLuaEntryFile(a.*);

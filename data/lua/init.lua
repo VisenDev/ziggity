@@ -1,6 +1,25 @@
---require "definitions.lua"
+---@class Vector
+---@field x integer
+---@field y integer
 
----@type SubImage
+---@class Rectangle
+---@field x integer
+---@field y integer
+---@field width integer
+---@field height integer
+
+---@class Frame
+---@field subrect Rectangle[]
+---@field milliseconds integer|nil
+
+---@class Animation
+---@field name string
+---@field filepath string
+---@field rotation_speed integer|nil
+---@field origin Vector|nil
+---@field frames Frame[]|nil
+
+---@fun(name: string, filepath: string, x: integer, y: integer, width: integer, height: integer): Animation
 function SubImage(name, filepath, x, y, width, height)
    return {
       ['name'] = name,
@@ -42,16 +61,12 @@ end
 ---@return Animation[]
 function Animations()
 
-   return {
+   local result = {
       SubImage("player", "entities.png", 0, 0, 32, 32),
       SubImage("particle", "entities.png", 14, 14, 2, 2),
 
-      --caves
-      SubImage("cave_wall", "tilemap.png", 0, 0, 32, 32),
+      --floor
       SubImage("cave_floor", "tilemap.png", 32, 0, 32, 32),
-      SubImage("cave_wall_border_left", "tilemap.png", 0, 64, 32, 32),
-      SubImage("cave_wall_border_right", "tilemap.png", 0, 64, 32, 32),
-      SubImage("cave_wall_border_top", "tilemap.png", 0, 32, 32, 32),
 
       --monsters
       SubImage("slime", "entities.png", 64, 0, 32, 32),
@@ -65,6 +80,21 @@ function Animations()
       --items
       SubImage("potion", "entities.png", 0, 32, 16, 16),
    }
+
+
+      --wall
+      result = TableConcat(result, DeriveWallAnimations("cave_wall", "tiles.png", 0, 0))
+      result = TableConcat(result, DeriveWallAnimations("castle_wall", "tiles.png", 1, 0))
+      result = TableConcat(result, DeriveWallAnimations("wood_wall", "tiles.png", 2, 0))
+
+      return result
+end
+
+function TableConcat(t1,t2)
+    for i=1,#t2 do
+        t1[#t1+1] = t2[i]
+    end
+    return t1
 end
 
 function PrintTable(t)
@@ -99,7 +129,19 @@ function KeyBindings()
    return bindings
 end
 
-
+---@param name string
+---@param x integer
+---@param y integer
+---@return Animation[]
+function DeriveWallAnimations(name, path, x, y)
+    local size = TilemapResolution()
+    return {
+      SubImage(name, path, x * size + (size/2), y * size + (size/2), size, size),
+      SubImage(name .. "_border_left", path, x * size, y * size, size/2, size * 1.5),
+      SubImage(name .. "_border_right", path, x * size, y * size, size/2, size * 1.5),
+      SubImage(name .. "_border_top", path, x * size + (size/2), y * size, size * 1.5, size/2),
+    }
+end
 
 function MakeTile(name, category)
    return

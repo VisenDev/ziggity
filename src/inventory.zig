@@ -406,10 +406,14 @@ pub fn updateInventorySystem(
             if (window_manager.keybindings.isPressed("inventory")) {
                 if (inventory.state == .hidden) {
                     inventory.state = .visible_focused;
-                    try window_manager.takeMouseOwnership(.player_inventory);
+                    if (window_manager.getMouseOwner() != .player_inventory) {
+                        try window_manager.takeMouseOwnership(.player_inventory);
+                    }
                 } else {
                     inventory.state = .hidden;
-                    try window_manager.relinquishMouseOwnership(.player_inventory);
+                    if (window_manager.getMouseOwner() == .player_inventory) {
+                        try window_manager.relinquishMouseOwnership(.player_inventory);
+                    }
                 }
             }
         }

@@ -233,12 +233,25 @@ pub const MapState = struct {
         self.tile_grid.deinit(a);
     }
 
-    pub fn render(self: *const @This(), a: std.mem.Allocator, window_manager: *const anime.WindowManager, ecs: *ECS) void {
+    pub fn renderMain(self: *const @This(), a: std.mem.Allocator, window_manager: *const anime.WindowManager, ecs: *ECS) void {
         const bounds = window_manager.getVisibleBounds(a, ecs, self);
 
         for (bounds.min_x..bounds.max_x) |x| {
             for (bounds.min_y..bounds.max_y) |y| {
-                self.grid.at(x, y).?.renderer.render(window_manager, .{
+                self.grid.at(x, y).?.renderer.renderMain(window_manager, .{
+                    .x = @floatFromInt(x),
+                    .y = @floatFromInt(y),
+                });
+            }
+        }
+    }
+
+    pub fn renderBorders(self: *const @This(), a: std.mem.Allocator, window_manager: *const anime.WindowManager, ecs: *ECS) void {
+        const bounds = window_manager.getVisibleBounds(a, ecs, self);
+
+        for (bounds.min_x..bounds.max_x) |x| {
+            for (bounds.min_y..bounds.max_y) |y| {
+                self.grid.at(x, y).?.renderer.renderBorders(window_manager, .{
                     .x = @floatFromInt(x),
                     .y = @floatFromInt(y),
                 });
