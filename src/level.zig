@@ -13,6 +13,7 @@ const ray = @cImport({
 });
 
 pub const LevelGenOptions = struct {
+    seed: usize = 0,
     level_id: []const u8,
     save_id: []const u8,
     width: u32 = 50,
@@ -87,6 +88,7 @@ pub const Level = struct {
 
 pub const NewSaveOptions = struct {
     save_id: []const u8,
+    seed: usize,
 };
 
 pub fn createNewSave(a: std.mem.Allocator, lua: *Lua, options: NewSaveOptions) !void {
@@ -104,7 +106,7 @@ pub fn createNewSave(a: std.mem.Allocator, lua: *Lua, options: NewSaveOptions) !
     defer arena.deinit();
 
     const level_id = "level_1";
-    const level = try Level.generate(arena.allocator(), lua, .{ .level_id = level_id, .save_id = options.save_id });
+    const level = try Level.generate(arena.allocator(), lua, .{ .level_id = level_id, .save_id = options.save_id, .seed = options.seed });
     try level.save(a);
 
     //try file.writeLevel(a, first_level, options.name, first_level_id);

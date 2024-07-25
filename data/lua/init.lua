@@ -66,7 +66,7 @@ function Animations()
       SubImage("particle", "entities.png", 14, 14, 2, 2),
 
       --floor
-      SubImage("cave_floor", "tilemap.png", 32, 0, 32, 32),
+      SubImage("cave_floor", "tilemap.png", 96, 0, 32, 32),
 
       --monsters
       SubImage("slime", "entities.png", 64, 0, 32, 32),

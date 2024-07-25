@@ -11,7 +11,7 @@ const tex = @import("textures.zig");
 const file = @import("file_utils.zig");
 const Lua = @import("ziglua").Lua;
 
-const Category = enum { wall, floor };
+pub const Category = enum { wall, floor };
 
 pub const Tile = struct {
     name: []const u8 = "",

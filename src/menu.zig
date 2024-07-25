@@ -72,31 +72,33 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, save_id: *[]u8) !Window {
 }
 
 pub fn drawNewSaveMenu(a: std.mem.Allocator, lua: *Lua) !Window {
-    var textBoxEditMode = false;
-    var textBoxText: [100]u8 = [_]u8{0} ** 100;
+    var levelNameEditMode = false;
+    var levelNameText: [100]u8 = [_]u8{0} ** 100;
+
+    var seedEditMode = false;
+    var seedText: [100]u8 = [_]u8{0} ** 100;
 
     while (!ray.WindowShouldClose()) {
         ray.BeginDrawing();
         ray.ClearBackground(backgroundColor());
 
-        ray.DrawText("Enter Save Name!", 20, 20, 20, ray.DARKGRAY);
+        ray.DrawText("Enter Save Name!", 140, 60, 20, ray.DARKGRAY);
 
         ray.GuiSetStyle(ray.TEXTBOX, ray.TEXT_ALIGNMENT, ray.TEXT_ALIGN_LEFT);
-        if (ray.GuiTextBox(ray.Rectangle{ .x = 20.0, .y = 60.0, .width = 115.0, .height = 30.0 }, &textBoxText, 32, textBoxEditMode) == 1) {
-            textBoxEditMode = !textBoxEditMode;
+        if (ray.GuiTextBox(ray.Rectangle{ .x = 20.0, .y = 60.0, .width = 115.0, .height = 30.0 }, &levelNameText, 32, levelNameEditMode) == 1) {
+            levelNameEditMode = !levelNameEditMode;
         }
 
-        if (ray.GuiButton(ray.Rectangle{ .x = 20.0, .y = 100.0, .width = 115.0, .height = 30.0 }, "Generate") == 1) {
-            var strlen: usize = 0;
-            for (textBoxText, 0..) |ch, i| {
-                if (ch == 0) {
-                    strlen = i;
-                    break;
-                }
-            }
+        ray.DrawText("Enter Seed!", 140, 100, 20, ray.DARKGRAY);
+        if (ray.GuiTextBox(ray.Rectangle{ .x = 20.0, .y = 100.0, .width = 115.0, .height = 30.0 }, &seedText, 32, seedEditMode) == 1) {
+            seedEditMode = !seedEditMode;
+        }
 
-            //TODO update this save generation code
-            try level.createNewSave(a, lua, .{ .save_id = textBoxText[0..strlen] });
+        if (ray.GuiButton(ray.Rectangle{ .x = 20.0, .y = 140.0, .width = 115.0, .height = 30.0 }, "Generate") == 1) {
+            try level.createNewSave(a, lua, .{
+                .save_id = levelNameText[0..std.mem.indexOf(u8, &levelNameText, &.{0}).?],
+                .seed = try std.fmt.parseInt(usize, seedText[0..std.mem.indexOf(u8, &seedText, &.{0}).?], 10),
+            });
             return .save_menu;
         }
 

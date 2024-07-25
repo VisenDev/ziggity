@@ -18,43 +18,6 @@ fn tof32(input: anytype) f32 {
     return @floatFromInt(input);
 }
 
-//pub const IdList = struct {
-//    pub const cap = 16;
-//    ids: [cap]u32 = [1]u32{0} ** cap,
-//    len: u32 = 0,
-//};
-//const Borders = [3][3]bool;
-
-//pub const Char = struct {
-//    pub const empty = ' ';
-//    pub const natural_wall = '#';
-//    pub const natural_floor = '.';
-//    pub const pit = ':';
-//    pub const structure_wall = '%';
-//    pub const structure_floor = '-';
-//    pub const liquid = '~';
-//    pub const bridge = '=';
-//    pub const door = '+';
-//    pub const treasure = '$';
-//    pub const boss = 'B';
-//};
-//
-//const lvl1 =
-//    \\#########
-//    \\#....####
-//    \\##.....##
-//    \\###.....#
-//    \\#%%%%+%%%
-//    \\#%------%
-//    \\#%---B--%
-//    \\#%------%
-//    \\#%------%
-//    \\#%%%%+%%%
-//    \\###..$.##
-//    \\####..###
-//    \\#########
-//;
-
 inline fn getCorners(r: ray.Rectangle) [4]ray.Vector2 {
     return [4]ray.Vector2{
         .{ .x = r.x, .y = r.y },
@@ -64,30 +27,65 @@ inline fn getCorners(r: ray.Rectangle) [4]ray.Vector2 {
     };
 }
 
-//inline fn split(a: std.mem.Allocator, str: []const u8) !std.ArrayList([]const u8) {
-//    const trimmed = std.mem.trim(u8, std.mem.trim(u8, std.mem.trim(u8, str, "\n"), " "), "\n");
-//    var iter = std.mem.splitScalar(u8, trimmed, '\n');
-//
-//    var result = std.ArrayList([]const u8).init(a);
-//
-//    var len: ?usize = null;
-//
-//    while (iter.next()) |row| {
-//        const truncated = std.mem.trim(u8, row, " ");
-//        std.debug.print("row: {s}\n", .{truncated});
-//
-//        if (len == null) {
-//            len = truncated.len;
-//        } else if (truncated.len != len.?) {
-//            std.debug.print("len: {?}\ntrunclen: {}\ntrunc: {s}\n\n", .{ len, truncated.len, truncated });
-//            return error.inconsistent_substr_lengths;
-//        }
-//        try result.append(truncated);
-//    }
-//
-//    return result;
-//}
-//
+const CellularAutomataOptions = struct {
+    chance_to_start_as_wall: f32 = 0.15,
+    num_simulation_steps: usize = 3,
+    birth_threshhold: usize = 6, //number of neighbors for a floor to become a wall
+    death_threshhold: usize = 4,
+};
+
+pub fn cellularAutomata(a: std.mem.Allocator, rng: std.rand.Random, width: usize, height: usize, opt: CellularAutomataOptions) !Grid(tile.Category) {
+    const result = try Grid(tile.Category).init(a, width, height, .floor);
+
+    //initialize grid
+    for (result.items) |*cell| {
+        if (rng.floatNorm(f32) < opt.chance_to_start_as_wall) {
+            cell.* = .wall;
+        } else {
+            cell.* = .floor;
+        }
+    }
+
+    std.debug.print("Initialized grid\n\n", .{});
+    result.printContents();
+
+    const temp = try Grid(tile.Category).init(a, width, height, .floor);
+    //do simulation step
+    for (0..opt.num_simulation_steps) |_| {
+
+        //iterate over cells
+        for (0..result.width) |x| {
+            for (0..result.height) |y| {
+
+                //count neighbors
+                const count = result.countMatchingNearby(x, y, .wall);
+
+                //update temp
+                if (result.get(x, y) == .wall) {
+                    if (count < opt.death_threshhold) {
+                        temp.at(x, y).?.* = .floor;
+                    } else {
+                        temp.at(x, y).?.* = .wall;
+                    }
+                } else if (result.get(x, y) == .floor) {
+                    if (count > opt.birth_threshhold) {
+                        temp.at(x, y).?.* = .wall;
+                    } else {
+                        temp.at(x, y).?.* = .floor;
+                    }
+                }
+            }
+        }
+
+        //update result with temp calculated values
+        @memcpy(result.items, temp.items);
+
+        std.debug.print("\nAfter step\n", .{});
+        result.printContents();
+    }
+
+    return result;
+}
 
 pub const MapState = struct {
     grid: Grid(CellData),
@@ -105,16 +103,6 @@ pub const MapState = struct {
                 self.entity_location_cache[0] = entity_id;
             }
         }
-        //entity_location_cache: CacheType = std.math.maxInt(CacheType),
-        //cache_len: usize = 0,
-
-        //const cache_capacity = 4;
-        //const CacheType = @Type(.{ .Int = .{ .signedness = .unsigned, .bits = @sizeOf(usize) * cache_capacity * 8 } });
-
-        //fn accessCacheIndex(self: *const @This(), index: u8) usize {
-        //    const resultValue = (self.entity_location_cache >> (index * @sizeOf(usize))) & std.math.maxInt(usize);
-        //    return @intCast(resultValue);
-        //}
 
         pub fn getCache(self: *const @This()) []const ?usize {
             return &self.entity_location_cache;
@@ -123,11 +111,6 @@ pub const MapState = struct {
         pub fn clearCache(self: *@This()) void {
             @memset(&self.entity_location_cache, null);
         }
-
-        //    const ptr: *const [4]usize = @ptrCast(&self.entity_location_cache);
-        //    return ptr.*[cache_capacity - 1 .. cache_capacity];
-        //}
-
     };
 
     pub fn checkCollision(self: *const @This(), hitbox: ray.Rectangle) bool {
@@ -156,24 +139,20 @@ pub const MapState = struct {
     }
 
     pub fn generate(a: std.mem.Allocator, tile_state: *const tile.TileState, opt: level.LevelGenOptions) !@This() {
-        const perlin_image = ray.GenImagePerlinNoise(@intCast(opt.width), @intCast(opt.height), 0, 0, 1);
-        defer ray.UnloadImage(perlin_image);
-        const perlin = ray.LoadImageColors(perlin_image);
+        //const perlin_image = ray.GenImagePerlinNoise(@intCast(opt.width), @intCast(opt.height), 0, 0, 1);
+        //defer ray.UnloadImage(perlin_image);
+        //const perlin = ray.LoadImageColors(perlin_image);
+        var rng = std.rand.DefaultPrng.init(opt.seed);
+        const template = try cellularAutomata(a, rng.random(), opt.width, opt.height, .{});
 
         var grid = try Grid(CellData).init(a, opt.width, opt.height, .{});
 
         for (0..opt.width) |x| {
             for (0..opt.height) |y| {
-                const sample_value = perlin[x * opt.width + y].r;
-                if (sample_value > 70) {
+                if (template.get(x, y) == .floor) {
                     grid.at(x, y).?.tile = tile_state.get("cave_floor").?;
-                    //grid.at(x, y).?.collision = false;
-
-                    //grid.at(x, y).?.renderer = .{ .animation_name = "cave_floor" };
                 } else {
                     grid.at(x, y).?.tile = tile_state.get("cave_wall").?;
-                    //grid.at(x, y).?.collision = false;
-                    //animation_grid.items[x][y] = .{ .animation_name = "cave_wall" };
                 }
             }
         }
@@ -182,52 +161,6 @@ pub const MapState = struct {
         try result.deriveTileRenderers();
         return result;
     }
-
-    // pub fn generateFromString(a: std.mem.Allocator, tile_state: tile.TileState, string: []const u8) !@This() {
-    //     std.debug.print("string: \n\n{s}\n", .{string});
-
-    //     const strs = try split(a, string);
-
-    //     const height = strs.items.len;
-    //     const width = strs.items[0].len;
-
-    //     var tile_grid = try Grid(tile.Tile).init(a, width, height, undefined);
-    //     var collision_grid = try Grid(bool).init(a, width, height, false);
-    //     var animation_grid = try Grid(tile.TileRenderer).init(a, width, height, undefined);
-
-    //     //set tiles
-    //     for (strs.items, 0..) |row, y| {
-    //         for (row, 0..) |ch, x| {
-    //             try tile_grid.set(a, x, y, switch (ch) {
-    //                 Char.natural_wall => tile_state.get("cave_wall").?,
-    //                 else => tile_state.get("cave_floor").?,
-    //             });
-    //         }
-    //     }
-
-    //     //set collisions
-    //     //TODO remove collision grid
-    //     for (0..tile_grid.getWidth()) |x| {
-    //         for (0..tile_grid.getHeight()) |y| {
-    //             try collision_grid.set(a, x, y, tile_grid.get(x, y).?.category == .wall);
-    //         }
-    //     }
-
-    //     for (0..tile_grid.getWidth()) |x| {
-    //         for (0..tile_grid.getHeight()) |y| {
-    //             const animation = tile.TileRenderer.init(tile_grid.getNeighborhood(x, y));
-    //             try animation_grid.set(a, x, y, animation);
-    //         }
-    //     }
-
-    //     return .{
-    //         .tile_grid = tile_grid,
-    //         .collision_grid = collision_grid,
-    //         .animation_grid = animation_grid,
-    //         .width = width,
-    //         .height = height,
-    //     };
-    // }
 
     pub fn deinit(self: *const @This(), a: std.mem.Allocator) void {
         self.tile_grid.deinit(a);
@@ -281,26 +214,3 @@ test "cache" {
     try std.testing.expect(cell.entity_location_cache[2] == 101);
     try std.testing.expect(cell.entity_location_cache[3] == 100);
 }
-
-//test "cache" {
-//    var cell = MapState.CellData{};
-//
-//    cell.appendCache(100);
-//    std.debug.print("{any}\n", .{cell.getCache()});
-//    try std.testing.expect(cell.getCache()[0] == 100);
-//
-//    cell.appendCache(101);
-//    try std.testing.expect(cell.getCache()[0] == 100);
-//    try std.testing.expect(cell.getCache()[1] == 101);
-//
-//    cell.appendCache(102);
-//    try std.testing.expect(cell.getCache()[0] == 100);
-//    try std.testing.expect(cell.getCache()[1] == 101);
-//    try std.testing.expect(cell.getCache()[2] == 102);
-//
-//    cell.appendCache(103);
-//    try std.testing.expect(cell.getCache()[0] == 100);
-//    try std.testing.expect(cell.getCache()[1] == 101);
-//    try std.testing.expect(cell.getCache()[2] == 102);
-//    try std.testing.expect(cell.getCache()[3] == 103);
-//}

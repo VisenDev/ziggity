@@ -29,6 +29,35 @@ pub fn Grid(comptime T: type) type {
             return &self.items[x * self.width + y];
         }
 
+        ///asserts that the index exists
+        pub inline fn get(self: *const @This(), x: usize, y: usize) T {
+            return self.at(x, y).?.*;
+        }
+
+        ///for debugging
+        pub fn printContents(self: *const @This()) void {
+            std.debug.print("\n", .{});
+            std.debug.print("\n", .{});
+            for (0..self.height) |y| {
+                for (0..self.width) |x| {
+                    std.debug.print("{any}, ", .{self.get(x, y)});
+                }
+                std.debug.print("\n", .{});
+            }
+        }
+
+        pub fn countMatchingNearby(self: *const @This(), x: usize, y: usize, match: T) usize {
+            var count: usize = 0;
+            const nearby = self.findNearbyCells(x, y);
+            for (nearby, 0..) |cell, i| {
+                //skip index five so the cell doesn't count itself
+                if (i != 5 and cell != null and cell.?.* == match) {
+                    count += 1;
+                }
+            }
+            return count;
+        }
+
         pub fn findNearbyCells(self: *const @This(), x: usize, y: usize) [9]?*T {
             var i: usize = 0;
             var nearbyCells: [9]?*T = undefined;
