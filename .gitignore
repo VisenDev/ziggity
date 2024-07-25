@@ -5,3 +5,4 @@ zig-out/
 src/depreciated
 data/images/src/*
 .zig-cache
+**~
