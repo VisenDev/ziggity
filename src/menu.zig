@@ -70,8 +70,6 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, save_id: *[]u8) !Window {
         },
         else => return e,
     };
-    ray.SetMousePosition(0, 0);
-
     const files = try listFiles(a, save_dir);
     defer {
         for (files.items) |item| {
@@ -80,26 +78,47 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, save_id: *[]u8) !Window {
         files.deinit();
     }
 
+    var selected_file_index: ?usize = null;
+
     while (!ray.WindowShouldClose()) {
         gui_manager.update();
         ray.BeginDrawing();
         ray.ClearBackground(gui_manager.backgroundColor());
 
-        gui_manager.title("Select Save");
-        gui_manager.line();
+        if (gui_manager.button("Create New")) {
+            return .new_save;
+        }
 
-        try gui_manager.startScrollPanel("saves list", 5, @floatFromInt(files.items.len));
-        for (files.items) |filename| {
+        if (gui_manager.button("Return To Main Menu")) {
+            return .main_menu;
+        }
+
+        gui_manager.column();
+        gui_manager.increaseWidgetWidth(2);
+
+        gui_manager.title("Select Save");
+
+        try gui_manager.startScrollPanel("saves list", 6, @floatFromInt(files.items.len));
+        for (files.items, 0..) |filename, i| {
             if (gui_manager.button(filename)) {
-                save_id.* = try a.dupeZ(u8, filename);
-                return .game;
+                selected_file_index = i;
             }
         }
         gui_manager.endScrollPanel();
 
         gui_manager.column();
-        if (gui_manager.button("Create New")) {
-            return .new_save;
+
+        if (selected_file_index) |i| {
+            gui_manager.title(files.items[i]);
+            if (gui_manager.button("open")) {
+                save_id.* = try a.dupeZ(u8, files.items[i]);
+                return .game;
+            }
+            gui_manager.line();
+            if (gui_manager.button("close")) {
+                selected_file_index = null;
+            }
+            gui_manager.column();
         }
 
         ray.EndDrawing();
@@ -110,7 +129,6 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, save_id: *[]u8) !Window {
 
 pub fn drawNewSaveMenu(a: std.mem.Allocator, lua: *Lua) !Window {
     var save_name: [:0]const u8 = undefined;
-    //var seed: [:0]const u8 = undefined;
     var seed: i64 = 0;
     var gui_manager = gui.RayGuiManager.init(a);
     defer gui_manager.deinit();
