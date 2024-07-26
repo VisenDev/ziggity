@@ -30,6 +30,7 @@ pub fn drawMainMenu(a: std.mem.Allocator) !Window {
         ray.BeginDrawing();
 
         ray.ClearBackground(gui_manager.backgroundColor());
+        //gui_manager.panel(null);
         if (gui_manager.button("PLAY")) return .save_menu;
         if (gui_manager.button("CONFIG")) return .config_menu;
         if (gui_manager.button("QUIT")) return .quit;
@@ -84,16 +85,21 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, save_id: *[]u8) !Window {
         ray.BeginDrawing();
         ray.ClearBackground(gui_manager.backgroundColor());
 
-        if (gui_manager.button("Create New")) {
-            return .new_save;
-        }
+        gui_manager.title("Select Save");
         gui_manager.line();
 
+        try gui_manager.startScrollPanel("saves list", 5, @floatFromInt(files.items.len));
         for (files.items) |filename| {
             if (gui_manager.button(filename)) {
                 save_id.* = try a.dupeZ(u8, filename);
                 return .game;
             }
+        }
+        gui_manager.endScrollPanel();
+
+        gui_manager.column();
+        if (gui_manager.button("Create New")) {
+            return .new_save;
         }
 
         ray.EndDrawing();
@@ -104,7 +110,8 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, save_id: *[]u8) !Window {
 
 pub fn drawNewSaveMenu(a: std.mem.Allocator, lua: *Lua) !Window {
     var save_name: [:0]const u8 = undefined;
-    var seed: [:0]const u8 = undefined;
+    //var seed: [:0]const u8 = undefined;
+    var seed: i64 = 0;
     var gui_manager = gui.RayGuiManager.init(a);
     defer gui_manager.deinit();
 
@@ -114,12 +121,12 @@ pub fn drawNewSaveMenu(a: std.mem.Allocator, lua: *Lua) !Window {
         ray.ClearBackground(gui_manager.backgroundColor());
 
         save_name = try gui_manager.textBox("Save Name");
-        seed = try gui_manager.textBox("Numeric Seed");
+        seed = try gui_manager.valueBox("Numeric Seed");
 
         if (gui_manager.button("Generate")) {
             try level.createNewSave(a, lua, .{
                 .save_id = save_name,
-                .seed = try std.fmt.parseInt(usize, seed, 10),
+                .seed = @abs(seed),
             });
             return .save_menu;
         }

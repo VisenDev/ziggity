@@ -46,8 +46,8 @@ pub fn cellularAutomata(a: std.mem.Allocator, rng: std.rand.Random, width: usize
         }
     }
 
-    std.debug.print("Initialized grid\n\n", .{});
-    result.printContents();
+    //std.debug.print("Initialized grid\n\n", .{});
+    //result.printContents();
 
     const temp = try Grid(tile.Category).init(a, width, height, .floor);
     //do simulation step
@@ -80,8 +80,8 @@ pub fn cellularAutomata(a: std.mem.Allocator, rng: std.rand.Random, width: usize
         //update result with temp calculated values
         @memcpy(result.items, temp.items);
 
-        std.debug.print("\nAfter step\n", .{});
-        result.printContents();
+        //std.debug.print("\nAfter step\n", .{});
+        //result.printContents();
     }
 
     return result;
