@@ -4,7 +4,6 @@ const menu = @import("menu.zig");
 const ray = @cImport({
     @cInclude("raylib.h");
     @cInclude("raygui.h");
-    @cInclude("style_dark.h");
 });
 
 ///shows error message then returns

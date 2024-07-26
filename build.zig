@@ -40,10 +40,13 @@ pub fn build(b: *std.Build) void {
     exe_check.linkLibrary(ray);
     exe_test.linkLibrary(ray);
 
-    //================FIND STYLEDARK.H===================
-    exe.addIncludePath(b.path("lib"));
-    exe_check.addIncludePath(b.path("lib"));
-    exe_test.addIncludePath(b.path("lib"));
+    //================FIND STYLES===================
+    const rguilayout = b.dependency("rguilayout", .{ .target = target, .optimize = optimize });
+    const styles_folder = rguilayout.path("src/styles");
+    exe.addSystemIncludePath(.{ .cwd_relative = "/usr/local/include" });
+    exe.addIncludePath(styles_folder);
+    exe_check.addIncludePath(styles_folder);
+    exe_test.addIncludePath(styles_folder);
 
     //=============INSTALL TO OUTPUT DIR===========
     b.installArtifact(exe);

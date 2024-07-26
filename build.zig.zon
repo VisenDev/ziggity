@@ -15,5 +15,9 @@
             .url = "https://github.com/raysan5/raygui/archive/refs/heads/master.tar.gz",
             .hash = "1220c62ef63613b8cb2893748d6baa344cd2d994328fbf3fe7559bec00a144c991e5",
         },
+        .rguilayout = .{
+            .url = "https://github.com/raysan5/rguilayout/archive/refs/heads/master.tar.gz",
+            .hash = "1220fde277fd72035aa24ea95ed9b16b3cc9bcb466f0ef04f8e662399db6200e62a9",
+        }
     },
 }

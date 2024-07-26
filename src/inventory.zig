@@ -23,7 +23,6 @@ const ray = @cImport({
 
 const raygui = @cImport({
     @cInclude("raygui.h");
-    @cInclude("style_dark.h");
 });
 
 const eql = std.mem.eql;

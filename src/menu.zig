@@ -5,8 +5,10 @@ const save = @import("save.zig");
 const level = @import("level.zig");
 const ray = @cImport({
     @cInclude("raylib.h");
+});
+
+const raygui = @cImport({
     @cInclude("raygui.h");
-    @cInclude("style_dark.h");
 });
 
 const gui = @import("gui.zig");
@@ -14,21 +16,25 @@ const gui = @import("gui.zig");
 pub const Window = enum { main_menu, game, save_menu, config_menu, quit, new_save };
 
 fn backgroundColor() ray.Color {
-    return ray.GetColor(@intCast(ray.GuiGetStyle(0, ray.BACKGROUND_COLOR)));
+    return ray.GetColor(@intCast(ray.GuiGetStyle(ray.DEFAULT, ray.BACKGROUND_COLOR)));
 }
 
-pub fn drawMainMenu(a: std.mem.Allocator) Window {
+pub fn drawMainMenu(a: std.mem.Allocator) !Window {
     var gui_manager = gui.RayGuiManager.init(a);
     defer gui_manager.deinit();
+
+    gui.styles.GuiLoadStyleJungle();
 
     while (!ray.WindowShouldClose()) {
         gui_manager.update();
         ray.BeginDrawing();
 
-        ray.ClearBackground(backgroundColor());
+        ray.ClearBackground(gui_manager.backgroundColor());
         if (gui_manager.button("PLAY")) return .save_menu;
         if (gui_manager.button("CONFIG")) return .config_menu;
         if (gui_manager.button("QUIT")) return .quit;
+        gui_manager.column();
+        try gui_manager.guiStylePicker();
         ray.EndDrawing();
     }
     return .quit;
@@ -76,7 +82,7 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, save_id: *[]u8) !Window {
     while (!ray.WindowShouldClose()) {
         gui_manager.update();
         ray.BeginDrawing();
-        ray.ClearBackground(backgroundColor());
+        ray.ClearBackground(gui_manager.backgroundColor());
 
         if (gui_manager.button("Create New")) {
             return .new_save;
@@ -105,7 +111,7 @@ pub fn drawNewSaveMenu(a: std.mem.Allocator, lua: *Lua) !Window {
     while (!ray.WindowShouldClose()) {
         gui_manager.update();
         ray.BeginDrawing();
-        ray.ClearBackground(backgroundColor());
+        ray.ClearBackground(gui_manager.backgroundColor());
 
         save_name = try gui_manager.textBox("Save Name");
         seed = try gui_manager.textBox("Numeric Seed");
