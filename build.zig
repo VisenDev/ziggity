@@ -40,10 +40,15 @@ pub fn build(b: *std.Build) void {
     exe_check.linkLibrary(ray);
     exe_test.linkLibrary(ray);
 
+    //================FIND GLAD.H===================
+    const glad_path = b.dependency("raylib", .{}).path("src/external");
+    exe.addIncludePath(glad_path);
+    exe.addIncludePath(glad_path);
+    exe.addIncludePath(glad_path);
+
     //================FIND STYLES===================
     const rguilayout = b.dependency("rguilayout", .{ .target = target, .optimize = optimize });
     const styles_folder = rguilayout.path("src/styles");
-    exe.addSystemIncludePath(.{ .cwd_relative = "/usr/local/include" });
     exe.addIncludePath(styles_folder);
     exe_check.addIncludePath(styles_folder);
     exe_test.addIncludePath(styles_folder);

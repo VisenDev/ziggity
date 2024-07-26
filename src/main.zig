@@ -34,6 +34,10 @@ const raygui = @cImport({
     @cInclude("raygui.h");
 });
 
+const gl = @cImport({
+    @cInclude("glad.h");
+});
+
 fn playSound() void {
     ray.InitAudioDevice();
     defer ray.CloseAudioDevice();
@@ -50,7 +54,7 @@ fn playSound() void {
 }
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{ .verbose_log = true, .retain_metadata = true, .enable_memory_limit = true }){};
+    var gpa = std.heap.GeneralPurposeAllocator(.{ .retain_metadata = true, .enable_memory_limit = true }){};
     defer _ = gpa.detectLeaks();
     var my_arena = Arena.init(gpa.allocator());
     defer my_arena.deinit();
@@ -164,6 +168,8 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
 
             lvl.map.renderMain(a, &window_manager, lvl.ecs);
             lvl.map.renderBorders(a, &window_manager, lvl.ecs);
+
+            //gl.glEnable(gl.GL_STENCIL_TEST);
 
             inv.renderItems(lvl.ecs, a, &window_manager);
             anime.renderSprites(lvl.ecs, a, &window_manager, update_options);
