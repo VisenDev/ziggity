@@ -94,9 +94,6 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, save_id: *[]u8) !Window {
         }
 
         gui_manager.column();
-        gui_manager.increaseWidgetWidth(2);
-
-        gui_manager.title("Select Save");
 
         try gui_manager.startScrollPanel("saves list", 6, @floatFromInt(files.items.len));
         for (files.items, 0..) |filename, i| {
@@ -129,7 +126,7 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, save_id: *[]u8) !Window {
 
 pub fn drawNewSaveMenu(a: std.mem.Allocator, lua: *Lua) !Window {
     var save_name: [:0]const u8 = undefined;
-    var seed: i64 = 0;
+    var seed: usize = 0;
     var gui_manager = gui.RayGuiManager.init(a);
     defer gui_manager.deinit();
 
@@ -139,12 +136,12 @@ pub fn drawNewSaveMenu(a: std.mem.Allocator, lua: *Lua) !Window {
         ray.ClearBackground(gui_manager.backgroundColor());
 
         save_name = try gui_manager.textBox("Save Name");
-        seed = try gui_manager.valueBox("Numeric Seed");
+        seed = try gui_manager.valueBox(usize, "Numeric Seed");
 
         if (gui_manager.button("Generate")) {
             try level.createNewSave(a, lua, .{
                 .save_id = save_name,
-                .seed = @abs(seed),
+                .seed = @intCast(@abs(seed)),
             });
             return .save_menu;
         }

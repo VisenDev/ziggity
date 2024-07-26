@@ -34,9 +34,9 @@ pub const RayGuiManager = struct {
 
     ///gui layout data
     widget_padding: f32 = default_padding,
-    text_size: c_int = 30,
+    text_size: c_int = 24,
     widget_width: f32 = default_width,
-    widget_height: f32 = 30,
+    widget_height: f32 = 24,
     active_x: f32 = default_padding, //coordinates to draw next widget at
     active_y: f32 = default_padding,
     active_scroll_id: ?[:0]const u8 = null, //id of active scroll
@@ -84,6 +84,7 @@ pub const RayGuiManager = struct {
         self.endScrollPanel();
     }
 
+    ///returns the proper background color for the ui styling
     pub fn backgroundColor(self: *const @This()) ray.Color {
         _ = self; // autofix
         const hex: c_int = raygui.GuiGetStyle(raygui.DEFAULT, raygui.BACKGROUND_COLOR);
@@ -133,12 +134,10 @@ pub const RayGuiManager = struct {
     }
 
     pub fn startScrollPanel(self: *@This(), id: [:0]const u8, num_widgets_displayed: f32, num_widgets_provided: f32) !void {
-
-        //RAYGUIAPI int GuiScrollPanel(Rectangle bounds, const char *text, Rectangle content, Vector2 *scroll, Rectangle *view); // Scroll Panel control
         const display_rect: raygui.Rectangle = .{
             .x = self.active_x,
             .y = self.active_y,
-            .width = self.widget_width + self.widget_padding * 3,
+            .width = self.widget_width * 2,
             .height = self.widget_height + (self.widget_height + self.widget_padding) * num_widgets_displayed,
         };
 
@@ -146,7 +145,7 @@ pub const RayGuiManager = struct {
         const content_rect: raygui.Rectangle = .{
             .x = self.active_x,
             .y = self.active_y,
-            .width = self.widget_width + self.widget_padding,
+            .width = self.widget_width * 2 - self.widget_padding * 2,
             .height = self.widget_height + (self.widget_height + self.widget_padding) * num_widgets_provided,
         };
 
@@ -157,55 +156,62 @@ pub const RayGuiManager = struct {
         }
 
         var view = raygui.Rectangle{ .x = 0, .y = 0, .width = 0, .height = 0 };
-        _ = raygui.GuiScrollPanel(display_rect, null, content_rect, scroll.value_ptr, &view);
+        _ = raygui.GuiScrollPanel(display_rect, id, content_rect, scroll.value_ptr, &view);
 
         //begin scissor mode to cutoff unwanted bits of the contents
-        raygui.BeginScissorMode(@intFromFloat(@floor(view.x)), @intFromFloat(@floor(view.y)), @intFromFloat(@floor(view.width)), @intFromFloat(@floor(view.height)));
+        raygui.BeginScissorMode(
+            @intFromFloat(@floor(view.x)),
+            @intFromFloat(@floor(view.y)),
+            @intFromFloat(@floor(view.width * 2)),
+            @intFromFloat(@floor(view.height)),
+        );
         self.active_scroll_id = id;
 
         //update active_y
-        self.active_y += self.widget_padding;
+        self.active_y += self.widget_height + self.widget_padding;
 
         //update active_x so that scroll bar widgets are offset inside bar
         self.active_x += self.widget_padding;
 
         //update column_offset to accommodate larger scroll bar width
-        self.next_column_extra_offset += 3 * self.widget_padding;
+        self.next_column_extra_offset += self.widget_width;
+
+        //set widgets future width to be in scroll var
+        self.widget_width = (@This(){}).widget_width * 2 - self.widget_padding * 2;
     }
 
     pub fn endScrollPanel(self: *@This()) void {
         self.active_scroll_id = null;
+
         //undo updating active_x so that scroll bar widgets are offset inside bar
         self.active_x -= self.widget_padding;
+        self.widget_width = (@This(){}).widget_width;
         raygui.EndScissorMode();
     }
 
-    pub fn increaseWidgetWidth(self: *@This(), width_scalar: f32) void {
-        self.widget_width *= width_scalar;
-    }
-
     /// calculates bounds and updates gui layout, height_scalar multiplies how high the widget is from default
-    pub fn calculateWidgetBounds(self: *@This(), height_scalar: f32, apply_scrolling: bool) raygui.Rectangle {
+    pub fn calculateWidgetBounds(self: *const @This()) raygui.Rectangle {
         var y_offset: f32 = 0;
-        if (apply_scrolling) {
-            if (self.active_scroll_id) |id| {
-                y_offset = self.scroll_panel_scroll.get(id).?.y;
-            }
+        if (self.active_scroll_id) |id| {
+            y_offset = self.scroll_panel_scroll.get(id).?.y;
         }
         const rect: raygui.Rectangle = .{
             .x = self.active_x,
             .y = self.active_y + y_offset,
             .width = self.widget_width,
-            .height = self.widget_height * height_scalar,
+            .height = self.widget_height,
         };
-
-        //update manager
-        self.active_y += (self.widget_height * height_scalar) + self.widget_padding;
         return rect;
     }
 
+    pub fn repositionForNextWidget(self: *@This()) void {
+        //update manager
+        self.active_y += (self.widget_height) + self.widget_padding;
+    }
+
     pub fn title(self: *@This(), text: [:0]const u8) void {
-        const rect = self.calculateWidgetBounds(1, true);
+        const rect = self.calculateWidgetBounds();
+        self.repositionForNextWidget();
         _ = raygui.GuiLabel(rect, text);
     }
 
@@ -242,7 +248,8 @@ pub const RayGuiManager = struct {
             mode.value_ptr.* = false;
         }
 
-        const rect = self.calculateWidgetBounds(1, true);
+        const rect = self.calculateWidgetBounds();
+        self.repositionForNextWidget();
 
         var c_index: c_int = @intCast(index.*);
         const toggle_mode = raygui.GuiDropdownBox(rect, &buffer, &c_index, mode.value_ptr.*);
@@ -265,7 +272,8 @@ pub const RayGuiManager = struct {
     }
 
     pub fn button(self: *@This(), id: [:0]const u8) bool {
-        const rect = self.calculateWidgetBounds(1, true);
+        const rect = self.calculateWidgetBounds();
+        self.repositionForNextWidget();
         const button_down = raygui.GuiButton(rect, id);
         const result = (buttons_enabled and button_down == 1);
         if (result) {
@@ -275,12 +283,14 @@ pub const RayGuiManager = struct {
     }
 
     pub fn line(self: *@This()) void {
-        const rect = self.calculateWidgetBounds(1, true);
+        const rect = self.calculateWidgetBounds();
+        self.repositionForNextWidget();
         _ = raygui.GuiLine(rect, null);
     }
 
     pub fn textBox(self: *@This(), id: [:0]const u8) ![:0]const u8 {
-        const rect = self.calculateWidgetBounds(1, true);
+        const rect = self.calculateWidgetBounds();
+        self.repositionForNextWidget();
 
         //fetch data
         const text = try self.text_box_text.getOrPut(id);
@@ -302,8 +312,9 @@ pub const RayGuiManager = struct {
         return std.mem.sliceTo(text.value_ptr, 0);
     }
 
-    pub fn valueBox(self: *@This(), id: [:0]const u8) !i64 {
-        const rect = self.calculateWidgetBounds(1, true);
+    pub fn valueBox(self: *@This(), comptime T: type, id: [:0]const u8) !T {
+        const rect = self.calculateWidgetBounds();
+        self.repositionForNextWidget();
 
         //fetch data
         const value = try self.value_box_value.getOrPut(id);
@@ -316,7 +327,14 @@ pub const RayGuiManager = struct {
         }
 
         //draw textbox
-        const clicked = raygui.GuiValueBox(rect, "", value.value_ptr, 0, std.math.maxInt(c_int), mode.value_ptr.*);
+        const clicked = raygui.GuiValueBox(
+            rect,
+            id,
+            value.value_ptr,
+            @max(std.math.minInt(T), std.math.minInt(c_int)),
+            @min(std.math.maxInt(T), std.math.maxInt(c_int)),
+            mode.value_ptr.*,
+        );
         if (clicked == 1) {
             mode.value_ptr.* = !mode.value_ptr.*;
         }
