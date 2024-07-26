@@ -9,7 +9,7 @@ const ecs = @import("ecs.zig");
 const Component = @import("components.zig");
 
 pub const LightComponent = struct {
-    color: shader.Vec4 = .{ .x = 1.0, .y = 1.0, .z = 1.0, .a = 1.0 },
+    color: shader.Vec4 = .{ .x = 1.0, .y = 0.8, .z = 0.5, .a = 1.0 },
     radius_in_tiles: f32 = 2,
 };
 
@@ -28,7 +28,7 @@ pub const LightShader = struct {
     num_active_lights: i32,
 
     pub fn init(a: std.mem.Allocator) !LightShader {
-        const my_shader = try shader.loadFragmentShader(a, "light.fs");
+        const my_shader = try shader.loadFragmentShader(a, "fixed_light.fs");
 
         var lights = std.MultiArrayList(ShaderLight){};
         try lights.ensureTotalCapacity(a, max_num_lights);
