@@ -9,34 +9,52 @@ const ray = @cImport({
     @cInclude("style_dark.h");
 });
 
+const gui = @import("gui.zig");
+
 pub const Window = enum { main_menu, game, save_menu, config_menu, quit, new_save };
 
 fn backgroundColor() ray.Color {
     return ray.GetColor(@intCast(ray.GuiGetStyle(0, ray.BACKGROUND_COLOR)));
 }
 
-pub fn drawMainMenu() Window {
+pub fn drawMainMenu(a: std.mem.Allocator) Window {
+    var gui_manager = gui.RayGuiManager.init(a);
+    defer gui_manager.deinit();
+
     while (!ray.WindowShouldClose()) {
+        gui_manager.update();
         ray.BeginDrawing();
 
         ray.ClearBackground(backgroundColor());
-        ray.DrawText("Hello, World!", 190, 200, 20, ray.LIGHTGRAY);
-        if (ray.GuiButton(ray.Rectangle{ .x = 20.0, .y = 20.0, .width = 115.0, .height = 30.0 }, "PLAY") == 1) {
-            return .save_menu;
-        }
-        if (ray.GuiButton(ray.Rectangle{ .x = 20.0, .y = 60.0, .width = 115.0, .height = 30.0 }, "CONFIG") == 1) {
-            return .config_menu;
-        }
-        if (ray.GuiButton(ray.Rectangle{ .x = 20.0, .y = 100.0, .width = 115.0, .height = 30.0 }, "QUIT") == 1) {
-            return .quit;
-        }
-
+        if (gui_manager.button("PLAY")) return .save_menu;
+        if (gui_manager.button("CONFIG")) return .config_menu;
+        if (gui_manager.button("QUIT")) return .quit;
         ray.EndDrawing();
     }
     return .quit;
 }
 
+pub fn listFiles(a: std.mem.Allocator, dir: std.fs.Dir) !std.ArrayList([:0]const u8) {
+    var iterator = dir.iterate();
+    var result = std.ArrayList([:0]const u8).init(a);
+
+    while (try iterator.next()) |entry| {
+        try result.append(try a.dupeZ(u8, entry.name));
+    }
+
+    std.sort.pdq([:0]const u8, result.items, {}, struct {
+        fn lt(_: void, l: [:0]const u8, r: [:0]const u8) bool {
+            return std.ascii.lessThanIgnoreCase(l, r);
+        }
+    }.lt);
+
+    return result;
+}
+
 pub fn drawSaveSelectMenu(a: std.mem.Allocator, save_id: *[]u8) !Window {
+    var gui_manager = gui.RayGuiManager.init(a);
+    defer gui_manager.deinit();
+
     const path = try file.getSaveDirPath(a);
     const save_dir = std.fs.openDirAbsolute(path, .{ .iterate = true }) catch |e| switch (e) {
         error.FileNotFound => blk: {
@@ -45,59 +63,57 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, save_id: *[]u8) !Window {
         },
         else => return e,
     };
-    var i: f32 = 0;
-
     ray.SetMousePosition(0, 0);
+
+    const files = try listFiles(a, save_dir);
+    defer {
+        for (files.items) |item| {
+            a.free(item);
+        }
+        files.deinit();
+    }
+
     while (!ray.WindowShouldClose()) {
+        gui_manager.update();
         ray.BeginDrawing();
         ray.ClearBackground(backgroundColor());
 
-        var iterator = save_dir.iterate();
-        while (try iterator.next()) |val| : (i += 1) {
-            if (ray.GuiButton(ray.Rectangle{ .x = 20, .y = 60.0 + 40.0 * i, .width = 115.0, .height = 30.0 }, val.name.ptr) == 1) {
-                save_id.* = try a.dupe(u8, val.name);
+        if (gui_manager.button("Create New")) {
+            return .new_save;
+        }
+        gui_manager.line();
+
+        for (files.items) |filename| {
+            if (gui_manager.button(filename)) {
+                save_id.* = try a.dupeZ(u8, filename);
                 return .game;
             }
         }
 
-        if (ray.GuiButton(ray.Rectangle{ .x = 200.0, .y = 20.0, .width = 115.0, .height = 30.0 }, "Create new") == 1) {
-            return .new_save;
-        }
-
-        ray.DrawText("Select a save!", 20, 20, 20, ray.DARKGRAY);
         ray.EndDrawing();
-        i = 0;
     }
+
     return .quit;
 }
 
 pub fn drawNewSaveMenu(a: std.mem.Allocator, lua: *Lua) !Window {
-    var levelNameEditMode = false;
-    var levelNameText: [100]u8 = [_]u8{0} ** 100;
-
-    var seedEditMode = false;
-    var seedText: [100]u8 = [_]u8{0} ** 100;
+    var save_name: [:0]const u8 = undefined;
+    var seed: [:0]const u8 = undefined;
+    var gui_manager = gui.RayGuiManager.init(a);
+    defer gui_manager.deinit();
 
     while (!ray.WindowShouldClose()) {
+        gui_manager.update();
         ray.BeginDrawing();
         ray.ClearBackground(backgroundColor());
 
-        ray.DrawText("Enter Save Name!", 140, 60, 20, ray.DARKGRAY);
+        save_name = try gui_manager.textBox("Save Name");
+        seed = try gui_manager.textBox("Numeric Seed");
 
-        ray.GuiSetStyle(ray.TEXTBOX, ray.TEXT_ALIGNMENT, ray.TEXT_ALIGN_LEFT);
-        if (ray.GuiTextBox(ray.Rectangle{ .x = 20.0, .y = 60.0, .width = 115.0, .height = 30.0 }, &levelNameText, 32, levelNameEditMode) == 1) {
-            levelNameEditMode = !levelNameEditMode;
-        }
-
-        ray.DrawText("Enter Seed!", 140, 100, 20, ray.DARKGRAY);
-        if (ray.GuiTextBox(ray.Rectangle{ .x = 20.0, .y = 100.0, .width = 115.0, .height = 30.0 }, &seedText, 32, seedEditMode) == 1) {
-            seedEditMode = !seedEditMode;
-        }
-
-        if (ray.GuiButton(ray.Rectangle{ .x = 20.0, .y = 140.0, .width = 115.0, .height = 30.0 }, "Generate") == 1) {
+        if (gui_manager.button("Generate")) {
             try level.createNewSave(a, lua, .{
-                .save_id = levelNameText[0..std.mem.indexOf(u8, &levelNameText, &.{0}).?],
-                .seed = try std.fmt.parseInt(usize, seedText[0..std.mem.indexOf(u8, &seedText, &.{0}).?], 10),
+                .save_id = save_name,
+                .seed = try std.fmt.parseInt(usize, seed, 10),
             });
             return .save_menu;
         }

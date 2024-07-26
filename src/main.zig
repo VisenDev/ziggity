@@ -78,7 +78,7 @@ pub fn main() !void {
         std.debug.print("WINDOW: {s}\n", .{save_id});
         current_window = switch (current_window) {
             .quit => break,
-            .main_menu => menu.drawMainMenu(),
+            .main_menu => menu.drawMainMenu(a),
             .save_menu => try menu.drawSaveSelectMenu(a, &save_id),
             .config_menu => err.crashToMainMenu("config_menu_not_implemented_yet"),
             .new_save => try menu.drawNewSaveMenu(a, lua),

@@ -179,6 +179,20 @@ pub const AnimationPlayer = struct {
     }
 };
 
+pub const MouseButton = enum {
+    left,
+    right,
+    middle,
+
+    pub fn getRayId(self: @This()) c_int {
+        return switch (self) {
+            .left => ray.MOUSE_BUTTON_LEFT,
+            .right => ray.MOUSE_BUTTON_RIGHT,
+            .middle => ray.MOUSE_BUTTON_MIDDLE,
+        };
+    }
+};
+
 pub const WindowManager = struct {
     animations: std.StringHashMap(Animation),
     textures: std.StringHashMap(ray.Texture2D),
@@ -214,19 +228,6 @@ pub const WindowManager = struct {
         self.textures.deinit();
     }
 
-    const MouseButton = enum {
-        left,
-        right,
-        middle,
-
-        pub fn getRayId(self: @This()) c_int {
-            return switch (self) {
-                .left => ray.MOUSE_BUTTON_LEFT,
-                .right => ray.MOUSE_BUTTON_RIGHT,
-                .middle => ray.MOUSE_BUTTON_MIDDLE,
-            };
-        }
-    };
     pub fn isMouseDown(self: @This(), button: MouseButton) bool {
         _ = self; // autofix
         return ray.IsMouseButtonDown(button.getRayId());
