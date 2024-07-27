@@ -20,6 +20,71 @@ pub fn loadFragmentShader(a: std.mem.Allocator, fragment_shader_path: [:0]const 
     return shader;
 }
 
+pub const FragShader = struct {
+    raw_shader: ray.Shader,
+    shader_value_locations: std.StringHashMap(c_int),
+
+    pub fn init(a: std.mem.Allocator, filepath: [:0]const u8) !FragShader {
+        const fullpath = try file.combineAppendSentinel(a, try file.getShaderDirPath(a), filepath);
+        defer a.free(fullpath);
+        const shader = ray.LoadShader(null, fullpath);
+        if (!ray.IsShaderReady(shader)) return error.ShaderFailedToLoad;
+        return .{
+            .raw_shader = shader,
+            .shader_value_locations = std.StringHashMap(c_int).init(a),
+        };
+    }
+
+    pub fn beginShaderMode(self: *const @This()) void {
+        ray.BeginShaderMode(self.raw_shader);
+    }
+
+    pub fn endShaderMode(self: *const @This()) void {
+        _ = self; // autofix
+        ray.EndShaderMode();
+    }
+
+    pub fn deinit(self: *@This()) void {
+        ray.UnloadShader(self.raw_shader);
+        self.shader_value_locations.deinit();
+    }
+
+    pub fn setShaderValueArray(
+        self: *@This(),
+        name: [:0]const u8,
+        comptime T: type,
+        ptr: *const anyopaque,
+        count: c_int,
+    ) !void {
+        const location = try self.shader_value_locations.getOrPut(name);
+        if (!location.found_existing) {
+            location.value_ptr.* = ray.GetShaderLocation(self.raw_shader, name);
+        }
+        ray.SetShaderValueV(self.raw_shader, location.value_ptr.*, ptr, getRaylibTypeFlag(T), count);
+    }
+
+    pub fn setShaderValue(self: *@This(), name: [:0]const u8, comptime T: type, ptr: *const anyopaque) !void {
+        const location = try self.shader_value_locations.getOrPut(name);
+        if (!location.found_existing) {
+            location.value_ptr.* = ray.GetShaderLocation(self.raw_shader, name);
+        }
+        ray.SetShaderValue(self.raw_shader, location.value_ptr.*, ptr, getRaylibTypeFlag(T));
+    }
+};
+
+// pub const ShaderValue = union {
+//     float: f32,
+//     int: i32,
+//     vec2: Vec2,
+//     vec3: Vec3,
+//     vec4: Vec4,
+//     signed_vec2: IVec2,
+//     signed_vec3: IVec3,
+//     signed_vec4: IVec4,
+//     texture: ray.Texture2D,
+
+//     pub const Enum = std.meta.FieldEnum(ShaderValue);
+
 pub fn getRaylibTypeFlag(comptime T: type) i32 {
     return switch (T) {
         f32 => ray.SHADER_UNIFORM_FLOAT,
@@ -34,6 +99,37 @@ pub fn getRaylibTypeFlag(comptime T: type) i32 {
         else => @compileError("Invalid Type"),
     };
 }
+
+//     pub fn getRaylibTypeFlagEnum(value_type: Enum) c_int {
+//         return switch (value_type) {
+//             .float => ray.SHADER_UNIFORM_FLOAT,
+//             .int => ray.SHADER_UNIFORM_INT,
+//             .vec2 => ray.SHADER_UNIFORM_VEC2,
+//             .vec3 => ray.SHADER_UNIFORM_VEC3,
+//             .vec4 => ray.SHADER_UNIFORM_VEC4,
+//             .signed_vec2 => ray.SHADER_UNIFORM_IVEC2,
+//             .signed_vec3 => ray.SHADER_UNIFORM_IVEC3,
+//             .signed_vec4 => ray.SHADER_UNIFORM_IVEC4,
+//             .texture => ray.SHADER_UNIFORM_SAMPLER2D,
+//         };
+//     }
+//    };
+//};
+
+//pub fn getRaylibTypeFlag(comptime T: type) i32 {
+//    return switch (T) {
+//        f32 => ray.SHADER_UNIFORM_FLOAT,
+//        i32 => ray.SHADER_UNIFORM_INT,
+//        Vec2 => ray.SHADER_UNIFORM_VEC2,
+//        Vec3 => ray.SHADER_UNIFORM_VEC3,
+//        Vec4 => ray.SHADER_UNIFORM_VEC4,
+//        IVec2 => ray.SHADER_UNIFORM_IVEC2,
+//        IVec3 => ray.SHADER_UNIFORM_IVEC3,
+//        IVec4 => ray.SHADER_UNIFORM_IVEC4,
+//        ray.Texture2D => ray.SHADER_UNIFORM_SAMPLER2D,
+//        else => @compileError("Invalid Type"),
+//    };
+//}
 
 //pub fn convertTileToOpenGL(pos: ray.Vector2, camera: ray.Camera2D) Vec2 {
 //    const screenPos = cam.tileToScreen(pos, camera);

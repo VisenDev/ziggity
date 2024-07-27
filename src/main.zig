@@ -114,6 +114,14 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
     var target = ray.LoadRenderTexture(ray.GetScreenWidth(), ray.GetScreenHeight());
     defer ray.UnloadRenderTexture(target);
 
+    var bloom_layer = ray.LoadRenderTexture(ray.GetScreenWidth(), ray.GetScreenHeight());
+    defer ray.UnloadRenderTexture(bloom_layer);
+
+    //const bloom_shader = try shade.loadFragmentShader(a, "blur.fs");
+    //defer ray.UnloadShader(bloom_shader);
+    var bloom_shader = try shade.FragShader.init(a, "blur.fs");
+    defer bloom_shader.deinit();
+
     var debugger = try debug.DebugRenderer.init(a);
     defer debugger.deinit();
 
@@ -123,9 +131,16 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
     var shaders = true;
 
     while (!ray.WindowShouldClose()) {
+
+        //reload render textures on window size change
         if (target.texture.width != ray.GetScreenWidth() or target.texture.height != ray.GetScreenHeight()) {
             ray.UnloadRenderTexture(target);
             target = ray.LoadRenderTexture(ray.GetScreenWidth(), ray.GetScreenHeight());
+        }
+
+        if (bloom_layer.texture.width != ray.GetScreenWidth() or bloom_layer.texture.height != ray.GetScreenHeight()) {
+            ray.UnloadRenderTexture(bloom_layer);
+            bloom_layer = ray.LoadRenderTexture(ray.GetScreenWidth(), ray.GetScreenHeight());
         }
 
         //debug on or off
@@ -174,48 +189,25 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
             inv.renderItems(lvl.ecs, a, &window_manager);
             anime.renderSprites(lvl.ecs, a, &window_manager, update_options);
 
-            //{
-            //    const systems = [_]type{ Component.IsPlayer, Component.Physics };
-            //    const set = lvl.ecs.getSystemDomain(a, &systems);
-
-            //    for (set) |member| {
-            //        const physics = lvl.ecs.get(Component.Physics, member);
-
-            //        try light_shader.addLight(a, .{
-            //            .color = .{ .x = 1.0, .y = 1.0, .z = 1.0, .a = 1.0 },
-            //            .radius = 0.1,
-            //            .position = shade.convertTileToOpenGL(physics.pos, camera),
-            //        }, camera);
-            //    }
-            //}
-
-            //try light_shader.addLight(a, .{
-            //    .color = .{ .x = 1.0, .y = 1.0, .z = 1.0, .a = 1.0 },
-            //    .radius = 0.1,
-            //    .position = shade.convertTileToOpenGL(.{ .x = 5, .y = 5 }, camera),
-            //}, camera);
-
-            //try light_shader.addLight(a, .{
-            //    .color = .{ .x = 1.0, .y = 0.5, .z = 1.0, .a = 1.0 },
-            //    .radius = 0.2,
-            //    .position = shade.convertTileToOpenGL(.{ .x = 1, .y = 1 }, camera),
-            //}, camera);
-
-            //try light_shader.addLight(a, .{
-            //    .color = .{ .x = 1.0, .y = 1, .z = 1.0, .a = 1.0 },
-            //    .radius = 1.3,
-            //    .position = shade.convertTileToOpenGL(.{ .x = 1, .y = 5 }, camera),
-            //}, camera);
-
-            //try light_shader.addLight(a, .{
-            //    .color = .{ .x = 1.0, .y = 0.5, .z = 1.0, .a = 1.0 },
-            //    .radius = 0.4,
-            //    .position = shade.convertTileToOpenGL(.{ .x = 9, .y = 9 }, camera),
-            //}, camera);
-
-            light_shader.render(&window_manager);
+            try light_shader.render(&window_manager);
         }
         ray.EndTextureMode();
+        ray.EndMode2D();
+
+        //bloom
+        ray.BeginTextureMode(bloom_layer);
+        ray.BeginMode2D(window_manager.camera); // Begin 2D mode with custom camera (2D)
+        {
+            ray.ClearBackground(.{ .r = 0, .g = 0, .b = 0, .a = 0 });
+            inv.renderItems(lvl.ecs, a, &window_manager);
+        }
+        ray.EndMode2D();
+        ray.EndTextureMode();
+
+        //set bloom values
+        try bloom_shader.setShaderValue("texture1", ray.Texture2D, &bloom_layer.texture);
+        const value: f32 = 0.01;
+        try bloom_shader.setShaderValue("blur_size", f32, &value);
 
         ray.BeginDrawing();
         {
@@ -224,7 +216,7 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
 
             // Enable shader using the custom uniform
             if (shaders) {
-                ray.BeginShaderMode(light_shader.shader);
+                light_shader.shader.beginShaderMode();
             }
             // NOTE: Render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
             ray.DrawTextureRec(
@@ -239,6 +231,25 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
                 ray.WHITE,
             );
             ray.EndShaderMode();
+
+            //draw bloom shader
+            if (shaders) {
+                bloom_shader.beginShaderMode();
+
+                ray.DrawTextureRec(
+                    bloom_layer.texture,
+                    .{
+                        .x = 0,
+                        .y = 0,
+                        .width = @floatFromInt(target.texture.width),
+                        .height = @floatFromInt(-target.texture.height),
+                    },
+                    .{ .x = 0, .y = 0 },
+                    ray.WHITE,
+                );
+
+                bloom_shader.endShaderMode();
+            }
 
             debugger.render(&window_manager);
             inv.renderPlayerInventory(lvl.ecs, a, &window_manager);
