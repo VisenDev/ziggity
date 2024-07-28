@@ -3,29 +3,50 @@
 in vec2 fragTexCoord;           
 in vec4 fragColor;       
 out vec4 finalColor;            
-//in vec2 TexCoords;
-//out vec4 finalColor;
 
-uniform sampler2D texture1;     
+uniform sampler2D texture0; //texture to blur
 uniform float blur_size; // Size of the blur kernel, e.g., 1.0/512.0 for a 512x512 texture
 
 void main()
 {
+
     vec2 tex_offset = vec2(blur_size); // Size of one texel
-    vec3 result = vec3(0.0);
+    vec4 result = vec4(0.0);
+
+    // Gaussian kernel weights (flattened)
+    float kernel[9] = float[9](
+        1.0, 2.0, 1.0,
+        2.0, 4.0, 2.0,
+        1.0, 2.0, 1.0
+    );
+
+    float kernel_sum = 16.0; // Sum of all kernel weights
+
+    // Coordinates for the 3x3 kernel
+    int offsets[18] = int[18](
+        -1, -1,  -1, 0,  -1, 1,
+         0, -1,   0, 0,   0, 1,
+         1, -1,   1, 0,   1, 1
+    );
 
     // Sample the neighboring pixels
-    for(int x = -1; x <= 1; x++)
+    for(int i = 0; i < 9; i++)
     {
-        for(int y = -1; y <= 1; y++)
-        {
-            vec2 offset = vec2(float(x), float(y)) * tex_offset;
-            result += texture(texture1, fragTexCoord + offset).rgb;
-        }
+        vec2 offset = vec2(float(offsets[2 * i]), float(offsets[2 * i + 1])) * tex_offset;
+        result += texture(texture0, fragTexCoord + offset).rgba * kernel[i];
     }
 
-    // Average the result
-    result /= 9.0;
+    // Normalize the result
+    result /= kernel_sum;
 
-    finalColor = vec4(result, 1.0);
+    //ignore results if no colors are found
+    if(result.a <= 0.2) {
+        finalColor = vec4(0.0);
+        return;
+    }
+
+    result.a *= 0.33;
+    result.rbg *= 3;
+
+    finalColor = clamp(result, 0, 1);
 }

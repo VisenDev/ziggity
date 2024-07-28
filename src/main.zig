@@ -128,7 +128,8 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
     var update_options = options.Update{ .debugger = &debugger };
 
     //temporary variable, TODO add this functionality to window manager
-    var shaders = true;
+    var bloom_shaders = true;
+    var light_shaders = true;
 
     while (!ray.WindowShouldClose()) {
 
@@ -157,7 +158,8 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
 
         debugger.addText("FPS: {}", .{ray.GetFPS()});
         debugger.addText("Entity Count: {}", .{lvl.ecs.getNumEntities()});
-        if (debugger.addTextButton(&window_manager, "[Toggle Shaders]", .{})) shaders = !shaders;
+        if (debugger.addTextButton(&window_manager, "[Toggle Light Shaders]", .{})) light_shaders = !light_shaders;
+        if (debugger.addTextButton(&window_manager, "[Toggle Bloom Shaders]", .{})) bloom_shaders = !bloom_shaders;
         if (debugger.addTextButton(&window_manager, "[Save]", .{})) try lvl.save(a);
         if (debugger.addTextButton(&window_manager, "[Main Menu]", .{})) return .main_menu;
 
@@ -190,32 +192,38 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
             anime.renderSprites(lvl.ecs, a, &window_manager, update_options);
 
             try light_shader.render(&window_manager);
+            ray.EndMode2D();
         }
         ray.EndTextureMode();
-        ray.EndMode2D();
+
+        //try light_shader.shader.setShaderValue("texture1", ray.Texture2D, &target.texture);
+        //ray.BeginShaderMode(light_shader.shader.raw_shader); // Enable our custom shader for next shapes/textures drawings
+        //ray.DrawTexture(bloom_layer.texture, 0, 0, ray.WHITE); // Drawing BLANK texture, all magic happens on shader
+        //ray.EndShaderMode(); // Disable our custom shader, return to default shader
+        const value: f32 = 0.005;
+        try bloom_shader.setShaderValue("blur_size", f32, &value);
+
+        //ray.BeginTextureMode(bloom_layer);
+        //{
+        //    ray.BeginMode2D(window_manager.camera); // Begin 2D mode with custom camera (2D)
+        //    const clear: ray.Color = .{ .r = 0, .g = 0, .b = 0, .a = 0 };
+        //    ray.ClearBackground(clear);
+        //    inv.renderItems(lvl.ecs, a, &window_manager);
+        //    anime.renderSprites(lvl.ecs, a, &window_manager, update_options);
+        //    ray.EndMode2D();
+        //}
+        //ray.EndTextureMode();
 
         //bloom
-        ray.BeginTextureMode(bloom_layer);
-        ray.BeginMode2D(window_manager.camera); // Begin 2D mode with custom camera (2D)
-        {
-            ray.ClearBackground(.{ .r = 0, .g = 0, .b = 0, .a = 0 });
-            inv.renderItems(lvl.ecs, a, &window_manager);
-        }
-        ray.EndMode2D();
-        ray.EndTextureMode();
-
-        //set bloom values
-        try bloom_shader.setShaderValue("texture1", ray.Texture2D, &bloom_layer.texture);
-        const value: f32 = 0.01;
-        try bloom_shader.setShaderValue("blur_size", f32, &value);
+        ////set bloom values
 
         ray.BeginDrawing();
         {
             //ray.BeginMode2D(camera);
-            ray.ClearBackground(ray.RAYWHITE); // Clear screen background
+            //ray.ClearBackground(ray.RAYWHITE); // Clear screen background
 
-            // Enable shader using the custom uniform
-            if (shaders) {
+            //        Enable shader using the custom uniform
+            if (light_shaders) {
                 light_shader.shader.beginShaderMode();
             }
             // NOTE: Render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
@@ -231,29 +239,29 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
                 ray.WHITE,
             );
             ray.EndShaderMode();
-
-            //draw bloom shader
-            if (shaders) {
-                bloom_shader.beginShaderMode();
-
-                ray.DrawTextureRec(
-                    bloom_layer.texture,
-                    .{
-                        .x = 0,
-                        .y = 0,
-                        .width = @floatFromInt(target.texture.width),
-                        .height = @floatFromInt(-target.texture.height),
-                    },
-                    .{ .x = 0, .y = 0 },
-                    ray.WHITE,
-                );
-
-                bloom_shader.endShaderMode();
-            }
-
-            debugger.render(&window_manager);
-            inv.renderPlayerInventory(lvl.ecs, a, &window_manager);
         }
+
+        //if (bloom_shaders) {
+        //    bloom_shader.beginShaderMode();
+
+        //    ray.DrawTextureRec(
+        //        bloom_layer.texture,
+        //        .{
+        //            .x = 0,
+        //            .y = 0,
+        //            .width = @floatFromInt(bloom_layer.texture.width),
+        //            .height = @floatFromInt(-bloom_layer.texture.height),
+        //        },
+        //        .{ .x = 0, .y = 0 },
+        //        ray.WHITE,
+        //    );
+
+        //    bloom_shader.endShaderMode();
+        //}
+
+        debugger.render(&window_manager);
+        inv.renderPlayerInventory(lvl.ecs, a, &window_manager);
+        //}
         ray.EndDrawing();
 
         if (ray.IsKeyPressed('Q')) {

@@ -29,7 +29,7 @@ pub const LightShader = struct {
 
     pub fn init(a: std.mem.Allocator) !LightShader {
         //const my_shader = try shade.loadFragmentShader(a, "fixed_light.fs");
-        const my_shader = try shade.FragShader.init(a, "fixed_light.fs");
+        const my_shader = try shade.FragShader.init(a, "light-bloom.fs");
 
         var lights = std.MultiArrayList(ShaderLight){};
         try lights.ensureTotalCapacity(a, max_num_lights);

@@ -14,7 +14,7 @@ pub fn createSlime(self: *ecs.ECS, a: std.mem.Allocator) !usize {
     try self.setComponent(a, id, Component.Sprite{ .animation_player = .{ .animation_name = "slime" }, .styling = .{ .bob = .{} } });
     try self.setComponent(a, id, Component.Controller{});
     try self.setComponent(a, id, Component.Wanderer{});
-    try self.setComponent(a, id, Component.Light{});
+    //try self.setComponent(a, id, Component.Light{});
     try self.setComponent(a, id, Component.MovementParticles{});
     return id;
 }
