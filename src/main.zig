@@ -111,16 +111,22 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
     var light_shader = try light.LightShader.init(a);
     defer light_shader.deinit(a);
 
-    var target = ray.LoadRenderTexture(ray.GetScreenWidth(), ray.GetScreenHeight());
-    defer ray.UnloadRenderTexture(target);
+    var target = shade.RenderTexture.init(100, 100);
+    defer target.deinit();
 
-    var bloom_layer = ray.LoadRenderTexture(ray.GetScreenWidth(), ray.GetScreenHeight());
-    defer ray.UnloadRenderTexture(bloom_layer);
+    var light_texture = shade.RenderTexture.init(100, 100);
+    defer light_texture.deinit();
+
+    //var target = ray.LoadRenderTexture(ray.GetScreenWidth(), ray.GetScreenHeight());
+    //defer ray.UnloadRenderTexture(target);
+
+    //var bloom_layer = ray.LoadRenderTexture(ray.GetScreenWidth(), ray.GetScreenHeight());
+    //defer ray.UnloadRenderTexture(bloom_layer);
 
     //const bloom_shader = try shade.loadFragmentShader(a, "blur.fs");
     //defer ray.UnloadShader(bloom_shader);
-    var bloom_shader = try shade.FragShader.init(a, "blur.fs");
-    defer bloom_shader.deinit();
+    //var bloom_shader = try shade.FragShader.init(a, "blur.fs");
+    //defer bloom_shader.deinit();
 
     var debugger = try debug.DebugRenderer.init(a);
     defer debugger.deinit();
@@ -128,21 +134,23 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
     var update_options = options.Update{ .debugger = &debugger };
 
     //temporary variable, TODO add this functionality to window manager
-    var bloom_shaders = true;
-    var light_shaders = true;
+    //var bloom_shaders = true;
+    //var light_shaders = true;
 
     while (!ray.WindowShouldClose()) {
+        target.updateDimentions();
+        light_texture.updateDimentions();
 
-        //reload render textures on window size change
-        if (target.texture.width != ray.GetScreenWidth() or target.texture.height != ray.GetScreenHeight()) {
-            ray.UnloadRenderTexture(target);
-            target = ray.LoadRenderTexture(ray.GetScreenWidth(), ray.GetScreenHeight());
-        }
+        ////reload render textures on window size change
+        //if (target.texture.width != ray.GetScreenWidth() or target.texture.height != ray.GetScreenHeight()) {
+        //    ray.UnloadRenderTexture(target);
+        //    target = ray.LoadRenderTexture(ray.GetScreenWidth(), ray.GetScreenHeight());
+        //}
 
-        if (bloom_layer.texture.width != ray.GetScreenWidth() or bloom_layer.texture.height != ray.GetScreenHeight()) {
-            ray.UnloadRenderTexture(bloom_layer);
-            bloom_layer = ray.LoadRenderTexture(ray.GetScreenWidth(), ray.GetScreenHeight());
-        }
+        //if (bloom_layer.texture.width != ray.GetScreenWidth() or bloom_layer.texture.height != ray.GetScreenHeight()) {
+        //    ray.UnloadRenderTexture(bloom_layer);
+        //    bloom_layer = ray.LoadRenderTexture(ray.GetScreenWidth(), ray.GetScreenHeight());
+        //}
 
         //debug on or off
         if (window_manager.keybindings.isPressed("debug_mode")) {
@@ -158,8 +166,10 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
 
         debugger.addText("FPS: {}", .{ray.GetFPS()});
         debugger.addText("Entity Count: {}", .{lvl.ecs.getNumEntities()});
-        if (debugger.addTextButton(&window_manager, "[Toggle Light Shaders]", .{})) light_shaders = !light_shaders;
-        if (debugger.addTextButton(&window_manager, "[Toggle Bloom Shaders]", .{})) bloom_shaders = !bloom_shaders;
+        if (debugger.addTextButton(&window_manager, "[Toggle Light Shaders]", .{})) {
+            light_shader.shader.enabled = !light_shader.shader.enabled;
+        }
+        //if (debugger.addTextButton(&window_manager, "[Toggle Bloom Shaders]", .{})) bloom_shaders = !bloom_shaders;
         if (debugger.addTextButton(&window_manager, "[Save]", .{})) try lvl.save(a);
         if (debugger.addTextButton(&window_manager, "[Main Menu]", .{})) return .main_menu;
 
@@ -176,32 +186,52 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
         sys.updateSpriteSystem(lvl.ecs, a, &window_manager, update_options);
         try sys.trimAnimationEntitySystem(lvl.ecs, a, update_options);
         try ai.updateControllerSystem(lvl.ecs, a, update_options);
-        try light.updateLightingSystem(lvl.ecs, a, &light_shader, update_options);
+        //try light.updateLightingSystem(lvl.ecs, a, &light_shader, update_options);
 
-        ray.BeginTextureMode(target);
+        //draw main
+        ray.BeginDrawing();
         {
-            ray.BeginMode2D(window_manager.camera); // Begin 2D mode with custom camera (2D)
+            target.beginTextureMode();
+            defer target.endTextureMode();
+            ray.BeginMode2D(window_manager.camera);
+            defer ray.EndMode2D();
             ray.ClearBackground(ray.BLACK);
 
             lvl.map.renderMain(a, &window_manager, lvl.ecs);
             lvl.map.renderBorders(a, &window_manager, lvl.ecs);
 
-            //gl.glEnable(gl.GL_STENCIL_TEST);
-
             inv.renderItems(lvl.ecs, a, &window_manager);
             anime.renderSprites(lvl.ecs, a, &window_manager, update_options);
 
-            try light_shader.render(&window_manager);
-            ray.EndMode2D();
+            //try light_shader.render(&window_manager);
+
+            //gl.glEnable(gl.GL_STENCIL_TEST);
         }
-        ray.EndTextureMode();
+
+        {
+            light_texture.beginTextureMode();
+            defer light_texture.endTextureMode();
+            ray.BeginMode2D(window_manager.camera);
+            defer ray.EndMode2D();
+            ray.ClearBackground(ray.Color{ .r = 0, .g = 0, .b = 0, .a = 0 });
+
+            //lvl.map.renderMain(a, &window_manager, lvl.ecs);
+            //lvl.map.renderBorders(a, &window_manager, lvl.ecs);
+
+            inv.renderItems(lvl.ecs, a, &window_manager);
+            //anime.renderSprites(lvl.ecs, a, &window_manager, update_options);
+
+            //try light_shader.render(&window_manager);
+
+            //gl.glEnable(gl.GL_STENCIL_TEST);
+        }
 
         //try light_shader.shader.setShaderValue("texture1", ray.Texture2D, &target.texture);
         //ray.BeginShaderMode(light_shader.shader.raw_shader); // Enable our custom shader for next shapes/textures drawings
         //ray.DrawTexture(bloom_layer.texture, 0, 0, ray.WHITE); // Drawing BLANK texture, all magic happens on shader
         //ray.EndShaderMode(); // Disable our custom shader, return to default shader
-        const value: f32 = 0.005;
-        try bloom_shader.setShaderValue("blur_size", f32, &value);
+        //const value: f32 = 0.005;
+        //try bloom_shader.setShaderValue("blur_size", f32, &value);
 
         //ray.BeginTextureMode(bloom_layer);
         //{
@@ -217,52 +247,59 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
         //bloom
         ////set bloom values
 
-        ray.BeginDrawing();
+        try light_shader.shader.setShaderValue("lightTexture", ray.Texture2D, &light_texture.raw_render_texture.texture);
+        try light_shader.shader.setShaderValue("ambientColor", shade.Vec4, &ray.WHITE);
+
+        //const value: f32 = 0.3;
+        //try light_shader.shader.setShaderValue("lightRadius", f32, &value);
+
         {
+            target.render(light_shader.shader);
             //ray.BeginMode2D(camera);
             //ray.ClearBackground(ray.RAYWHITE); // Clear screen background
 
             //        Enable shader using the custom uniform
-            if (light_shaders) {
-                light_shader.shader.beginShaderMode();
-            }
-            // NOTE: Render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
-            ray.DrawTextureRec(
-                target.texture,
-                .{
-                    .x = 0,
-                    .y = 0,
-                    .width = @floatFromInt(target.texture.width),
-                    .height = @floatFromInt(-target.texture.height),
-                },
-                .{ .x = 0, .y = 0 },
-                ray.WHITE,
-            );
-            ray.EndShaderMode();
+            //if (light_shaders) {
+            //    light_shader.shader.beginShaderMode();
+            //}
+            //// NOTE: Render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
+            //ray.DrawTextureRec(
+            //    target.texture,
+            //    .{
+            //        .x = 0,
+            //        .y = 0,
+            //        .width = @floatFromInt(target.texture.width),
+            //        .height = @floatFromInt(-target.texture.height),
+            //    },
+            //    .{ .x = 0, .y = 0 },
+            //    ray.WHITE,
+            //);
+            //ray.EndShaderMode();
+
+            //if (bloom_shaders) {
+            //    bloom_shader.beginShaderMode();
+
+            //    ray.DrawTextureRec(
+            //        bloom_layer.texture,
+            //        .{
+            //            .x = 0,
+            //            .y = 0,
+            //            .width = @floatFromInt(bloom_layer.texture.width),
+            //            .height = @floatFromInt(-bloom_layer.texture.height),
+            //        },
+            //        .{ .x = 0, .y = 0 },
+            //        ray.WHITE,
+            //    );
+
+            //    bloom_shader.endShaderMode();
+            //}
+            light_texture.render(null);
+
+            debugger.render(&window_manager);
+            inv.renderPlayerInventory(lvl.ecs, a, &window_manager);
         }
-
-        //if (bloom_shaders) {
-        //    bloom_shader.beginShaderMode();
-
-        //    ray.DrawTextureRec(
-        //        bloom_layer.texture,
-        //        .{
-        //            .x = 0,
-        //            .y = 0,
-        //            .width = @floatFromInt(bloom_layer.texture.width),
-        //            .height = @floatFromInt(-bloom_layer.texture.height),
-        //        },
-        //        .{ .x = 0, .y = 0 },
-        //        ray.WHITE,
-        //    );
-
-        //    bloom_shader.endShaderMode();
-        //}
-
-        debugger.render(&window_manager);
-        inv.renderPlayerInventory(lvl.ecs, a, &window_manager);
-        //}
         ray.EndDrawing();
+        //}
 
         if (ray.IsKeyPressed('Q')) {
             return .quit;

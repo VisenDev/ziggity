@@ -20,9 +20,76 @@ pub fn loadFragmentShader(a: std.mem.Allocator, fragment_shader_path: [:0]const 
     return shader;
 }
 
+pub const RenderTexture = struct {
+    raw_render_texture: ray.RenderTexture,
+    texture_mode: bool = false,
+
+    pub fn init(width: c_int, height: c_int) @This() {
+        return .{ .raw_render_texture = ray.LoadRenderTexture(width, height) };
+    }
+
+    pub fn deinit(self: *@This()) void {
+        ray.UnloadRenderTexture(self.raw_render_texture);
+    }
+
+    pub fn texture(self: *@This()) ray.Texture2D {
+        return self.raw_render_texture.texture;
+    }
+
+    pub fn updateDimentions(self: *@This()) void {
+        if (self.texture().width != ray.GetScreenWidth() or
+            self.texture().height != ray.GetScreenHeight())
+        {
+            std.debug.print("reloading rendertexture\n", .{});
+            ray.UnloadRenderTexture(self.raw_render_texture);
+            self.raw_render_texture = ray.LoadRenderTexture(ray.GetScreenWidth(), ray.GetScreenHeight());
+        }
+    }
+
+    pub fn clear(self: *const @This()) void {
+        _ = self; // autofix
+        ray.ClearBackground(ray.CLEAR); // Clear screen background
+    }
+
+    pub fn beginTextureMode(self: *@This()) void {
+        std.debug.assert(self.texture_mode == false);
+        self.texture_mode = true;
+        ray.BeginTextureMode(self.raw_render_texture);
+    }
+
+    pub fn endTextureMode(self: *@This()) void {
+        std.debug.assert(self.texture_mode == true);
+        self.texture_mode = false;
+        ray.EndTextureMode();
+    }
+
+    pub fn render(self: *@This(), shader: ?FragShader) void {
+        if (shader) |sh| {
+            sh.beginShaderMode();
+        }
+        defer if (shader) |sh| {
+            sh.endShaderMode();
+        };
+
+        // NOTE: Render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
+        ray.DrawTextureRec(
+            self.texture(),
+            .{
+                .x = 0,
+                .y = 0,
+                .width = @floatFromInt(self.texture().width),
+                .height = @floatFromInt(-self.texture().height),
+            },
+            .{ .x = 0, .y = 0 },
+            ray.WHITE,
+        );
+    }
+};
+
 pub const FragShader = struct {
     raw_shader: ray.Shader,
     shader_value_locations: std.StringHashMap(c_int),
+    enabled: bool = true,
 
     pub fn init(a: std.mem.Allocator, filepath: [:0]const u8) !FragShader {
         const fullpath = try file.combineAppendSentinel(a, try file.getShaderDirPath(a), filepath);
@@ -36,12 +103,16 @@ pub const FragShader = struct {
     }
 
     pub fn beginShaderMode(self: *const @This()) void {
-        ray.BeginShaderMode(self.raw_shader);
+        if (self.enabled) {
+            ray.BeginShaderMode(self.raw_shader);
+        }
     }
 
     pub fn endShaderMode(self: *const @This()) void {
-        _ = self; // autofix
-        ray.EndShaderMode();
+        //
+        if (self.enabled) {
+            ray.EndShaderMode();
+        }
     }
 
     pub fn deinit(self: *@This()) void {
