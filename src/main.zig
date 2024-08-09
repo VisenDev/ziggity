@@ -137,20 +137,11 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
     //var bloom_shaders = true;
     //var light_shaders = true;
 
+    var show_light_rendertexture = false;
+
     while (!ray.WindowShouldClose()) {
         target.updateDimentions();
         light_texture.updateDimentions();
-
-        ////reload render textures on window size change
-        //if (target.texture.width != ray.GetScreenWidth() or target.texture.height != ray.GetScreenHeight()) {
-        //    ray.UnloadRenderTexture(target);
-        //    target = ray.LoadRenderTexture(ray.GetScreenWidth(), ray.GetScreenHeight());
-        //}
-
-        //if (bloom_layer.texture.width != ray.GetScreenWidth() or bloom_layer.texture.height != ray.GetScreenHeight()) {
-        //    ray.UnloadRenderTexture(bloom_layer);
-        //    bloom_layer = ray.LoadRenderTexture(ray.GetScreenWidth(), ray.GetScreenHeight());
-        //}
 
         //debug on or off
         if (window_manager.keybindings.isPressed("debug_mode")) {
@@ -169,7 +160,7 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
         if (debugger.addTextButton(&window_manager, "[Toggle Light Shaders]", .{})) {
             light_shader.shader.enabled = !light_shader.shader.enabled;
         }
-        //if (debugger.addTextButton(&window_manager, "[Toggle Bloom Shaders]", .{})) bloom_shaders = !bloom_shaders;
+        if (debugger.addTextButton(&window_manager, "[Show Light Texture]", .{})) show_light_rendertexture = !show_light_rendertexture;
         if (debugger.addTextButton(&window_manager, "[Save]", .{})) try lvl.save(a);
         if (debugger.addTextButton(&window_manager, "[Main Menu]", .{})) return .main_menu;
 
@@ -191,10 +182,8 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
         //draw main
         ray.BeginDrawing();
         {
-            target.beginTextureMode();
-            defer target.endTextureMode();
+            ray.BeginTextureMode(target.raw_render_texture);
             ray.BeginMode2D(window_manager.camera);
-            defer ray.EndMode2D();
             ray.ClearBackground(ray.BLACK);
 
             lvl.map.renderMain(a, &window_manager, lvl.ecs);
@@ -206,25 +195,35 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
             //try light_shader.render(&window_manager);
 
             //gl.glEnable(gl.GL_STENCIL_TEST);
+            ray.EndMode2D();
+            ray.EndTextureMode();
         }
 
+        //std.debug.assert(target.texture_mode == false);
+
         {
-            light_texture.beginTextureMode();
-            defer light_texture.endTextureMode();
+            ray.BeginTextureMode(light_texture.raw_render_texture);
             ray.BeginMode2D(window_manager.camera);
-            defer ray.EndMode2D();
-            ray.ClearBackground(ray.Color{ .r = 0, .g = 0, .b = 0, .a = 0 });
+            //light_texture.beginTextureMode();
+            //defer light_texture.endTextureMode();
+            ray.ClearBackground(ray.GRAY);
 
             //lvl.map.renderMain(a, &window_manager, lvl.ecs);
             //lvl.map.renderBorders(a, &window_manager, lvl.ecs);
 
             inv.renderItems(lvl.ecs, a, &window_manager);
+            ray.DrawRectangle(100, 100, 200, 200, ray.RAYWHITE);
+            //ray.DrawRectangle(0, 0, 2000, 2000, ray.RAYWHITE);
             //anime.renderSprites(lvl.ecs, a, &window_manager, update_options);
 
             //try light_shader.render(&window_manager);
 
             //gl.glEnable(gl.GL_STENCIL_TEST);
+            ray.EndMode2D();
+            ray.EndTextureMode();
         }
+
+        //std.debug.assert(light_texture.texture_mode == false);
 
         //try light_shader.shader.setShaderValue("texture1", ray.Texture2D, &target.texture);
         //ray.BeginShaderMode(light_shader.shader.raw_shader); // Enable our custom shader for next shapes/textures drawings
@@ -247,13 +246,20 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
         //bloom
         ////set bloom values
 
-        try light_shader.shader.setShaderValue("lightTexture", ray.Texture2D, &light_texture.raw_render_texture.texture);
-        try light_shader.shader.setShaderValue("ambientColor", shade.Vec4, &ray.WHITE);
+        //try light_shader.shader.setShaderValue("ambientColor", shade.Vec4, &ray.WHITE);
 
         //const value: f32 = 0.3;
         //try light_shader.shader.setShaderValue("lightRadius", f32, &value);
 
         {
+            const texture0: c_int = 0;
+            gl.glActiveTexture(gl.GL_TEXTURE0);
+            gl.glBindTexture(gl.GL_TEXTURE_2D, target.texture().id);
+            const texture1: c_int = 1;
+            gl.glActiveTexture(gl.GL_TEXTURE1);
+            gl.glBindTexture(gl.GL_TEXTURE_2D, light_texture.texture().id);
+            try light_shader.shader.setShaderValue("texture0", i32, &texture0);
+            try light_shader.shader.setShaderValue("texture1", i32, &texture1);
             target.render(light_shader.shader);
             //ray.BeginMode2D(camera);
             //ray.ClearBackground(ray.RAYWHITE); // Clear screen background
@@ -293,7 +299,9 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Wind
 
             //    bloom_shader.endShaderMode();
             //}
-            light_texture.render(null);
+            if (show_light_rendertexture) {
+                light_texture.render(null);
+            }
 
             debugger.render(&window_manager);
             inv.renderPlayerInventory(lvl.ecs, a, &window_manager);

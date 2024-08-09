@@ -126,7 +126,7 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, save_id: *[]u8) !Window {
 
 pub fn drawNewSaveMenu(a: std.mem.Allocator, lua: *Lua) !Window {
     var save_name: [:0]const u8 = undefined;
-    var seed: usize = 0;
+    var seed: usize = 123321;
     var gui_manager = gui.RayGuiManager.init(a);
     defer gui_manager.deinit();
 

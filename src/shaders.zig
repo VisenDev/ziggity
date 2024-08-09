@@ -156,7 +156,7 @@ pub const FragShader = struct {
 
 //     pub const Enum = std.meta.FieldEnum(ShaderValue);
 
-pub fn getRaylibTypeFlag(comptime T: type) i32 {
+pub fn getRaylibTypeFlag(comptime T: type) c_int {
     return switch (T) {
         f32 => ray.SHADER_UNIFORM_FLOAT,
         i32 => ray.SHADER_UNIFORM_INT,
