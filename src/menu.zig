@@ -17,9 +17,9 @@ const RaylibBackend = @import("RaylibBackend");
 
 pub const NextWindow = enum { main_menu, game, save_menu, config_menu, quit, new_save };
 
-fn backgroundColor() ray.Color {
-    return ray.GetColor(@intCast(ray.GuiGetStyle(ray.DEFAULT, ray.BACKGROUND_COLOR)));
-}
+//fn backgroundColor() ray.Color {
+//    return ray.GetColor(@intCast(ray.GuiGetStyle(ray.DEFAULT, ray.BACKGROUND_COLOR)));
+//}
 
 pub fn drawMainMenu(a: std.mem.Allocator, ui: *dvui.Window, backend: *RaylibBackend) !NextWindow {
     _ = a; // autofix
@@ -122,12 +122,18 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, ui: *dvui.Window, backend: *Rayl
             }
 
             {
+                var box = try dvui.box(@src(), .vertical, .{});
+                defer box.deinit();
+
                 try dvui.labelNoFmt(@src(), "Available Saves", .{});
 
                 var scroll_area = try dvui.scrollArea(@src(), .{}, .{ .expand = .both, .background = false });
                 defer scroll_area.deinit();
 
-                var file_box = try dvui.box(@src(), .vertical, .{ .margin = .{ .x = 10 }, .color_border = .{ .color = dvui.themeGet().color_border } });
+                var file_box = try dvui.box(@src(), .vertical, .{
+                    .margin = .{ .x = 10 },
+                    .color_border = .{ .color = dvui.themeGet().color_border },
+                });
                 defer file_box.deinit();
 
                 for (files.items, 0..) |filename, i| {
