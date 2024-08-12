@@ -97,6 +97,8 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, ui: *dvui.Window, backend: *Rayl
         //gui_manager.update();
         ray.BeginDrawing();
         //ray.ClearBackground(gui_manager.backgroundColor());
+
+        ray.ClearBackground(ray.BLACK);
         backend.processRaylibDrawCalls();
         {
             try ui.begin(std.time.nanoTimestamp());
@@ -120,10 +122,12 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, ui: *dvui.Window, backend: *Rayl
             }
 
             {
+                try dvui.labelNoFmt(@src(), "Available Saves", .{});
+
                 var scroll_area = try dvui.scrollArea(@src(), .{}, .{ .expand = .both, .background = false });
                 defer scroll_area.deinit();
 
-                var file_box = try dvui.box(@src(), .vertical, .{ .margin = .{ .x = 10 } });
+                var file_box = try dvui.box(@src(), .vertical, .{ .margin = .{ .x = 10 }, .color_border = .{ .color = dvui.themeGet().color_border } });
                 defer file_box.deinit();
 
                 for (files.items, 0..) |filename, i| {
@@ -134,9 +138,11 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, ui: *dvui.Window, backend: *Rayl
             }
 
             if (selected_file_index) |i| {
-                //gui_manager.title(files.items[i]);
-                var hbox = try dvui.box(@src(), .vertical, .{});
+                var hbox = try dvui.box(@src(), .vertical, .{ .margin = .{ .x = 10 }, .color_border = .{ .color = dvui.themeGet().color_border } });
                 defer hbox.deinit();
+
+                try dvui.label(@src(), "Save: {s}", .{files.items[i]}, .{});
+
                 if (try dvui.button(@src(), "Open", .{}, .{ .id_extra = i })) {
                     save_id.* = try a.dupeZ(u8, files.items[i]);
                     return .game;
