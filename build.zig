@@ -1,5 +1,5 @@
 const std = @import("std");
-const raylib_dep = @import("raylib");
+//const raylib_dep = @import("raylib");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
@@ -28,30 +28,47 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
     });
 
-    //================LINK ZIGLUA===================
+    //================ADD DVUI======================
+    const dvui = b.dependency("dvui", .{ .target = target, .optimize = optimize });
+    exe.root_module.addImport("dvui", dvui.module("dvui_raylib"));
+    exe_check.root_module.addImport("dvui", dvui.module("dvui_raylib"));
+    exe_test.root_module.addImport("dvui", dvui.module("dvui_raylib"));
+
+    //================ADD RAYLIBBACKEND======================
+    exe.root_module.addImport("RaylibBackend", dvui.module("RaylibBackend"));
+    exe_check.root_module.addImport("RaylibBackend", dvui.module("RaylibBackend"));
+    exe_test.root_module.addImport("RaylibBackend", dvui.module("RaylibBackend"));
+
+    //================ADD ZIGLUA====================
     const ziglua = b.dependency("ziglua", .{ .target = target, .optimize = optimize });
     exe.root_module.addImport("ziglua", ziglua.module("ziglua"));
     exe_check.root_module.addImport("ziglua", ziglua.module("ziglua"));
     exe_test.root_module.addImport("ziglua", ziglua.module("ziglua"));
 
     //================LINK RAYLIB===================
-    const ray = try raylib_dep.addRaylib(b, target, optimize, .{ .raygui = true });
-    exe.linkLibrary(ray);
-    exe_check.linkLibrary(ray);
-    exe_test.linkLibrary(ray);
+    //const ray = try raylib_dep.addRaylib(b, target, optimize, .{ .raygui = true });
+    const maybe_ray = dvui.builder.lazyDependency("raylib", .{ .target = target, .optimize = optimize });
+    if (maybe_ray) |ray| {
+        exe.linkLibrary(ray.artifact("raylib"));
+        exe_check.linkLibrary(ray.artifact("raylib"));
+        exe_test.linkLibrary(ray.artifact("raylib"));
+
+        const glad_path = ray.path("src/external");
+        exe.addIncludePath(glad_path);
+    }
 
     //================FIND GLAD.H===================
-    const glad_path = b.dependency("raylib", .{}).path("src/external");
-    exe.addIncludePath(glad_path);
-    exe.addIncludePath(glad_path);
-    exe.addIncludePath(glad_path);
+    // const glad_path = b.dependency("raylib", .{}).path("src/external");
+    // exe.addIncludePath(glad_path);
+    // exe.addIncludePath(glad_path);
+    // exe.addIncludePath(glad_path);
 
     //================FIND STYLES===================
-    const rguilayout = b.dependency("rguilayout", .{ .target = target, .optimize = optimize });
-    const styles_folder = rguilayout.path("src/styles");
-    exe.addIncludePath(styles_folder);
-    exe_check.addIncludePath(styles_folder);
-    exe_test.addIncludePath(styles_folder);
+    //const rguilayout = b.dependency("rguilayout", .{ .target = target, .optimize = optimize });
+    //const styles_folder = rguilayout.path("src/styles");
+    //exe.addIncludePath(styles_folder);
+    //exe_check.addIncludePath(styles_folder);
+    //exe_test.addIncludePath(styles_folder);
 
     //=============INSTALL TO OUTPUT DIR===========
     b.installArtifact(exe);

@@ -21,9 +21,9 @@ const ray = @cImport({
     @cInclude("raylib.h");
 });
 
-const raygui = @cImport({
-    @cInclude("raygui.h");
-});
+//const raygui = @cImport({
+//    @cInclude("raygui.h");
+//});
 
 const eql = std.mem.eql;
 
@@ -113,7 +113,7 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
                 return .{ .x = @floatFromInt(self.x), .y = @floatFromInt(self.y) };
             }
 
-            pub fn initFromVector2(v: raygui.Vector2) @This() {
+            pub fn initFromVector2(v: ray.Vector2) @This() {
                 return .{
                     .x = @intFromFloat(v.x),
                     .y = @intFromFloat(v.y),
@@ -333,38 +333,39 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
                 .top_left => render_opt.position,
                 else => @panic("not implemented yet"),
             };
+            _ = render_position; // autofix
 
-            const render_window_bounds: raygui.Rectangle = .{
-                .x = render_position.x,
-                .y = render_position.y,
-                .width = render_width,
-                .height = render_height,
-            };
+            //const render_window_bounds: raygui.Rectangle = .{
+            //    .x = render_position.x,
+            //    .y = render_position.y,
+            //    .width = render_width,
+            //    .height = render_height,
+            //};
 
-            const null_mouse_pos: raygui.Vector2 = .{ .x = -1, .y = -1 };
-            var mouse_pos: raygui.Vector2 = null_mouse_pos;
+            //const null_mouse_pos: raygui.Vector2 = .{ .x = -1, .y = -1 };
+            //var mouse_pos: raygui.Vector2 = null_mouse_pos;
 
-            _ = raygui.GuiGrid(render_window_bounds, "Player Inventory", self.slot_render_size, @intFromFloat(self.slot_render_size), &mouse_pos);
+            //_ = raygui.GuiGrid(render_window_bounds, "Player Inventory", self.slot_render_size, @intFromFloat(self.slot_render_size), &mouse_pos);
 
-            if (std.meta.eql(mouse_pos, null_mouse_pos)) {
-                self.hovered_index = null;
-            } else {
-                self.hovered_index = Index.initFromVector2(mouse_pos);
-            }
+            //if (std.meta.eql(mouse_pos, null_mouse_pos)) {
+            //    self.hovered_index = null;
+            //} else {
+            //    self.hovered_index = Index.initFromVector2(mouse_pos);
+            //}
 
-            var iterator = self.iterate();
-            while (iterator.next()) |index| {
-                const final_position = anime.addVector2(anime.scaleVector(index.vector2(), self.slot_render_size), render_position);
+            //var iterator = self.iterate();
+            //while (iterator.next()) |index| {
+            //    const final_position = anime.addVector2(anime.scaleVector(index.vector2(), self.slot_render_size), render_position);
 
-                if (self.selected_index.x == index.x and self.selected_index.y == index.y) {
-                    ray.DrawRectangleV(final_position, .{ .x = self.slot_render_size, .y = self.slot_render_size }, ray.GRAY);
-                }
+            //    if (self.selected_index.x == index.x and self.selected_index.y == index.y) {
+            //        ray.DrawRectangleV(final_position, .{ .x = self.slot_render_size, .y = self.slot_render_size }, ray.GRAY);
+            //    }
 
-                if (self.getIndex(index)) |item_id| {
-                    const item = entity_component_system.get(Component.Item, item_id);
-                    item.renderInUi(window_manager, final_position, self.slot_render_size * 0.9);
-                }
-            }
+            //    if (self.getIndex(index)) |item_id| {
+            //        const item = entity_component_system.get(Component.Item, item_id);
+            //        item.renderInUi(window_manager, final_position, self.slot_render_size * 0.9);
+            //    }
+            //}
 
             self.audit(entity_component_system);
         }

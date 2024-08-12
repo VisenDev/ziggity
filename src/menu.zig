@@ -7,35 +7,48 @@ const ray = @cImport({
     @cInclude("raylib.h");
 });
 
-const raygui = @cImport({
-    @cInclude("raygui.h");
-});
+//const raygui = @cImport({
+//    @cInclude("raygui.h");
+//});
 
 const gui = @import("gui.zig");
+const dvui = @import("dvui");
+const RaylibBackend = @import("RaylibBackend");
 
-pub const Window = enum { main_menu, game, save_menu, config_menu, quit, new_save };
+pub const NextWindow = enum { main_menu, game, save_menu, config_menu, quit, new_save };
 
 fn backgroundColor() ray.Color {
     return ray.GetColor(@intCast(ray.GuiGetStyle(ray.DEFAULT, ray.BACKGROUND_COLOR)));
 }
 
-pub fn drawMainMenu(a: std.mem.Allocator) !Window {
-    var gui_manager = gui.RayGuiManager.init(a);
-    defer gui_manager.deinit();
-
-    gui.styles.GuiLoadStyleJungle();
+pub fn drawMainMenu(a: std.mem.Allocator, ui: *dvui.Window, backend: *RaylibBackend) !NextWindow {
+    _ = a; // autofix
 
     while (!ray.WindowShouldClose()) {
-        gui_manager.update();
         ray.BeginDrawing();
+        ray.ClearBackground(ray.BLACK);
+        backend.processRaylibDrawCalls();
+        {
+            try ui.begin(std.time.nanoTimestamp());
+            defer _ = ui.end(.{}) catch @panic("end failed");
+            _ = try backend.addAllEvents(ui);
 
-        ray.ClearBackground(gui_manager.backgroundColor());
-        //gui_manager.panel(null);
-        if (gui_manager.button("PLAY")) return .save_menu;
-        if (gui_manager.button("CONFIG")) return .config_menu;
-        if (gui_manager.button("QUIT")) return .quit;
-        gui_manager.column();
-        try gui_manager.guiStylePicker();
+            if (dvui.themeGet() != &dvui.Theme.Jungle) {
+                dvui.themeSet(&dvui.Theme.Jungle);
+            }
+
+            if (try dvui.button(@src(), "PLAY", .{}, .{})) {
+                return .save_menu;
+            }
+
+            if (try dvui.button(@src(), "CONFIG", .{}, .{})) {
+                return .config_menu;
+            }
+
+            if (try dvui.button(@src(), "QUIT", .{}, .{})) {
+                return .quit;
+            }
+        }
         ray.EndDrawing();
     }
     return .quit;
@@ -58,9 +71,9 @@ pub fn listFiles(a: std.mem.Allocator, dir: std.fs.Dir) !std.ArrayList([:0]const
     return result;
 }
 
-pub fn drawSaveSelectMenu(a: std.mem.Allocator, save_id: *[]u8) !Window {
-    var gui_manager = gui.RayGuiManager.init(a);
-    defer gui_manager.deinit();
+pub fn drawSaveSelectMenu(a: std.mem.Allocator, ui: *dvui.Window, backend: *RaylibBackend, save_id: *[]u8) !NextWindow {
+    // var gui_manager = gui.RayGuiManager.init(a);
+    // defer gui_manager.deinit();
 
     const path = try file.getSaveDirPath(a);
     const save_dir = std.fs.openDirAbsolute(path, .{ .iterate = true }) catch |e| switch (e) {
@@ -81,41 +94,91 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, save_id: *[]u8) !Window {
     var selected_file_index: ?usize = null;
 
     while (!ray.WindowShouldClose()) {
-        gui_manager.update();
+        //gui_manager.update();
         ray.BeginDrawing();
-        ray.ClearBackground(gui_manager.backgroundColor());
+        //ray.ClearBackground(gui_manager.backgroundColor());
+        backend.processRaylibDrawCalls();
+        {
+            try ui.begin(std.time.nanoTimestamp());
+            defer _ = ui.end(.{}) catch @panic("end failed");
+            _ = try backend.addAllEvents(ui);
 
-        if (gui_manager.button("Create New")) {
-            return .new_save;
-        }
+            var vbox = try dvui.box(@src(), .horizontal, .{ .expand = .vertical });
+            defer vbox.deinit();
 
-        if (gui_manager.button("Return To Main Menu")) {
-            return .main_menu;
-        }
+            {
+                var hbox = try dvui.box(@src(), .vertical, .{});
+                defer hbox.deinit();
 
-        gui_manager.column();
+                if (try dvui.button(@src(), "Create New", .{}, .{})) {
+                    return .new_save;
+                }
 
-        try gui_manager.startScrollPanel("saves list", 6, @floatFromInt(files.items.len));
-        for (files.items, 0..) |filename, i| {
-            if (gui_manager.button(filename)) {
-                selected_file_index = i;
+                if (try dvui.button(@src(), "Return to Main Menu", .{}, .{})) {
+                    return .main_menu;
+                }
             }
-        }
-        gui_manager.endScrollPanel();
 
-        gui_manager.column();
+            {
+                var scroll_area = try dvui.scrollArea(@src(), .{}, .{ .expand = .both, .background = false });
+                defer scroll_area.deinit();
 
-        if (selected_file_index) |i| {
-            gui_manager.title(files.items[i]);
-            if (gui_manager.button("open")) {
-                save_id.* = try a.dupeZ(u8, files.items[i]);
-                return .game;
+                var file_box = try dvui.box(@src(), .vertical, .{ .margin = .{ .x = 10 } });
+                defer file_box.deinit();
+
+                for (files.items, 0..) |filename, i| {
+                    if (try dvui.button(@src(), filename, .{}, .{ .id_extra = i })) {
+                        selected_file_index = i;
+                    }
+                }
             }
-            gui_manager.line();
-            if (gui_manager.button("close")) {
-                selected_file_index = null;
+
+            if (selected_file_index) |i| {
+                //gui_manager.title(files.items[i]);
+                var hbox = try dvui.box(@src(), .vertical, .{});
+                defer hbox.deinit();
+                if (try dvui.button(@src(), "Open", .{}, .{ .id_extra = i })) {
+                    save_id.* = try a.dupeZ(u8, files.items[i]);
+                    return .game;
+                }
+
+                if (try dvui.button(@src(), "Close", .{}, .{ .id_extra = i })) {
+                    selected_file_index = null;
+                }
             }
-            gui_manager.column();
+
+            //if (gui_manager.button("Create New")) {
+            //    return .new_save;
+            //}
+
+            //if (gui_manager.button("Return To Main Menu")) {
+            //    return .main_menu;
+            //}
+
+            //gui_manager.column();
+
+            //try gui_manager.startScrollPanel("saves list", 6, @floatFromInt(files.items.len));
+            //for (files.items, 0..) |filename, i| {
+            //    if (gui_manager.button(filename)) {
+            //        selected_file_index = i;
+            //    }
+            //}
+            //gui_manager.endScrollPanel();
+
+            //gui_manager.column();
+
+            //if (selected_file_index) |i| {
+            //    gui_manager.title(files.items[i]);
+            //    if (gui_manager.button("open")) {
+            //        save_id.* = try a.dupeZ(u8, files.items[i]);
+            //        return .game;
+            //    }
+            //    gui_manager.line();
+            //    if (gui_manager.button("close")) {
+            //        selected_file_index = null;
+            //    }
+            //    gui_manager.column();
+            //}
         }
 
         ray.EndDrawing();
@@ -124,7 +187,7 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, save_id: *[]u8) !Window {
     return .quit;
 }
 
-pub fn drawNewSaveMenu(a: std.mem.Allocator, lua: *Lua) !Window {
+pub fn drawNewSaveMenu(a: std.mem.Allocator, lua: *Lua) !NextWindow {
     var save_name: [:0]const u8 = undefined;
     var seed: usize = 123321;
     var gui_manager = gui.RayGuiManager.init(a);

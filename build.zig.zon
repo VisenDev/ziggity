@@ -5,19 +5,23 @@
     .dependencies = .{
         .ziglua = .{
             .url = "https://github.com/natecraddock/ziglua/archive/refs/heads/master.tar.gz",
-            .hash = "1220b53725744decfb2aba1269ae830b34ae30655154ba1144a8e722f9220cbbf0b0",
+            .hash = "122094a86e7171946ec9dc47ea22c4782511c26ae555a7e79e315ae857ccce15cfa5",
         },
-        .raylib = .{
-            .url = "https://github.com/raysan5/raylib/archive/f5d2f8d.tar.gz",
-            .hash = "12201c7e120800ecf29429560eefb2f2df58a176ee1f949e9e275944df048e0c22b2",
-        },
-        .raygui = .{
-            .url = "https://github.com/raysan5/raygui/archive/refs/heads/master.tar.gz",
-            .hash = "1220c62ef63613b8cb2893748d6baa344cd2d994328fbf3fe7559bec00a144c991e5",
-        },
-        .rguilayout = .{
-            .url = "https://github.com/raysan5/rguilayout/archive/refs/heads/master.tar.gz",
-            .hash = "1220fde277fd72035aa24ea95ed9b16b3cc9bcb466f0ef04f8e662399db6200e62a9",
+        //.raylib = .{
+        //    .url = "https://github.com/raysan5/raylib/archive/f5d2f8d.tar.gz",
+        //    .hash = "12201c7e120800ecf29429560eefb2f2df58a176ee1f949e9e275944df048e0c22b2",
+        //},
+        //.raygui = .{
+        //    .url = "https://github.com/raysan5/raygui/archive/refs/heads/master.tar.gz",
+        //    .hash = "1220c62ef63613b8cb2893748d6baa344cd2d994328fbf3fe7559bec00a144c991e5",
+        //},
+        //.rguilayout = .{
+        //    .url = "https://github.com/raysan5/rguilayout/archive/refs/heads/master.tar.gz",
+        //    .hash = "1220fde277fd72035aa24ea95ed9b16b3cc9bcb466f0ef04f8e662399db6200e62a9",
+        //},
+        .dvui = .{
+            .url = "https://github.com/david-vanderson/dvui/archive/refs/heads/main.tar.gz",
+            .hash = "1220159296708feb470b935414d179206b941581189203104e6f37ec369af1294cf7",
         }
     },
 }

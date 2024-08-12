@@ -30,13 +30,16 @@ const ray = @cImport({
     @cInclude("raylib.h");
 });
 
-const raygui = @cImport({
-    @cInclude("raygui.h");
-});
+//const raygui = @cImport({
+//    @cInclude("raygui.h");
+//});
 
 const gl = @cImport({
     @cInclude("glad.h");
 });
+
+const dvui = @import("dvui");
+const RaylibBackend = @import("RaylibBackend");
 
 fn playSound() void {
     ray.InitAudioDevice();
@@ -61,7 +64,7 @@ pub fn main() !void {
     const a = my_arena.allocator();
 
     ray.SetConfigFlags(ray.FLAG_WINDOW_RESIZABLE);
-    ray.SetConfigFlags(ray.FLAG_VSYNC_HINT);
+    //ray.SetConfigFlags(ray.FLAG_VSYNC_HINT);
     ray.InitWindow(800, 450, "ziggity");
     defer ray.CloseWindow();
 
@@ -71,18 +74,25 @@ pub fn main() !void {
     var lua = try api.initLuaApi(&a);
     defer lua.deinit();
 
-    //raygui.GuiLoadStyleDark();
-    ray.SetTargetFPS(200);
+    var dvui_backend = try RaylibBackend.init(.ontop, null);
+    defer dvui_backend.deinit();
+    dvui_backend.log_events = true;
 
-    var current_window = menu.Window.main_menu;
+    var ui = try dvui.Window.init(@src(), 0, a, dvui_backend.backend());
+    defer ui.deinit();
+
+    //raygui.GuiLoadStyleDark();
+    //ray.SetTargetFPS(200);
+
+    var current_window = menu.NextWindow.main_menu;
     var save_id: []u8 = "";
 
     while (!ray.WindowShouldClose()) {
         std.debug.print("WINDOW: {s}\n", .{save_id});
         current_window = switch (current_window) {
             .quit => break,
-            .main_menu => try menu.drawMainMenu(a),
-            .save_menu => try menu.drawSaveSelectMenu(a, &save_id),
+            .main_menu => try menu.drawMainMenu(a, &ui, &dvui_backend),
+            .save_menu => try menu.drawSaveSelectMenu(a, &ui, &dvui_backend, &save_id),
             .config_menu => err.crashToMainMenu("config_menu_not_implemented_yet"),
             .new_save => try menu.drawNewSaveMenu(a, lua),
             .game => try runGame(a, lua, save_id),
@@ -90,7 +100,7 @@ pub fn main() !void {
     }
 }
 
-fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Window {
+fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.NextWindow {
     const manifest = try file.readManifest(a, current_save);
     defer manifest.deinit();
 
