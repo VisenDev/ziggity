@@ -74,7 +74,7 @@ pub fn main() !void {
     var lua = try api.initLuaApi(&a);
     defer lua.deinit();
 
-    var dvui_backend = try RaylibBackend.init(.ontop, null);
+    var dvui_backend = try RaylibBackend.init();
     defer dvui_backend.deinit();
     dvui_backend.log_events = true;
 

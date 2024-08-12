@@ -27,7 +27,7 @@ pub fn drawMainMenu(a: std.mem.Allocator, ui: *dvui.Window, backend: *RaylibBack
     while (!ray.WindowShouldClose()) {
         ray.BeginDrawing();
         ray.ClearBackground(ray.BLACK);
-        backend.processRaylibDrawCalls();
+        //backend.processRaylibDrawCalls();
         {
             try ui.begin(std.time.nanoTimestamp());
             defer _ = ui.end(.{}) catch @panic("end failed");
@@ -99,7 +99,7 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, ui: *dvui.Window, backend: *Rayl
         //ray.ClearBackground(gui_manager.backgroundColor());
 
         ray.ClearBackground(ray.BLACK);
-        backend.processRaylibDrawCalls();
+        //backend.processRaylibDrawCalls();
         {
             try ui.begin(std.time.nanoTimestamp());
             defer _ = ui.end(.{}) catch @panic("end failed");
