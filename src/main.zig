@@ -74,11 +74,11 @@ pub fn main() !void {
     var lua = try api.initLuaApi(&a);
     defer lua.deinit();
 
-    var dvui_backend = try RaylibBackend.init();
+    var dvui_backend = RaylibBackend.init();
     defer dvui_backend.deinit();
     dvui_backend.log_events = true;
 
-    var ui = try dvui.Window.init(@src(), 0, a, dvui_backend.backend());
+    var ui = try dvui.Window.init(@src(), a, dvui_backend.backend(), .{ .theme = &dvui.Theme.Jungle });
     defer ui.deinit();
 
     //raygui.GuiLoadStyleDark();
@@ -94,7 +94,7 @@ pub fn main() !void {
             .main_menu => try menu.drawMainMenu(a, &ui, &dvui_backend),
             .save_menu => try menu.drawSaveSelectMenu(a, &ui, &dvui_backend, &save_id),
             .config_menu => err.crashToMainMenu("config_menu_not_implemented_yet"),
-            .new_save => try menu.drawNewSaveMenu(a, lua),
+            .new_save => try menu.drawNewSaveMenu(a, lua, &ui, &dvui_backend),
             .game => try runGame(a, lua, save_id),
         };
     }
