@@ -24,25 +24,30 @@ pub fn drawMainMenu(a: std.mem.Allocator, ui: *dvui.Window, backend: *RaylibBack
         ray.BeginDrawing();
         {
             try ui.begin(std.time.nanoTimestamp());
+            defer _ = ui.end(.{}) catch @panic("end failed");
+
+            var scaler = try dvui.scale(@src(), 2, .{ .expand = .both });
+            defer scaler.deinit();
 
             clearBackground();
 
-            defer _ = ui.end(.{}) catch @panic("end failed");
             _ = try backend.addAllEvents(ui);
 
             if (dvui.themeGet() != &dvui.Theme.Jungle) {
                 dvui.themeSet(&dvui.Theme.Jungle);
             }
 
-            if (try dvui.button(@src(), "PLAY", .{}, .{})) {
+            const button_opt: dvui.Options = .{ .background = true, .border = dvui.Rect.all(1) };
+
+            if (try dvui.button(@src(), "PLAY", .{}, button_opt)) {
                 return .save_menu;
             }
 
-            if (try dvui.button(@src(), "CONFIG", .{}, .{})) {
+            if (try dvui.button(@src(), "CONFIG", .{}, button_opt)) {
                 return .config_menu;
             }
 
-            if (try dvui.button(@src(), "QUIT", .{}, .{})) {
+            if (try dvui.button(@src(), "QUIT", .{}, button_opt)) {
                 return .quit;
             }
         }
@@ -91,8 +96,12 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, ui: *dvui.Window, backend: *Rayl
         ray.BeginDrawing();
         {
             try ui.begin(std.time.nanoTimestamp());
-            clearBackground();
             defer _ = ui.end(.{}) catch @panic("end failed");
+
+            var scaler = try dvui.scale(@src(), 2, .{ .expand = .both });
+            defer scaler.deinit();
+
+            clearBackground();
             _ = try backend.addAllEvents(ui);
 
             var vbox = try dvui.box(@src(), .horizontal, .{ .expand = .vertical });
@@ -165,6 +174,10 @@ pub fn drawNewSaveMenu(a: std.mem.Allocator, lua: *Lua, ui: *dvui.Window, backen
     while (!ray.WindowShouldClose()) {
         ray.BeginDrawing();
         try ui.begin(std.time.nanoTimestamp());
+        defer _ = ui.end(.{}) catch @panic("end failed");
+
+        var scaler = try dvui.scale(@src(), 2, .{ .expand = .both });
+        defer scaler.deinit();
         _ = try backend.addAllEvents(ui);
 
         clearBackground();
@@ -174,11 +187,10 @@ pub fn drawNewSaveMenu(a: std.mem.Allocator, lua: *Lua, ui: *dvui.Window, backen
             defer hbox.deinit();
 
             try dvui.label(@src(), "Enter Name", .{}, .{});
-            const entry = try dvui.textEntry(@src(), .{ .text = &save_name }, .{});
+            const entry = try dvui.textEntry(@src(), .{ .text = .{ .buffer = &save_name } }, .{});
             entry.deinit();
         }
 
-        std.debug.print("box drawn\n", .{});
         {
             var hbox = try dvui.box(@src(), .horizontal, .{});
             defer hbox.deinit();
@@ -189,9 +201,7 @@ pub fn drawNewSaveMenu(a: std.mem.Allocator, lua: *Lua, ui: *dvui.Window, backen
                 seed = result.Valid;
             }
         }
-        std.debug.print("box drawn2\n", .{});
-
-        if (try dvui.button(@src(), "Generate", .{}, .{})) {
+        if (try dvui.button(@src(), "Generate", .{}, .{ .border = dvui.Rect.all(1), .background = true })) {
             std.debug.print("button pressed\n", .{});
             //_ = try ui.end(.{});
             try level.createNewSave(a, lua, .{
@@ -202,7 +212,6 @@ pub fn drawNewSaveMenu(a: std.mem.Allocator, lua: *Lua, ui: *dvui.Window, backen
             return .save_menu;
         }
 
-        _ = try ui.end(.{});
         ray.EndDrawing();
     }
 

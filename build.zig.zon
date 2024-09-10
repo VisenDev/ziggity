@@ -9,7 +9,7 @@
         },
         .dvui = .{
             .url = "https://github.com/david-vanderson/dvui/archive/refs/heads/main.tar.gz",
-            .hash = "122096dd2a4f785a83b140ee9cd23e346b3c6f18acb506ef1253dc3b92fbdf6eba4c",
+            .hash = "122082ce10c54e8b70ce1158ac6c5f9bbebcdeb8ff9181b6a3fa71ec795f73da7180",
         },
     },
 }
