@@ -76,7 +76,7 @@ pub fn main() !void {
 
     var dvui_backend = RaylibBackend.init();
     defer dvui_backend.deinit();
-    dvui_backend.log_events = true;
+    //dvui_backend.log_events = true;
 
     var ui = try dvui.Window.init(@src(), a, dvui_backend.backend(), .{ .theme = &dvui.Theme.Jungle });
     defer ui.deinit();

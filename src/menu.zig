@@ -13,6 +13,8 @@ const dvui = @import("dvui");
 
 pub const NextWindow = enum { main_menu, game, save_menu, config_menu, quit, new_save };
 
+const button_opt: dvui.Options = .{ .background = true, .border = dvui.Rect.all(1) };
+
 fn clearBackground() void {
     RaylibBackend.c.ClearBackground(RaylibBackend.dvuiColorToRaylib(dvui.themeGet().color_fill));
 }
@@ -26,8 +28,8 @@ pub fn drawMainMenu(a: std.mem.Allocator, ui: *dvui.Window, backend: *RaylibBack
             try ui.begin(std.time.nanoTimestamp());
             defer _ = ui.end(.{}) catch @panic("end failed");
 
-            var scaler = try dvui.scale(@src(), 2, .{ .expand = .both });
-            defer scaler.deinit();
+            //var scaler = try dvui.scale(@src(), 2, .{ .expand = .both });
+            //defer scaler.deinit();
 
             clearBackground();
 
@@ -36,8 +38,6 @@ pub fn drawMainMenu(a: std.mem.Allocator, ui: *dvui.Window, backend: *RaylibBack
             if (dvui.themeGet() != &dvui.Theme.Jungle) {
                 dvui.themeSet(&dvui.Theme.Jungle);
             }
-
-            const button_opt: dvui.Options = .{ .background = true, .border = dvui.Rect.all(1) };
 
             if (try dvui.button(@src(), "PLAY", .{}, button_opt)) {
                 return .save_menu;
@@ -98,9 +98,6 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, ui: *dvui.Window, backend: *Rayl
             try ui.begin(std.time.nanoTimestamp());
             defer _ = ui.end(.{}) catch @panic("end failed");
 
-            var scaler = try dvui.scale(@src(), 2, .{ .expand = .both });
-            defer scaler.deinit();
-
             clearBackground();
             _ = try backend.addAllEvents(ui);
 
@@ -111,14 +108,20 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, ui: *dvui.Window, backend: *Rayl
                 var hbox = try dvui.box(@src(), .vertical, .{});
                 defer hbox.deinit();
 
-                if (try dvui.button(@src(), "Create New", .{}, .{})) {
+                if (try dvui.button(@src(), "Create New", .{}, button_opt)) {
                     return .new_save;
                 }
 
-                if (try dvui.button(@src(), "Return to Main Menu", .{}, .{})) {
+                if (try dvui.button(@src(), "Return to Main Menu", .{}, button_opt)) {
                     return .main_menu;
                 }
             }
+
+            try dvui.separator(@src(), .{
+                .expand = .vertical,
+                .min_size_content = .{ .w = 2 },
+                .margin = dvui.Rect.all(4),
+            });
 
             {
                 var box = try dvui.box(@src(), .vertical, .{});
@@ -126,37 +129,63 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, ui: *dvui.Window, backend: *Rayl
 
                 try dvui.labelNoFmt(@src(), "Available Saves", .{});
 
-                //var scroll_area = try dvui.scrollArea(@src(), .{}, .{});
-                //defer scroll_area.deinit();
+                try dvui.separator(@src(), .{
+                    .expand = .horizontal,
+                    .min_size_content = .{ .h = 2 },
+                    .margin = dvui.Rect.all(4),
+                });
 
                 {
-                    var file_box = try dvui.box(@src(), .vertical, .{
-                        .margin = .{ .x = 10 },
-                        .color_border = .{ .color = dvui.themeGet().color_border },
-                    });
+                    var file_box = try dvui.box(@src(), .vertical, .{});
                     defer file_box.deinit();
 
-                    for (files.items, 0..) |filename, i| {
-                        if (try dvui.button(@src(), filename, .{}, .{ .id_extra = i })) {
-                            selected_file_index = i;
+                    {
+                        var scroll_box = try dvui.box(@src(), .vertical, .{
+                            .min_size_content = .{ .h = 200 },
+                        });
+                        defer scroll_box.deinit();
+
+                        var scroll_area = try dvui.scrollArea(@src(), .{}, .{ .expand = .vertical });
+                        defer scroll_area.deinit();
+
+                        for (files.items, 0..) |filename, i| {
+                            if (try dvui.button(@src(), filename, .{}, .{
+                                .id_extra = i,
+                                .border = dvui.Rect.all(1),
+                                .background = true,
+                                .min_size_content = .{ .w = 200 },
+                                .color_fill = .{
+                                    .name = if (selected_file_index == i) .accent else .fill,
+                                },
+                            })) {
+                                if (selected_file_index == null) {
+                                    selected_file_index = i;
+                                } else if (selected_file_index.? == i) {
+                                    selected_file_index = null;
+                                } else {
+                                    selected_file_index = i;
+                                }
+                            }
                         }
                     }
-                }
-            }
 
-            if (selected_file_index) |i| {
-                var hbox = try dvui.box(@src(), .vertical, .{ .margin = .{ .x = 10 }, .color_border = .{ .color = dvui.themeGet().color_border } });
-                defer hbox.deinit();
+                    try dvui.separator(@src(), .{
+                        .expand = .horizontal,
+                        .min_size_content = .{ .h = 2 },
+                        .margin = dvui.Rect.all(4),
+                    });
 
-                try dvui.label(@src(), "Save: {s}", .{files.items[i]}, .{});
-
-                if (try dvui.button(@src(), "Open", .{}, .{ .id_extra = i })) {
-                    save_id.* = try a.dupeZ(u8, files.items[i]);
-                    return .game;
-                }
-
-                if (try dvui.button(@src(), "Close", .{}, .{ .id_extra = i })) {
-                    selected_file_index = null;
+                    if (selected_file_index) |i| {
+                        if (try dvui.button(@src(), "Open", .{}, .{
+                            .id_extra = i,
+                            .border = dvui.Rect.all(1),
+                            .background = true,
+                            .min_size_content = .{ .w = 200 },
+                        })) {
+                            save_id.* = try a.dupeZ(u8, files.items[i]);
+                            return .game;
+                        }
+                    }
                 }
             }
         }
@@ -176,8 +205,6 @@ pub fn drawNewSaveMenu(a: std.mem.Allocator, lua: *Lua, ui: *dvui.Window, backen
         try ui.begin(std.time.nanoTimestamp());
         defer _ = ui.end(.{}) catch @panic("end failed");
 
-        var scaler = try dvui.scale(@src(), 2, .{ .expand = .both });
-        defer scaler.deinit();
         _ = try backend.addAllEvents(ui);
 
         clearBackground();
