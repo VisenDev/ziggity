@@ -13,7 +13,11 @@ const dvui = @import("dvui");
 
 pub const NextWindow = enum { main_menu, game, save_menu, config_menu, quit, new_save };
 
-const button_opt: dvui.Options = .{ .background = true, .border = dvui.Rect.all(1) };
+const button_opt: dvui.Options = .{
+    .background = true,
+    .border = dvui.Rect.all(1),
+    //.min_size_content = .{ .w = 200 },
+};
 
 fn clearBackground() void {
     RaylibBackend.c.ClearBackground(RaylibBackend.dvuiColorToRaylib(dvui.themeGet().color_fill));
@@ -135,57 +139,84 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, ui: *dvui.Window, backend: *Rayl
                     .margin = dvui.Rect.all(4),
                 });
 
+                //{
+                //  var file_box = try dvui.box(@src(), .vertical, .{});
+                //defer file_box.deinit();
+
                 {
-                    var file_box = try dvui.box(@src(), .vertical, .{});
-                    defer file_box.deinit();
-
-                    {
-                        var scroll_box = try dvui.box(@src(), .vertical, .{
-                            .min_size_content = .{ .h = 200 },
-                        });
-                        defer scroll_box.deinit();
-
-                        var scroll_area = try dvui.scrollArea(@src(), .{}, .{ .expand = .vertical });
-                        defer scroll_area.deinit();
-
-                        for (files.items, 0..) |filename, i| {
-                            if (try dvui.button(@src(), filename, .{}, .{
-                                .id_extra = i,
-                                .border = dvui.Rect.all(1),
-                                .background = true,
-                                .min_size_content = .{ .w = 200 },
-                                .color_fill = .{
-                                    .name = if (selected_file_index == i) .accent else .fill,
-                                },
-                            })) {
-                                if (selected_file_index == null) {
-                                    selected_file_index = i;
-                                } else if (selected_file_index.? == i) {
-                                    selected_file_index = null;
-                                } else {
-                                    selected_file_index = i;
-                                }
-                            }
-                        }
-                    }
-
-                    try dvui.separator(@src(), .{
-                        .expand = .horizontal,
-                        .min_size_content = .{ .h = 2 },
-                        .margin = dvui.Rect.all(4),
+                    var scroll_box = try dvui.box(@src(), .vertical, .{
+                        .min_size_content = .{ .h = 500 },
                     });
+                    defer scroll_box.deinit();
 
-                    if (selected_file_index) |i| {
-                        if (try dvui.button(@src(), "Open", .{}, .{
+                    var scroll_area = try dvui.scrollArea(@src(), .{}, .{ .expand = .vertical });
+                    defer scroll_area.deinit();
+
+                    for (files.items, 0..) |filename, i| {
+                        if (try dvui.button(@src(), filename, .{}, .{
                             .id_extra = i,
                             .border = dvui.Rect.all(1),
                             .background = true,
                             .min_size_content = .{ .w = 200 },
+                            .color_fill = .{
+                                .name = if (selected_file_index == i) .accent else .fill,
+                            },
                         })) {
-                            save_id.* = try a.dupeZ(u8, files.items[i]);
-                            return .game;
+                            if (selected_file_index == null) {
+                                selected_file_index = i;
+                            } //else if (selected_file_index.? == i) {
+                            //    selected_file_index = null;
+                            //} else {
+                            //    selected_file_index = i;
+                            //}
                         }
+                        //  }
                     }
+
+                    const Followup = struct {
+                        var load_save: bool = false;
+
+                        fn callAfter(id: u32, response: dvui.enums.DialogResponse) !void {
+                            //var buf: [100]u8 = undefined;
+                            //const text = std.fmt.bufPrint(&buf, "You clicked \"{s}\"", .{@tagName(response)}) catch unreachable;
+                            //try dvui.dialog(@src(), .{ .title = "Ok Followup Response", .message = text });
+                            //dvui.dataSet(null, id, "load_save", response == .ok);
+                            load_save = response == .ok;
+                            _ = id;
+                        }
+                    };
+
+                    if (selected_file_index != null) {
+                        _ = try dvui.dialog(@src(), .{
+                            .message = "hi",
+                            .callafterFn = Followup.callAfter,
+                        });
+                    }
+
+                    if (Followup.load_save) {
+                        save_id.* = try a.dupeZ(u8, files.items[selected_file_index.?]);
+                        return .game;
+                    } else {
+                        //selected_file_index = null;
+                    }
+
+                    //try dvui.separator(@src(), .{
+                    //    .expand = .horizontal,
+                    //    .min_size_content = .{ .h = 2 },
+                    //    .margin = dvui.Rect.all(4),
+                    //});
+
+                    //if (selected_file_index) |i| {
+                    //    if (try dvui.button(@src(), "Open", .{}, .{
+                    //        .id_extra = i,
+                    //        .border = dvui.Rect.all(1),
+                    //        .background = true,
+                    //        .min_size_content = .{ .w = 200 },
+                    //    })) {
+                    //        save_id.* = try a.dupeZ(u8, files.items[i]);
+                    //        return .game;
+                    //    }
+                    //}
                 }
             }
         }
