@@ -45,6 +45,10 @@ pub fn build(b: *std.Build) void {
     exe_check.root_module.addImport("ziglua", ziglua.module("ziglua"));
     exe_test.root_module.addImport("ziglua", ziglua.module("ziglua"));
 
+    //===============ADD FENNEL=====================
+    const fennel = b.dependency("fennel", .{ .target = target, .optimize = optimize });
+    _ = fennel; // autofix
+
     //================LINK RAYLIB===================
     //const ray = try raylib_dep.addRaylib(b, target, optimize, .{ .raygui = true });
     const maybe_ray = dvui.builder.lazyDependency("raylib", .{ .target = target, .optimize = optimize });

@@ -7,6 +7,10 @@
             .url = "https://github.com/natecraddock/ziglua/archive/refs/heads/master.tar.gz",
             .hash = "122094a86e7171946ec9dc47ea22c4782511c26ae555a7e79e315ae857ccce15cfa5",
         },
+        .fennel = .{
+            .url = "https://fennel-lang.org/downloads/fennel-1.4.0.tar.gz",
+            .hash = "122080601be3a2920a39d2027c290b562aba6814612e1d68d7f596f9ec3ba4158195",
+        },
         .dvui = .{
             .url = "https://github.com/david-vanderson/dvui/archive/refs/heads/main.tar.gz",
             .hash = "12205eab61d6a278b088e6405253f9e74e6fb79538c63f8948f0f3d3d5ec93ddf605",
