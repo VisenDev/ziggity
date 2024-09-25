@@ -12,11 +12,9 @@ const Lua = @import("ziglua").Lua;
 const file = @import("file_utils.zig");
 const options = @import("options.zig");
 const SparseSet = @import("sparse_set.zig").SparseSet;
-//const ray = @cImport({
-//    @cInclude("raylib.h");
-//});
-
-const ray = @import("RaylibBackend").c;
+const ray = @cImport({
+    @cInclude("raylib.h");
+});
 
 fn tof32(input: anytype) f32 {
     return @floatFromInt(input);

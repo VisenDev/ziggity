@@ -45,6 +45,21 @@ pub fn build(b: *std.Build) !void {
     exe_check.root_module.addImport("ziglua", ziglua.module("ziglua"));
     exe_test.root_module.addImport("ziglua", ziglua.module("ziglua"));
 
+    //===============DEFINE LUA TYPES=====================
+    const define_exe = b.addExecutable(.{
+        .name = "define",
+        .root_source_file = b.path("src/define_exe.zig"),
+        .target = target,
+    });
+    define_exe.root_module.addImport("ziglua", ziglua.module("ziglua"));
+
+    var run_define_exe = b.addRunArtifact(define_exe);
+    //run_define_exe.addArg(b.path("definitions.lua").getPath(b));
+    run_define_exe.addFileArg(b.path("definitions.lua"));
+
+    const define_step = b.step("define", "");
+    define_step.dependOn(&run_define_exe.step);
+
     //===============ADD FENNEL=====================
     const fennel = b.dependency("fennel", .{ .target = target, .optimize = optimize });
     _ = fennel; // autofix
@@ -55,19 +70,11 @@ pub fn build(b: *std.Build) !void {
         exe.linkLibrary(ray.artifact("raylib"));
         exe_check.linkLibrary(ray.artifact("raylib"));
         exe_test.linkLibrary(ray.artifact("raylib"));
+        define_exe.linkLibrary(ray.artifact("raylib"));
 
         const glad_path = ray.path("src/external");
         exe.addIncludePath(glad_path);
     }
-
-    //===============DEFINE LUA TYPES=====================
-    const zl = @import("ziglua");
-    const animation = @import("src/animation.zig");
-
-    const to_define: []const zl.DefineEntry = &.{.{ .type = animation.Animation, .name = "Animation" }};
-    const def = try zl.Define(to_define).init(b, b.path("definitions.lua"));
-    const define_step = b.step("define", "");
-    define_step.dependOn(&def.step);
 
     //================FIND GLAD.H===================
     // const glad_path = b.dependency("raylib", .{}).path("src/external");
