@@ -1,7 +1,7 @@
 const std = @import("std");
 //const raylib_dep = @import("raylib");
 
-pub fn build(b: *std.Build) void {
+pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
@@ -50,7 +50,6 @@ pub fn build(b: *std.Build) void {
     _ = fennel; // autofix
 
     //================LINK RAYLIB===================
-    //const ray = try raylib_dep.addRaylib(b, target, optimize, .{ .raygui = true });
     const maybe_ray = dvui.builder.lazyDependency("raylib", .{ .target = target, .optimize = optimize });
     if (maybe_ray) |ray| {
         exe.linkLibrary(ray.artifact("raylib"));
@@ -60,6 +59,15 @@ pub fn build(b: *std.Build) void {
         const glad_path = ray.path("src/external");
         exe.addIncludePath(glad_path);
     }
+
+    //===============DEFINE LUA TYPES=====================
+    const zl = @import("ziglua");
+    const animation = @import("src/animation.zig");
+
+    const to_define: []const zl.DefineEntry = &.{.{ .type = animation.Animation, .name = "Animation" }};
+    const def = try zl.Define(to_define).init(b, b.path("definitions.lua"));
+    const define_step = b.step("define", "");
+    define_step.dependOn(&def.step);
 
     //================FIND GLAD.H===================
     // const glad_path = b.dependency("raylib", .{}).path("src/external");
