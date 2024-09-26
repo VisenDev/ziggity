@@ -54,8 +54,7 @@ pub fn build(b: *std.Build) !void {
     define_exe.root_module.addImport("ziglua", ziglua.module("ziglua"));
 
     var run_define_exe = b.addRunArtifact(define_exe);
-    //run_define_exe.addArg(b.path("definitions.lua").getPath(b));
-    run_define_exe.addFileArg(b.path("definitions.lua"));
+    run_define_exe.addFileArg(b.path("data/lua/definitions.lua"));
 
     const define_step = b.step("define", "");
     define_step.dependOn(&run_define_exe.step);

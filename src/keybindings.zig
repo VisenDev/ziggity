@@ -39,6 +39,14 @@ fn getArrowMatches(a: std.mem.Allocator, direction: []const u8) ![]const []const
     return result;
 }
 
+pub const KeyConfig = struct {
+    name: []const u8,
+    key: []const u8,
+    shift: bool = false,
+    control: bool = false,
+    mode: KeyMode = .normal,
+};
+
 pub const KeyBindings = struct {
     keys: std.StringHashMap(Key),
     mode: KeyMode = .normal,
@@ -48,14 +56,7 @@ pub const KeyBindings = struct {
             .keys = std.StringHashMap(Key).init(a),
         };
 
-        const ConfigType = struct {
-            name: []const u8,
-            key: []const u8,
-            shift: bool = false,
-            control: bool = false,
-            mode: KeyMode = .normal,
-        };
-        const config = try file.readConfig([]ConfigType, lua, .keybindings);
+        const config = try file.readConfig([]KeyConfig, lua, .keybindings);
         defer config.deinit();
 
         var arena_value = std.heap.ArenaAllocator.init(a);

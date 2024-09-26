@@ -5,7 +5,7 @@
     .dependencies = .{
         .ziglua = .{
             .url = "https://github.com/VisenDev/ziglua/archive/refs/heads/luals-docgen.zip",
-            .hash = "12202eb572505bfbd01fd39b89091a21d0cc0bbbb73377520ccd8c1ec3e9ea246c95",
+            .hash = "1220a61d5b0c2b68173c211c2b4b6d052d815d62007b4b09d920750426f6986c8c1e",
         },
         .fennel = .{
             .url = "https://fennel-lang.org/downloads/fennel-1.4.0.tar.gz",

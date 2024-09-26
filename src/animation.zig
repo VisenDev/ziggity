@@ -357,7 +357,7 @@ pub const WindowManager = struct {
         var self = .{
             .animations = std.StringHashMap(Animation).init(a),
             .textures = std.StringHashMap(ray.Texture2D).init(a),
-            .tilemap_resolution = try lua.autoCall(f32, "TilemapResolution", .{}),
+            .tilemap_resolution = try lua.get(f32, "TilemapResolution"),
             .camera = ray.Camera2D{
                 .offset = .{ .x = 0, .y = 0 },
                 .rotation = 0.0,

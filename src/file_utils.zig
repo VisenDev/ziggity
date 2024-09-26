@@ -7,7 +7,7 @@ const Lua = @import("ziglua").Lua;
 const ziglua = @import("ziglua");
 
 pub fn getLuaEntryFile(a: std.mem.Allocator) ![:0]const u8 {
-    const lua_entry_file = "lua/init.lua";
+    const lua_entry_file = "lua/main.lua";
     return try combineAppendSentinel(a, try getCWD(a), lua_entry_file);
 }
 
@@ -105,13 +105,14 @@ pub const ConfigType = enum {
 };
 
 pub fn readConfig(comptime ReturnType: type, lua: *Lua, config: ConfigType) !ziglua.Parsed(ReturnType) {
-    const function_name = switch (config) {
+    const name = switch (config) {
         .animations => "Animations",
         .tiles => "Tiles",
-        .keybindings => "KeyBindings",
+        .keybindings => "Keys",
     };
 
-    return try lua.autoCallAlloc(ReturnType, function_name, .{});
+    return try lua.getAlloc(ReturnType, name);
+    //return try lua.autoCallAlloc(ReturnType, function_name, .{});
 }
 
 //pub fn readConfig(comptime T: type, a: std.mem.Allocator, filename: []const u8) !std.json.Parsed(T) {
