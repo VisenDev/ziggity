@@ -75,7 +75,7 @@ pub const Level = struct {
         world_map.* = try MapState.generate(a, &tile_state, options);
 
         const player_id = try arch.createPlayer(entities, a);
-        try entities.setComponent(a, player_id, ecs.Component.Physics{ .pos = .{ .x = 3, .y = 5 } });
+        try entities.setComponent(a, player_id, ecs.Component.Physics{ .position = .{ .x = 3, .y = 5 } });
 
         return Level{
             .level_id = options.level_id,

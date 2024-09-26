@@ -22,9 +22,6 @@ const ray = @cImport({
 //pub usingnamespace @import("movement.zig");
 const moveTowards = @This().moveTowards;
 
-//IMPORTANT, controls the scale of the position cache relative to the map
-pub const position_cache_scale: usize = 1;
-
 fn distance(a: ray.Vector2, b: ray.Vector2) f32 {
     const dx = a.x - b.x;
     const dy = a.y - b.y;
@@ -54,9 +51,9 @@ pub fn updateDeathSystem(
                     var copy = a;
                     const item = try l.autoCall(?usize, item_script, .{ self, &copy }) orelse continue;
                     try self.setComponent(a, item, Component.Physics{
-                        .pos = .{
-                            .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
-                            .y = physics.pos.y + 0.8 * (ecs.randomFloat() - 0.5),
+                        .position = .{
+                            .x = physics.position.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
+                            .y = physics.position.y + 0.8 * (ecs.randomFloat() - 0.5),
                         },
                     });
                 }
@@ -69,9 +66,9 @@ pub fn updateDeathSystem(
                     var copy = a;
                     const blood = try l.autoCall(?usize, "SpawnBloodParticle", .{ self, &copy }) orelse continue;
                     try self.setComponent(a, blood, Component.Physics{
-                        .pos = .{
-                            .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
-                            .y = physics.pos.y + 0.8 * (ecs.randomFloat() - 0.5),
+                        .position = .{
+                            .x = physics.position.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
+                            .y = physics.position.y + 0.8 * (ecs.randomFloat() - 0.5),
                         },
                     });
                 }
@@ -83,9 +80,9 @@ pub fn updateDeathSystem(
                 var copy = a;
                 const death_animation_entity = try l.autoCall(?usize, "SpawnAnimation", .{ self, &copy }) orelse continue;
                 try self.setComponent(a, death_animation_entity, Component.Physics{
-                    .pos = .{
-                        .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
-                        .y = physics.pos.y + 0.8 * (ecs.randomFloat() - 0.5),
+                    .position = .{
+                        .x = physics.position.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
+                        .y = physics.position.y + 0.8 * (ecs.randomFloat() - 0.5),
                     },
                 });
                 try self.setComponent(a, death_animation_entity, Component.Sprite{

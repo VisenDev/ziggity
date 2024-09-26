@@ -45,8 +45,8 @@ pub const SpriteComponent = struct {
             distance: f32 = 0.1,
         } = null,
         lean: ?struct {
-            max_angle_radians: f32 = std.math.pi,
-            resistance: f32 = 5,
+            max_angle_radians: f32 = std.math.pi / 4.0,
+            resistance: f32 = 20,
         } = null,
         scale: ?struct {
             current: f32 = 1.0,
@@ -281,7 +281,7 @@ pub const WindowManager = struct {
     pub fn getVisibleBounds(self: *const @This(), a: std.mem.Allocator, ecs: *ECS, map: *const MapState) SubSection {
         const systems = [_]type{Component.IsPlayer};
         const set = ecs.getSystemDomain(a, &systems);
-        const player_position = ecs.get(Component.Physics, set[0]).pos;
+        const player_position = ecs.get(Component.Physics, set[0]).position;
 
         return .{
             .min_x = @intFromFloat(@floor(@max(player_position.x - (self.screenWidthInTiles() / 2) - 1, 0))),
@@ -316,7 +316,7 @@ pub const WindowManager = struct {
 
         const systems = [_]type{Component.IsPlayer};
         const set = l.ecs.getSystemDomain(a, &systems);
-        var player_position = l.ecs.get(Component.Physics, set[0]).pos;
+        var player_position = l.ecs.get(Component.Physics, set[0]).position;
 
         player_position.x *= self.tilemap_resolution;
         player_position.y *= self.tilemap_resolution;
@@ -494,9 +494,9 @@ pub fn renderSprites(
             }
 
             var render_options = RenderOptions{
-                .flipped = physics.vel.x > 0,
+                .flipped = physics.velocity.x > 0,
             };
-            var render_position = physics.pos;
+            var render_position = physics.position;
 
             //account for bobbing
             if (sprite.styling.bob) |bob| {
@@ -506,7 +506,7 @@ pub fn renderSprites(
 
             //account for lean
             if (sprite.styling.lean) |lean| {
-                var raw_lean_angle: f32 = physics.vel.x * lean.resistance;
+                var raw_lean_angle: f32 = physics.velocity.x * lean.resistance;
                 if (@abs(raw_lean_angle) > lean.max_angle_radians) {
                     const sign: f32 = if (raw_lean_angle > 0) 1 else -1;
                     raw_lean_angle = lean.max_angle_radians * sign;

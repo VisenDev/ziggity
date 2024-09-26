@@ -467,7 +467,7 @@ pub fn renderItems(
         const item = self.get(Component.Item, member);
         const physics = self.get(Component.Physics, member);
 
-        item.renderInWorld(window_manager, physics.pos);
+        item.renderInWorld(window_manager, physics.position);
     }
 }
 

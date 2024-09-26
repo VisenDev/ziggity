@@ -30,10 +30,6 @@ const ray = @cImport({
     @cInclude("raylib.h");
 });
 
-//const raygui = @cImport({
-//    @cInclude("raygui.h");
-//});
-
 const gl = @cImport({
     @cInclude("glad.h");
 });
@@ -80,9 +76,6 @@ pub fn main() !void {
 
     var ui = try dvui.Window.init(@src(), a, dvui_backend.backend(), .{ .theme = &dvui.Theme.Jungle });
     defer ui.deinit();
-
-    //raygui.GuiLoadStyleDark();
-    //ray.SetTargetFPS(200);
 
     var current_window = menu.NextWindow.main_menu;
     var save_id: []u8 = "";

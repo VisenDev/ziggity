@@ -120,8 +120,8 @@ pub const Wanderer = struct {
                 const physics = self.get(Component.Physics, entity);
                 const random_vector = ecs.randomVector2(10, 10);
                 const random_destination = ray.Vector2{
-                    .x = physics.pos.x + random_vector.x - 6,
-                    .y = physics.pos.y + random_vector.y - 6,
+                    .x = physics.position.x + random_vector.x - 6,
+                    .y = physics.position.y + random_vector.y - 6,
                 };
                 //std.debug.print("old: {}\nnew: {}\n\n", .{ wanderer.destination, random_destination });
                 wanderer.destination = random_destination;
@@ -130,10 +130,13 @@ pub const Wanderer = struct {
             },
             .travelling => {
                 const physics = self.get(Component.Physics, entity);
-                move.moveTowards(physics, wanderer.destination, opt.update);
+                const direction = move.directionVector(physics.position, wanderer.destination);
+                const force = 10;
+                physics.applyForce(move.scaleVector(direction, force));
+                //move.moveTowards(physics, wanderer.destination, opt.update);
                 wanderer.cooldown -= opt.update.dtInMs();
 
-                if (move.distance(physics.pos, wanderer.destination) < 1.5 or wanderer.cooldown <= 0) {
+                if (move.distanceBetween(physics.position, wanderer.destination) < 1.5 or wanderer.cooldown <= 0) {
                     wanderer.state = .arrived;
                 }
             },

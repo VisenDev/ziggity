@@ -8,26 +8,7 @@ const ray = @cImport({
     @cInclude("raylib.h");
 });
 
-const vec_default: ray.Vector2 = .{ .x = 0, .y = 0 };
-
-pub const Physics = struct {
-    pos: ray.Vector2 = vec_default,
-    vel: ray.Vector2 = vec_default,
-
-    //internal, should usually be treated as constants
-    acceleration: f32 = 0.03,
-    friction: f32 = 0.98,
-
-    pub fn getCachePosition(self: @This()) ?struct { x: usize, y: usize } {
-        if (self.pos.x < 0 or self.pos.y < 0) {
-            return null;
-        }
-        return .{
-            .x = @intFromFloat(@max(@divFloor(self.pos.x, sys.position_cache_scale), 0)),
-            .y = @intFromFloat(@max(@divFloor(self.pos.y, sys.position_cache_scale), 0)),
-        };
-    }
-};
+pub const Physics = @import("movement.zig").Physics;
 pub const Health = struct {
     hp: f32 = 10,
     max_hp: f32 = 10,

@@ -89,7 +89,7 @@ pub const RenderTexture = struct {
 pub const FragShader = struct {
     raw_shader: ray.Shader,
     shader_value_locations: std.StringHashMap(c_int),
-    enabled: bool = true,
+    enabled: bool = false,
 
     pub fn init(a: std.mem.Allocator, filepath: [:0]const u8) !FragShader {
         const fullpath = try file.combineAppendSentinel(a, try file.getShaderDirPath(a), filepath);

@@ -19,14 +19,15 @@ const ray = @cImport({
     @cInclude("raylib.h");
 });
 
-pub fn distance(a: ray.Vector2, b: ray.Vector2) f32 {
+/// distance between two points
+pub fn distanceBetween(a: ray.Vector2, b: ray.Vector2) f32 {
     const dx = a.x - b.x;
     const dy = a.y - b.y;
 
     return @sqrt(dx * dx + dy * dy);
 }
 
-///normalizes a vector
+/// normalizes a vector
 pub fn normalize(v: ray.Vector2) ray.Vector2 {
     const mag = std.math.sqrt(v.x * v.x + v.y * v.y);
     return ray.Vector2{
@@ -34,6 +35,55 @@ pub fn normalize(v: ray.Vector2) ray.Vector2 {
         .y = v.y / mag,
     };
 }
+
+fn tof32(input: anytype) f32 {
+    return @floatFromInt(input);
+}
+
+pub fn addVector2(a: ray.Vector2, b: ray.Vector2) ray.Vector2 {
+    return .{ .x = a.x + b.x, .y = a.y + b.y };
+}
+
+pub fn scaleVector(a: ray.Vector2, scalar: anytype) ray.Vector2 {
+    if (@TypeOf(scalar) == f32)
+        return .{ .x = a.x * scalar, .y = a.y * scalar };
+
+    return .{ .x = a.x * tof32(scalar), .y = a.y * tof32(scalar) };
+}
+
+const vec_default: ray.Vector2 = .{ .x = 0, .y = 0 };
+
+pub const Physics = struct {
+    position: ray.Vector2 = vec_default,
+    velocity: ray.Vector2 = vec_default,
+    acceleration: ray.Vector2 = vec_default,
+    mass: f32 = 10, //kg
+
+    pub fn applyForce(self: *@This(), force: ray.Vector2) void {
+        const acceleration = ray.Vector2{
+            .x = force.x / self.mass,
+            .y = force.y / self.mass,
+        };
+        self.acceleration.x += acceleration.x;
+        self.acceleration.y += acceleration.y;
+    }
+
+    pub fn applyFriction(self: *@This(), friction_coefficient: f32) void {
+        self.velocity.x *= (1 - friction_coefficient);
+        self.velocity.y *= (1 - friction_coefficient);
+    }
+
+    /// gets the caching position for a physics component
+    pub fn getCachePosition(self: Physics) ?struct { x: usize, y: usize } {
+        if (self.position.x < 0 or self.position.y < 0) {
+            return null;
+        }
+        return .{
+            .x = @intFromFloat(@max(@divFloor(self.position.x, position_cache_scale), 0)),
+            .y = @intFromFloat(@max(@divFloor(self.position.y, position_cache_scale), 0)),
+        };
+    }
+};
 
 //pub fn getAngle(v: ray.Vector2) f32 {
 //    const angle = std.math.atan2(v.y, v.x); //radians
@@ -71,12 +121,15 @@ test "getAngle" {
     try std.testing.expectEqual(@as(f32, @as(f32, std.math.pi) + std.math.pi / 4.0), getAngleBetween(.{ .x = 1, .y = 1 }, .{ .x = -2, .y = -2 }));
 }
 
-///makes a physics system move towards a destination
-pub fn moveTowards(physics: *Component.Physics, destination: ray.Vector2, opt: options.Update) void {
-    const angle = getAngleBetween(physics.pos, destination);
-    physics.vel.x += physics.acceleration * @cos(angle) * opt.dt;
-    physics.vel.y += physics.acceleration * @sin(angle) * opt.dt;
+pub fn directionVector(physics: ray.Vector2, target: ray.Vector2) ray.Vector2 {
+    return normalize(.{ .x = target.x - physics.x, .y = target.y - physics.y });
 }
+///makes a physics system move towards a destination
+//pub fn moveTowards(physics: *Component.Physics, destination: ray.Vector2, opt: options.Update) void {
+//    const angle = getAngleBetween(physics.pos, destination);
+//    physics.vel.x += physics.acceleration * @cos(angle) * opt.dt;
+//    physics.vel.y += physics.acceleration * @sin(angle) * opt.dt;
+//}
 
 pub fn rotateVector2(point: ray.Vector2, angle: f32, pivot: ray.Vector2) ray.Vector2 {
     const sin = std.math.sin(angle);
@@ -101,9 +154,12 @@ pub fn rotateVector2(point: ray.Vector2, angle: f32, pivot: ray.Vector2) ray.Vec
 }
 
 ///makes a physics system move away from a destination
-pub fn moveAwayFrom(physics: *Component.Physics, destination: ray.Vector2, opt: options.Update) void {
-    moveTowards(physics, rotateVector2(destination, std.math.pi, physics.pos), opt);
-}
+//pub fn moveAwayFrom(physics: *Component.Physics, destination: ray.Vector2, opt: options.Update) void {
+//    moveTowards(physics, rotateVector2(destination, std.math.pi, physics.pos), opt);
+//}
+
+//IMPORTANT, controls the scale of the position cache relative to the map
+pub const position_cache_scale: usize = 1;
 
 pub fn updateMovementSystem(
     self: *ecs.ECS,
@@ -117,33 +173,45 @@ pub fn updateMovementSystem(
     for (set) |member| {
         var physics = self.get(Component.Physics, member);
 
-        const old_position = physics.pos;
-        physics.pos.x += physics.vel.x;
+        // Update velocity based on acceleration
+        physics.velocity.x += physics.acceleration.x * opt.dt;
+        physics.velocity.y += physics.acceleration.y * opt.dt;
+
+        //store old position in case new position collides with walls
+        const old_position = physics.position;
+        physics.position.x += physics.velocity.x * opt.dt;
 
         //undo if the entity collides
         if (self.getMaybe(Component.Hitbox, member)) |hitbox| {
             if (self.getMaybe(Component.WallCollisions, member) != null and
-                m.checkCollision(hitbox.getCollisionRect(physics.pos)))
+                m.checkCollision(hitbox.getCollisionRect(physics.position)))
             {
-                physics.pos.x = old_position.x;
-                physics.vel.x *= 0.5;
+                physics.position.x = old_position.x;
+                physics.velocity.x *= 0.5;
             }
         }
 
-        physics.pos.y += physics.vel.y;
+        physics.position.y += physics.velocity.y * opt.dt;
 
         if (self.getMaybe(Component.Hitbox, member)) |hitbox| {
             if (self.getMaybe(Component.WallCollisions, member) != null and
-                m.checkCollision(hitbox.getCollisionRect(physics.pos)))
+                m.checkCollision(hitbox.getCollisionRect(physics.position)))
             {
-                physics.pos.y = old_position.y;
-                physics.vel.y *= 0.5;
+                physics.position.y = old_position.y;
+                physics.velocity.y *= 0.5;
             }
         }
 
+        //apply friction
+        physics.applyFriction(0.01);
+
+        // Reset acceleration for the next frame (forces need to be reapplied)
+        physics.acceleration.x = 0;
+        physics.acceleration.y = 0;
+
         //adding movement particles
         if (self.getMaybe(Component.MovementParticles, member)) |_| {
-            const velocity_magnitude = @abs((physics.vel.x + physics.vel.y) / 2);
+            const velocity_magnitude = @abs((physics.velocity.x + physics.velocity.y) / 2);
 
             const adjustment_factor: f32 = 0.2;
 
@@ -153,11 +221,11 @@ pub fn updateMovementSystem(
                     const particle = try arch.createParticle(self, a);
                     const entity_hitbox = self.getMaybe(Component.Hitbox, member) orelse &Component.Hitbox{};
                     try self.setComponent(a, particle, Component.Physics{
-                        .pos = .{
-                            .x = physics.pos.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
-                            .y = physics.pos.y + (entity_hitbox.bottom - entity_hitbox.top),
+                        .position = .{
+                            .x = physics.position.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
+                            .y = physics.position.y + (entity_hitbox.bottom - entity_hitbox.top),
                         },
-                        .vel = .{
+                        .velocity = .{
                             .x = (ecs.randomFloat() - 0.5) * opt.dt,
                             .y = (ecs.randomFloat() - 0.5) * opt.dt,
                         },
@@ -165,9 +233,6 @@ pub fn updateMovementSystem(
                 }
             }
         }
-
-        physics.vel.x *= physics.friction;
-        physics.vel.y *= physics.friction;
     }
 }
 
@@ -215,6 +280,7 @@ pub fn updateEntitySeparationSystem(
     m: *const map.MapState,
     opt: options.Update,
 ) !void {
+    _ = opt; // autofix
     const systems = [_]type{ Component.Physics, Component.Hitbox, Component.EntityCollisions };
     const set = self.getSystemDomain(a, &systems);
 
@@ -225,8 +291,44 @@ pub fn updateEntitySeparationSystem(
         for (colliders) |colliding_entity| {
             if (self.hasComponent(Component.EntityCollisions, colliding_entity)) {
                 const colliding_entity_physics = self.get(Component.Physics, colliding_entity);
-                moveAwayFrom(colliding_entity_physics, physics.pos, opt);
+                applyCollisionForce(colliding_entity_physics, physics, 1);
+                //moveAwayFrom(colliding_entity_physics, physics.pos, opt);
             }
         }
     }
+}
+
+fn applyCollisionForce(obj1: *Physics, obj2: *const Physics, restitution: f32) void {
+    // Calculate normal vector
+    var normal = ray.Vector2{
+        .x = obj2.position.x - obj1.position.x,
+        .y = obj2.position.y - obj1.position.y,
+    };
+    const distance: f32 = @sqrt(normal.x * normal.x + normal.y * normal.y);
+    normal.x /= distance;
+    normal.y /= distance;
+
+    // Relative velocity in the normal direction
+    const relative_velocity: ray.Vector2 = .{
+        .x = obj2.velocity.x - obj1.velocity.x,
+        .y = obj2.velocity.y - obj1.velocity.y,
+    };
+    const velocity_along_normal: f32 = relative_velocity.x * normal.x + relative_velocity.y * normal.y;
+
+    // If objects are moving apart, no need to apply force
+    if (velocity_along_normal > 0) {
+        return;
+    }
+
+    // Calculate the impulse scalar
+    const e = restitution; // Coefficient of restitution (1 for elastic, < 1 for inelastic)
+    const inverse_mass1 = 1.0 / obj1.mass;
+    const inverse_mass2 = 1.0 / obj2.mass;
+    const j = -(1 + e) * velocity_along_normal / (inverse_mass1 + inverse_mass2);
+
+    // Apply impulse force to both objects
+    const impulse: ray.Vector2 = .{ .x = j * normal.x, .y = j * normal.y };
+
+    // Apply the impulse as force to both objects
+    obj1.applyForce(impulse);
 }

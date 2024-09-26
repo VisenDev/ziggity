@@ -26,12 +26,11 @@ Animations = {
       --items
       SubImage("potion", "entities.png", 0, 32, 16, 16),
 
-      table.unpack(DeriveWallAnimations("cave_wall", "tiles.png", 0, 0)),
-      --table.unpack(DeriveWallAnimations("castle_wall", "tiles.png", 1, 0)),
-      --table.unpack(DeriveWallAnimations("wood_wall", "tiles.png", 2, 0)),
 }
 
-PrintTable(Animations)
+Animations = TableConcat(Animations, DeriveWallAnimations("cave_wall", "tiles.png", 0, 0))
+Animations = TableConcat(Animations, DeriveWallAnimations("castle_wall", "tiles.png", 1, 0))
+Animations = TableConcat(Animations, DeriveWallAnimations("wood_wall", "tiles.png", 2, 0))
 
 
 ---@type KeyConfig[]

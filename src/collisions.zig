@@ -18,8 +18,8 @@ pub fn checkCollision(
     hitbox_2: Component.Hitbox,
 ) bool {
     return ray.CheckCollisionRecs(
-        hitbox_1.getCollisionRect(physics_1.pos),
-        hitbox_2.getCollisionRect(physics_2.pos),
+        hitbox_1.getCollisionRect(physics_1.position),
+        hitbox_2.getCollisionRect(physics_2.position),
     );
 }
 

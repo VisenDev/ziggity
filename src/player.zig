@@ -1,4 +1,5 @@
 const std = @import("std");
+const move = @import("movement.zig");
 const arch = @import("archetypes.zig");
 const api = @import("api.zig");
 const tile = @import("tiles.zig");
@@ -30,30 +31,29 @@ pub fn updatePlayerSystem(
     const systems = [_]type{ Component.IsPlayer, Component.Physics };
     const set = self.getSystemDomain(a, &systems);
 
-    const magnitude: f32 = 20;
-
     for (set) |member| {
         var direction = ray.Vector2{ .x = 0, .y = 0 };
 
         if (window_manager.keybindings.isDown("player_up")) {
-            direction.y -= magnitude;
+            direction.y -= 1;
         }
 
         if (window_manager.keybindings.isDown("player_down")) {
-            direction.y += magnitude;
+            direction.y += 1;
         }
 
         if (window_manager.keybindings.isDown("player_left")) {
-            direction.x -= magnitude;
+            direction.x -= 1;
         }
 
         if (window_manager.keybindings.isDown("player_right")) {
-            direction.x += magnitude;
+            direction.x += 1;
         }
 
         var physics = self.get(Component.Physics, member);
-        physics.vel.x += direction.x * physics.acceleration * opt.dt;
-        physics.vel.y += direction.y * physics.acceleration * opt.dt;
+        physics.applyForce(move.scaleVector(direction, 100));
+        //physics.vel.x += direction.x * physics.acceleration * opt.dt;
+        //physics.vel.y += direction.y * physics.acceleration * opt.dt;
 
         //let player shoot projectiles
         if (window_manager.isMousePressed(.right) and window_manager.getMouseOwner() == .level) {
@@ -61,8 +61,8 @@ pub fn updatePlayerSystem(
             const fireball = try arch.createPotion(self, a);
             const pos = window_manager.getMouseTileCoordinates();
             self.setComponent(a, fireball, Component.Physics{
-                .pos = pos,
-                .vel = .{
+                .position = pos,
+                .velocity = .{
                     .x = (ecs.randomFloat() - 0.5) * opt.dt,
                     .y = (ecs.randomFloat() - 0.5) * opt.dt,
                 },
@@ -75,7 +75,8 @@ pub fn updatePlayerSystem(
             const slime = arch.createSlime(self, a) catch continue;
             const pos = window_manager.getMouseTileCoordinates();
             self.setComponent(a, slime, Component.Physics{
-                .pos = pos,
+                .position = pos,
+                .mass = 1,
             }) catch continue;
         }
     }
