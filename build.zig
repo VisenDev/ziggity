@@ -35,9 +35,9 @@ pub fn build(b: *std.Build) !void {
     exe_test.root_module.addImport("dvui", dvui.module("dvui_raylib"));
 
     //================ADD RAYLIBBACKEND======================
-    exe.root_module.addImport("RaylibBackend", dvui.module("RaylibBackend"));
-    exe_check.root_module.addImport("RaylibBackend", dvui.module("RaylibBackend"));
-    exe_test.root_module.addImport("RaylibBackend", dvui.module("RaylibBackend"));
+    //exe.root_module.addImport("RaylibBackend", dvui.module("RaylibBackend"));
+    //exe_check.root_module.addImport("RaylibBackend", dvui.module("RaylibBackend"));
+    //exe_test.root_module.addImport("RaylibBackend", dvui.module("RaylibBackend"));
 
     //================ADD ZIGLUA====================
     const ziglua = b.dependency("ziglua", .{ .target = target, .optimize = optimize });
@@ -58,10 +58,6 @@ pub fn build(b: *std.Build) !void {
 
     const define_step = b.step("define", "");
     define_step.dependOn(&run_define_exe.step);
-
-    //===============ADD FENNEL=====================
-    const fennel = b.dependency("fennel", .{ .target = target, .optimize = optimize });
-    _ = fennel; // autofix
 
     //================LINK RAYLIB===================
     const maybe_ray = dvui.builder.lazyDependency("raylib", .{ .target = target, .optimize = optimize });

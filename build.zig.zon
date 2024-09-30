@@ -4,16 +4,12 @@
     .paths = .{""},
     .dependencies = .{
         .ziglua = .{
-            .url = "https://github.com/VisenDev/ziglua/archive/refs/heads/luals-docgen.zip",
-            .hash = "1220a61d5b0c2b68173c211c2b4b6d052d815d62007b4b09d920750426f6986c8c1e",
-        },
-        .fennel = .{
-            .url = "https://fennel-lang.org/downloads/fennel-1.4.0.tar.gz",
-            .hash = "122080601be3a2920a39d2027c290b562aba6814612e1d68d7f596f9ec3ba4158195",
+            .url = "https://github.com/natecraddock/ziglua/archive/refs/heads/master.tar.gz",
+            .hash = "12202d776708f5c2f5b3cd809765d1a2d3d5586eea1c4955615c57a6d1efbd592aee",
         },
         .dvui = .{
-            .url = "https://github.com/david-vanderson/dvui/archive/refs/heads/main.tar.gz",
-            .hash = "12205e1f527feafb7f32b15ee7a8a23b2ac0ae751af03c0dbbc79db0eb4188501c69",
+            .url = "https://github.com/david-vanderson/dvui/archive/refs/heads/master.tar.gz",
+            .hash = "1220c7113d1937f66485b5b25bd238d367a0d704124c1680df7be2fdb224aeabf80a",
         },
     },
 }

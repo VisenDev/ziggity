@@ -51,6 +51,10 @@ pub fn scaleVector(a: ray.Vector2, scalar: anytype) ray.Vector2 {
     return .{ .x = a.x * tof32(scalar), .y = a.y * tof32(scalar) };
 }
 
+pub fn getMagnitude(a: ray.Vector2) f32 {
+    return @sqrt(a.x * a.x + a.y * a.y);
+}
+
 const vec_default: ray.Vector2 = .{ .x = 0, .y = 0 };
 
 pub const Physics = struct {
@@ -203,33 +207,38 @@ pub fn updateMovementSystem(
         }
 
         //apply friction
-        physics.applyFriction(0.01);
+        const friction = 10;
+        physics.applyFriction(friction * opt.dt);
 
         // Reset acceleration for the next frame (forces need to be reapplied)
         physics.acceleration.x = 0;
         physics.acceleration.y = 0;
 
         //adding movement particles
-        if (self.getMaybe(Component.MovementParticles, member)) |_| {
-            const velocity_magnitude = @abs((physics.velocity.x + physics.velocity.y) / 2);
+        if (self.getMaybe(Component.MovementParticles, member)) |particles| {
+            if (particles.cooldown_remaining_ms > 0) {
+                particles.cooldown_remaining_ms -= opt.dtInMs();
+            } else {
+                const velocity_magnitude = @abs((physics.velocity.x + physics.velocity.y) / 2);
+                const adjustment_factor: f32 = 0.2;
 
-            const adjustment_factor: f32 = 0.2;
-
-            if (velocity_magnitude > ecs.randomFloat() * adjustment_factor) {
-                const num_particles: usize = @intFromFloat(@floor(ecs.randomFloat() * 5));
-                for (0..num_particles) |_| {
-                    const particle = try arch.createParticle(self, a);
-                    const entity_hitbox = self.getMaybe(Component.Hitbox, member) orelse &Component.Hitbox{};
-                    try self.setComponent(a, particle, Component.Physics{
-                        .position = .{
-                            .x = physics.position.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
-                            .y = physics.position.y + (entity_hitbox.bottom - entity_hitbox.top),
-                        },
-                        .velocity = .{
-                            .x = (ecs.randomFloat() - 0.5) * opt.dt,
-                            .y = (ecs.randomFloat() - 0.5) * opt.dt,
-                        },
-                    });
+                if (velocity_magnitude > ecs.randomFloat() * adjustment_factor) {
+                    const num_particles: usize = @intFromFloat(@floor(ecs.randomFloat() * 5));
+                    for (0..num_particles * 3) |_| {
+                        const particle = try arch.createParticle(self, a);
+                        const entity_hitbox = self.getMaybe(Component.Hitbox, member) orelse &Component.Hitbox{};
+                        try self.setComponent(a, particle, Component.Physics{
+                            .position = .{
+                                .x = physics.position.x + 0.3 + 0.2 * (ecs.randomFloat() - 0.5),
+                                .y = physics.position.y + (entity_hitbox.bottom - entity_hitbox.top),
+                            },
+                            .velocity = .{
+                                .x = (ecs.randomFloat() - 0.5) * opt.dt,
+                                .y = (ecs.randomFloat() - 0.5) * opt.dt,
+                            },
+                        });
+                    }
+                    particles.cooldown_remaining_ms = 150 + ecs.randomFloat() * 200;
                 }
             }
         }

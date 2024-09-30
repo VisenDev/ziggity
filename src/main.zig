@@ -35,7 +35,7 @@ const gl = @cImport({
 });
 
 const dvui = @import("dvui");
-const RaylibBackend = @import("RaylibBackend");
+const RaylibBackend = dvui.backend;
 
 fn playSound() void {
     ray.InitAudioDevice();
@@ -60,7 +60,7 @@ pub fn main() !void {
     const a = my_arena.allocator();
 
     ray.SetConfigFlags(ray.FLAG_WINDOW_RESIZABLE);
-    //ray.SetConfigFlags(ray.FLAG_VSYNC_HINT);
+    ray.SetConfigFlags(ray.FLAG_VSYNC_HINT); //disable this flag to test max fps
     ray.InitWindow(800, 450, "ziggity");
     defer ray.CloseWindow();
 

@@ -51,7 +51,7 @@ pub fn updatePlayerSystem(
         }
 
         var physics = self.get(Component.Physics, member);
-        physics.applyForce(move.scaleVector(direction, 100));
+        physics.applyForce(move.scaleVector(direction, 200));
         //physics.vel.x += direction.x * physics.acceleration * opt.dt;
         //physics.vel.y += direction.y * physics.acceleration * opt.dt;
 

@@ -20,7 +20,8 @@ pub const Sprite = anime.SpriteComponent;
 //pub const Tracker = ai.Targeter;
 pub const MovementParticles = struct {
     color: ray.Color = ray.WHITE,
-    quantity: u32 = 1,
+    cooldown_remaining_ms: f32 = 0,
+    //quantity: u32 = 1,
 };
 pub const Wanderer = ai.Wanderer;
 pub const Patroller = struct {

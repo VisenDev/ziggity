@@ -1,4 +1,5 @@
 const std = @import("std");
+const move = @import("movement.zig");
 const MapState = @import("map.zig").MapState;
 const shader = @import("shaders.zig");
 const key = @import("keybindings.zig");
@@ -46,7 +47,7 @@ pub const SpriteComponent = struct {
         } = null,
         lean: ?struct {
             max_angle_radians: f32 = std.math.pi / 4.0,
-            resistance: f32 = 20,
+            resistance: f32 = 0.1,
         } = null,
         scale: ?struct {
             current: f32 = 1.0,
@@ -136,8 +137,8 @@ pub const AnimationPlayer = struct {
             ray.Rectangle{
                 .x = 0,
                 .y = 0,
-                .width = @floatFromInt(texture.width),
-                .height = @floatFromInt(texture.height),
+                .width = @as(f32, @floatFromInt(texture.width)) + 0.1,
+                .height = @as(f32, @floatFromInt(texture.height)) + 0.1,
             };
 
         const subrect = if (opt.flipped) flipSelection(unflipped_subrect) else unflipped_subrect;
@@ -151,8 +152,8 @@ pub const AnimationPlayer = struct {
             ray.Rectangle{
             .x = position.x * tilemap_adjustment_factor,
             .y = position.y * tilemap_adjustment_factor,
-            .width = (render_width * opt.horizontal_scale) + 0.001,
-            .height = (render_height * opt.vertical_scale) + 0.001,
+            .width = (render_width * opt.horizontal_scale) + 0.01,
+            .height = (render_height * opt.vertical_scale) + 0.01,
         };
 
         ray.DrawTexturePro(texture, subrect, render_rect, animation.origin, std.math.radiansToDegrees(opt.rotation_radians), opt.tint);
@@ -501,7 +502,8 @@ pub fn renderSprites(
             //account for bobbing
             if (sprite.styling.bob) |bob| {
                 const normalized_cycle_progress = (std.math.mod(f32, (opt.total_time_ms - sprite.creation_time.?), bob.cycle_time_ms) catch 0) / bob.cycle_time_ms;
-                render_position.y += std.math.sin(normalized_cycle_progress * std.math.pi * 2) * bob.distance;
+                render_position.y -= @abs(std.math.sin(normalized_cycle_progress * std.math.pi * 2)) *
+                    (bob.distance * (move.getMagnitude(physics.velocity) + 0.1));
             }
 
             //account for lean

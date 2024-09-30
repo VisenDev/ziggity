@@ -7,9 +7,8 @@ const ray = @cImport({
     @cInclude("raylib.h");
 });
 
-const RaylibBackend = @import("RaylibBackend");
-
 const dvui = @import("dvui");
+const RaylibBackend = dvui.backend;
 
 pub const NextWindow = enum { main_menu, game, save_menu, config_menu, quit, new_save };
 
