@@ -28,16 +28,18 @@ pub fn build(b: *std.Build) !void {
         .link_libc = true,
     });
 
+    //================ADD PROFILER=====================
+    const profiler = b.dependency("profiler", .{ .target = target, .optimize = optimize });
+
+    exe.root_module.addImport("profiler", profiler.module("profiler"));
+    exe_check.root_module.addImport("profiler", profiler.module("profiler"));
+    exe_test.root_module.addImport("profiler", profiler.module("profiler"));
+
     //================ADD DVUI======================
     const dvui = b.dependency("dvui", .{ .target = target, .optimize = optimize });
     exe.root_module.addImport("dvui", dvui.module("dvui_raylib"));
     exe_check.root_module.addImport("dvui", dvui.module("dvui_raylib"));
     exe_test.root_module.addImport("dvui", dvui.module("dvui_raylib"));
-
-    //================ADD RAYLIBBACKEND======================
-    //exe.root_module.addImport("RaylibBackend", dvui.module("RaylibBackend"));
-    //exe_check.root_module.addImport("RaylibBackend", dvui.module("RaylibBackend"));
-    //exe_test.root_module.addImport("RaylibBackend", dvui.module("RaylibBackend"));
 
     //================ADD ZIGLUA====================
     const ziglua = b.dependency("ziglua", .{ .target = target, .optimize = optimize });
@@ -58,6 +60,38 @@ pub fn build(b: *std.Build) !void {
 
     const define_step = b.step("define", "");
     define_step.dependOn(&run_define_exe.step);
+
+    //===============LINT LUA===========================
+
+    const lua_files_path = "data/lua";
+
+    const lint_commands: []const []const u8 = &.{
+        "lua-language-server",
+        "--check",
+        b.path(lua_files_path).getPath(b),
+        "--logpath",
+        "--checklevel=Hint",
+        "--logpath",
+        b.path(".zig-cache").getPath(b),
+    };
+    var lint = b.addSystemCommand(lint_commands);
+    _ = &lint; // autofix
+
+    // jq -r 'to_entries[] | .key as $file | .value[] | "\($file): \(.message) at line \(.range.start.line)"'
+
+    //const log_commands: []const []const u8 = &.{
+    //    "jq",
+    //    "-r",
+    //    //"\"to_entries[] | .key as $file | .value[] | \\\"\\($file): \\(.message) at line \\(.range.start.line)\\\"\"",
+    //    \\"to_entries[] | .key as $file | .value[] | \"\($file): \(.message) at line \(.range.start.line)\""
+    //    ,
+    //    b.path(".zig-cache/check.json").getPath(b),
+    //};
+    //var log = b.addSystemCommand(log_commands);
+    //log.step.dependOn(&lint.step);
+
+    //var lint_step = b.step("lint", "lint lua");
+    //lint_step.dependOn(&log.step);
 
     //================LINK RAYLIB===================
     const maybe_ray = dvui.builder.lazyDependency("raylib", .{ .target = target, .optimize = optimize });

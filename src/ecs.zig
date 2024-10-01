@@ -8,9 +8,8 @@ const Grid = @import("grid.zig").Grid;
 pub const Component = @import("components.zig");
 const ziglua = @import("ziglua");
 const Lua = ziglua.Lua;
-const ray = @cImport({
-    @cInclude("raylib.h");
-});
+const dvui = @import("dvui");
+const ray = dvui.backend.c;
 const api = @import("api.zig");
 
 ///range 0.0 to 1.0

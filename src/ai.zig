@@ -3,9 +3,9 @@ const move = @import("movement.zig");
 const Component = @import("components.zig");
 const options = @import("options.zig");
 const ecs = @import("ecs.zig");
-const ray = @cImport({
-    @cInclude("raylib.h");
-});
+
+const dvui = @import("dvui");
+const ray = dvui.backend.c;
 
 pub const Controller = struct {
     pub const name = "controller";

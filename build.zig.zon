@@ -11,5 +11,13 @@
             .url = "https://github.com/david-vanderson/dvui/archive/refs/heads/master.tar.gz",
             .hash = "1220c7113d1937f66485b5b25bd238d367a0d704124c1680df7be2fdb224aeabf80a",
         },
+        .@"profiler.zig" = .{
+            .url = "https://github.com/VisenDev/profiler.zig/archive/refs/heads/package-manager-support.zip",
+            .hash = "12204d5dcd7384cdc363a5115cb16f174f55a895900f58398a7c9dfd7012497826d9",
+        },
+        .profiler = .{
+            .url = "https://github.com/VisenDev/profiler.zig/archive/refs/heads/package-manager-support.zip",
+            .hash = "12204d5dcd7384cdc363a5115cb16f174f55a895900f58398a7c9dfd7012497826d9",
+        },
     },
 }

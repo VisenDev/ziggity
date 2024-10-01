@@ -17,12 +17,10 @@ const item_actions = @import("item_actions.zig");
 const Component = @import("components.zig");
 const intersection = @import("sparse_set.zig").intersection;
 
-const ray = @cImport({
-    @cInclude("raylib.h");
-});
-
-//const raygui = @cImport({
-//    @cInclude("raygui.h");
+const dvui = @import("dvui");
+const ray = dvui.backend.c;
+//const ray = @cImport({
+//    @cInclude("ray.h");
 //});
 
 const eql = std.mem.eql;
@@ -54,6 +52,22 @@ pub const ItemComponent = struct {
     max_stack_size: usize = 16,
     animation_player: anime.AnimationPlayer = .{ .animation_name = "potion" },
     action: ?ItemActionEnum = null,
+
+    pub fn runAction(
+        self: *@This(),
+        a: std.mem.Allocator,
+        item_id: usize,
+        ecs: *ECS,
+        wm: *anime.WindowManager,
+        opt: options.Update,
+    ) void {
+        if (self.action == null) return;
+        inline for (@typeInfo(item_actions).Struct.decls) |decl| {
+            if (std.mem.eql(u8, @tagName(self.action.?), decl.name)) {
+                @field(item_actions, decl.name).run(a, item_id, ecs, wm, opt);
+            }
+        }
+    }
 
     pub fn renderInUi(self: *const @This(), window_manager: *const anime.WindowManager, screen_position: ray.Vector2, ui_render_size: f32) void {
         //const scale_adjustment = ui_render_size / window_manager.animations.get(self.animation_player.animation_name).?.frames[0].subrect.width;
@@ -314,15 +328,29 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
             return height * self.slot_render_size * window_manager.ui_zoom;
         }
 
-        pub fn updateMouseInteractions(self: *@This(), window_manager: *const anime.WindowManager, entity_component_system: *const ECS) !void {
+        pub fn updateMouseInteractions(
+            self: *@This(),
+            a: std.mem.Allocator,
+            window_manager: *anime.WindowManager,
+            entity_component_system: *ECS,
+            opt: options.Update,
+        ) !void {
             if (window_manager.getMouseOwner() == .inventory) {
                 if (self.hovered_index != null and window_manager.isMousePressed(.left)) {
                     self.selected_index = self.hovered_index.?;
                     std.debug.print("selected_index: {}\n", .{self.selected_index});
                 }
             }
-
             self.audit(entity_component_system);
+
+            if (window_manager.isMousePressed(.left)) {
+                const maybe_item_id = self.getSelectedItemId();
+                if (maybe_item_id) |item_id| {
+                    const item_data = entity_component_system.get(Component.Item, item_id);
+                    item_data.runAction(a, item_id, entity_component_system, window_manager, opt);
+                }
+                //item_data.action =
+            }
         }
 
         pub fn render(self: *@This(), window_manager: *const anime.WindowManager, entity_component_system: *const ECS, render_opt: InventoryRenderOptions) void {
@@ -333,39 +361,38 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
                 .top_left => render_opt.position,
                 else => @panic("not implemented yet"),
             };
-            _ = render_position; // autofix
 
-            //const render_window_bounds: raygui.Rectangle = .{
-            //    .x = render_position.x,
-            //    .y = render_position.y,
-            //    .width = render_width,
-            //    .height = render_height,
-            //};
+            const render_window_bounds: ray.Rectangle = .{
+                .x = render_position.x,
+                .y = render_position.y,
+                .width = render_width,
+                .height = render_height,
+            };
 
-            //const null_mouse_pos: raygui.Vector2 = .{ .x = -1, .y = -1 };
-            //var mouse_pos: raygui.Vector2 = null_mouse_pos;
+            const null_mouse_pos: ray.Vector2 = .{ .x = -1, .y = -1 };
+            var mouse_pos: ray.Vector2 = null_mouse_pos;
 
-            //_ = raygui.GuiGrid(render_window_bounds, "Player Inventory", self.slot_render_size, @intFromFloat(self.slot_render_size), &mouse_pos);
+            _ = ray.GuiGrid(render_window_bounds, "Player Inventory", self.slot_render_size, @intFromFloat(self.slot_render_size), &mouse_pos);
 
-            //if (std.meta.eql(mouse_pos, null_mouse_pos)) {
-            //    self.hovered_index = null;
-            //} else {
-            //    self.hovered_index = Index.initFromVector2(mouse_pos);
-            //}
+            if (std.meta.eql(mouse_pos, null_mouse_pos)) {
+                self.hovered_index = null;
+            } else {
+                self.hovered_index = Index.initFromVector2(mouse_pos);
+            }
 
-            //var iterator = self.iterate();
-            //while (iterator.next()) |index| {
-            //    const final_position = anime.addVector2(anime.scaleVector(index.vector2(), self.slot_render_size), render_position);
+            var iterator = self.iterate();
+            while (iterator.next()) |index| {
+                const final_position = anime.addVector2(anime.scaleVector(index.vector2(), self.slot_render_size), render_position);
 
-            //    if (self.selected_index.x == index.x and self.selected_index.y == index.y) {
-            //        ray.DrawRectangleV(final_position, .{ .x = self.slot_render_size, .y = self.slot_render_size }, ray.GRAY);
-            //    }
+                if (self.selected_index.x == index.x and self.selected_index.y == index.y) {
+                    ray.DrawRectangleV(final_position, .{ .x = self.slot_render_size, .y = self.slot_render_size }, ray.GRAY);
+                }
 
-            //    if (self.getIndex(index)) |item_id| {
-            //        const item = entity_component_system.get(Component.Item, item_id);
-            //        item.renderInUi(window_manager, final_position, self.slot_render_size * 0.9);
-            //    }
-            //}
+                if (self.getIndex(index)) |item_id| {
+                    const item = entity_component_system.get(Component.Item, item_id);
+                    item.renderInUi(window_manager, final_position, self.slot_render_size * 0.9);
+                }
+            }
 
             self.audit(entity_component_system);
         }
@@ -393,7 +420,6 @@ pub fn updateInventorySystem(
     m: *map.MapState,
     opt: options.Update,
 ) !void {
-    _ = opt;
     const systems = [_]type{ Component.Inventory, Component.Hitbox };
     const set = self.getSystemDomain(a, &systems);
 
@@ -414,7 +440,7 @@ pub fn updateInventorySystem(
             }
         }
 
-        try inventory.updateMouseInteractions(window_manager, self);
+        try inventory.updateMouseInteractions(a, window_manager, self, opt);
 
         const colliders = try coll.findCollidingEntities(self, a, m, member);
         for (colliders) |entity| {

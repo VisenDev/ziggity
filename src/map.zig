@@ -10,9 +10,8 @@ const options = @import("options.zig");
 const Allocator = std.mem.Allocator;
 const Grid = @import("grid.zig").Grid;
 
-const ray = @cImport({
-    @cInclude("raylib.h");
-});
+const dvui = @import("dvui");
+const ray = dvui.backend.c;
 
 fn tof32(input: anytype) f32 {
     return @floatFromInt(input);

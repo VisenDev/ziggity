@@ -13,9 +13,9 @@ const coll = @import("collisions.zig");
 const Component = @import("components.zig");
 const intersection = @import("sparse_set.zig").intersection;
 const sys = @import("systems.zig");
-const ray = @cImport({
-    @cInclude("raylib.h");
-});
+
+const dvui = @import("dvui");
+const ray = dvui.backend.c;
 
 pub const DebugEntry = struct {
     pub const max_string_length = 256;

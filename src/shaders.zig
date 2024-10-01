@@ -1,9 +1,9 @@
 const file = @import("file_utils.zig");
 const cam = @import("camera.zig");
 const std = @import("std");
-const ray = @cImport({
-    @cInclude("raylib.h");
-});
+
+const dvui = @import("dvui");
+const ray = dvui.backend.c;
 
 pub const Vec2 = ray.Vector2; //extern struct { x: f32 = 0, y: f32 = 0 };
 pub const Vec3 = extern struct { x: f32 = 0, y: f32 = 0, z: f32 = 0 };

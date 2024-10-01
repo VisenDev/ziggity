@@ -26,13 +26,13 @@ const Lua = @import("ziglua").Lua;
 const api = @import("api.zig");
 const play = @import("player.zig");
 
-const ray = @cImport({
-    @cInclude("raylib.h");
-});
+const ray = dvui.backend.c;
 
 const gl = @cImport({
     @cInclude("glad.h");
 });
+
+const profiler = @import("profiler");
 
 const dvui = @import("dvui");
 const RaylibBackend = dvui.backend;
@@ -94,6 +94,15 @@ pub fn main() !void {
 }
 
 fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.NextWindow {
+    profiler.init(.{});
+    defer {
+        profiler.dump("profile.json") catch |e| std.log.err("profile dump failed: {}", .{e});
+        profiler.deinit();
+    }
+
+    const zone = profiler.begin(@src(), "runGame");
+    defer zone.end();
+
     const manifest = try file.readManifest(a, current_save);
     defer manifest.deinit();
 
@@ -143,6 +152,9 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Next
     var show_light_rendertexture = false;
 
     while (!ray.WindowShouldClose()) {
+        const tick_zone = profiler.begin(@src(), "tick_game");
+        defer tick_zone.end();
+
         target.updateDimentions();
         light_texture.updateDimentions();
 
@@ -158,6 +170,7 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Next
         //reset mouse layers
         window_manager.resetMouseOwner();
 
+        const debug_zone = profiler.begin(@src(), "debug_zone");
         debugger.addText("FPS: {}", .{ray.GetFPS()});
         debugger.addText("Entity Count: {}", .{lvl.ecs.getNumEntities()});
         if (debugger.addTextButton(&window_manager, "[Toggle Light Shaders]", .{})) {
@@ -166,34 +179,68 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Next
         if (debugger.addTextButton(&window_manager, "[Show Light Texture]", .{})) show_light_rendertexture = !show_light_rendertexture;
         if (debugger.addTextButton(&window_manager, "[Save]", .{})) try lvl.save(a);
         if (debugger.addTextButton(&window_manager, "[Main Menu]", .{})) return .main_menu;
+        debug_zone.end();
 
+        const movement_zone = profiler.begin(@src(), "movement_zone");
         try move.updateEntitySeparationSystem(lvl.ecs, a, lvl.map, update_options);
         try move.updateMovementSystem(lvl.ecs, a, lvl.map, update_options);
         try move.updatePositionCacheSystem(lvl.ecs, a, lvl.map, update_options);
+        movement_zone.end();
+
+        const inventory_zone = profiler.begin(@src(), "inventory_zone");
         try inv.updateInventorySystem(lvl.ecs, a, &window_manager, lvl.map, update_options);
+        inventory_zone.end();
+
+        const player_zone = profiler.begin(@src(), "player_zone");
         try play.updatePlayerSystem(lvl.ecs, a, lua, &window_manager, update_options);
+        player_zone.end();
+
+        const item_zone = profiler.begin(@src(), "item_zone");
         try inv.updateItemSystem(lvl.ecs, a, &window_manager, update_options);
+        item_zone.end();
+
+        const health_zone = profiler.begin(@src(), "health_zone");
         try sys.updateLifetimeSystem(lvl.ecs, a, update_options);
         try sys.updateDeathSystem(lvl.ecs, a, lua, update_options);
         sys.updateHealthCooldownSystem(lvl.ecs, a, update_options);
         try sys.updateDamageSystem(lvl.ecs, a, lvl.map, update_options);
+        health_zone.end();
+
+        const update_animation_zone = profiler.begin(@src(), "update_animation_zone");
         sys.updateSpriteSystem(lvl.ecs, a, &window_manager, update_options);
         try sys.trimAnimationEntitySystem(lvl.ecs, a, update_options);
+        update_animation_zone.end();
+
+        const ai_zone = profiler.begin(@src(), "ai_zone");
         try ai.updateControllerSystem(lvl.ecs, a, update_options);
+        ai_zone.end();
         //try light.updateLightingSystem(lvl.ecs, a, &light_shader, update_options);
 
         //draw main
         ray.BeginDrawing();
         {
+            const render_zone = profiler.begin(@src(), "main_render_zone");
+            defer render_zone.end();
+
             ray.BeginTextureMode(target.raw_render_texture);
             ray.BeginMode2D(window_manager.camera);
             ray.ClearBackground(ray.BLACK);
 
+            const render_map_zone = profiler.begin(@src(), "render_map_zone");
             lvl.map.renderMain(a, &window_manager, lvl.ecs);
-            lvl.map.renderBorders(a, &window_manager, lvl.ecs);
+            render_map_zone.end();
 
+            const render_map_border_zone = profiler.begin(@src(), "render_map_border_zone");
+            lvl.map.renderBorders(a, &window_manager, lvl.ecs);
+            render_map_border_zone.end();
+
+            const render_item_zone = profiler.begin(@src(), "render_item_zone");
             inv.renderItems(lvl.ecs, a, &window_manager);
+            render_item_zone.end();
+
+            const render_sprite_zone = profiler.begin(@src(), "render_sprite_zone");
             anime.renderSprites(lvl.ecs, a, &window_manager, update_options);
+            render_sprite_zone.end();
 
             //try light_shader.render(&window_manager);
 
@@ -205,6 +252,9 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Next
         //std.debug.assert(target.texture_mode == false);
 
         {
+            const render_zone = profiler.begin(@src(), "inventory_render_zone");
+            defer render_zone.end();
+
             ray.BeginTextureMode(light_texture.raw_render_texture);
             ray.BeginMode2D(window_manager.camera);
             //light_texture.beginTextureMode();
@@ -255,6 +305,9 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Next
         //try light_shader.shader.setShaderValue("lightRadius", f32, &value);
 
         {
+            const render_zone = profiler.begin(@src(), "shader_render_zone");
+            defer render_zone.end();
+
             const texture0: c_int = 0;
             gl.glActiveTexture(gl.GL_TEXTURE0);
             gl.glBindTexture(gl.GL_TEXTURE_2D, target.texture().id);
@@ -309,7 +362,10 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Next
             debugger.render(&window_manager);
             inv.renderPlayerInventory(lvl.ecs, a, &window_manager);
         }
+
+        const sleep_zone = profiler.begin(@src(), "sleep_zone");
         ray.EndDrawing();
+        sleep_zone.end();
         //}
 
         if (ray.IsKeyPressed('Q')) {

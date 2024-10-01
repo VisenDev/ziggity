@@ -4,9 +4,9 @@ const ai = @import("ai.zig");
 const inv = @import("inventory.zig");
 const control = @import("controller.zig");
 const sys = @import("systems.zig");
-const ray = @cImport({
-    @cInclude("raylib.h");
-});
+
+const dvui = @import("dvui");
+const ray = dvui.backend.c;
 
 pub const Physics = @import("movement.zig").Physics;
 pub const Health = struct {

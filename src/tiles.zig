@@ -3,9 +3,8 @@ const MapState = @import("map.zig").MapState;
 const Grid = @import("grid.zig").Grid;
 const options = @import("options.zig");
 const anime = @import("animation.zig");
-const ray = @cImport({
-    @cInclude("raylib.h");
-});
+const dvui = @import("dvui");
+const ray = dvui.backend.c;
 const json = std.json;
 const tex = @import("textures.zig");
 const file = @import("file_utils.zig");

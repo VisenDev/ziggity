@@ -7,9 +7,8 @@ const SparseSet = @import("sparse_set.zig").SparseSet;
 const Grid = @import("grid.zig").Grid;
 pub const Component = @import("components.zig");
 const ecs = @import("ecs.zig");
-const ray = @cImport({
-    @cInclude("raylib.h");
-});
+const dvui = @import("dvui");
+const ray = dvui.backend.c;
 
 pub fn checkCollision(
     physics_1: Component.Physics,

@@ -15,9 +15,9 @@ const SparseSet = @import("sparse_set.zig").SparseSet;
 const Grid = @import("grid.zig").Grid;
 pub const Component = @import("components.zig");
 const intersection = @import("sparse_set.zig").intersection;
-const ray = @cImport({
-    @cInclude("raylib.h");
-});
+
+const dvui = @import("dvui");
+const ray = dvui.backend.c;
 
 /// distance between two points
 pub fn distanceBetween(a: ray.Vector2, b: ray.Vector2) f32 {
@@ -135,9 +135,9 @@ pub fn directionVector(physics: ray.Vector2, target: ray.Vector2) ray.Vector2 {
 //    physics.vel.y += physics.acceleration * @sin(angle) * opt.dt;
 //}
 
-pub fn rotateVector2(point: ray.Vector2, angle: f32, pivot: ray.Vector2) ray.Vector2 {
-    const sin = std.math.sin(angle);
-    const cos = std.math.cos(angle);
+pub fn rotateVector2(point: ray.Vector2, angle_radians: f32, pivot: ray.Vector2) ray.Vector2 {
+    const sin = std.math.sin(angle_radians);
+    const cos = std.math.cos(angle_radians);
 
     var p = point;
 
