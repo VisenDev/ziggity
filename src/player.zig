@@ -26,6 +26,7 @@ pub fn updatePlayerSystem(
     window_manager: *const anime.WindowManager,
     opt: options.Update,
 ) !void {
+    _ = opt; // autofix
     _ = l;
     const systems = [_]type{ Component.IsPlayer, Component.Physics };
     const set = self.getSystemDomain(a, &systems);
@@ -55,28 +56,28 @@ pub fn updatePlayerSystem(
         //physics.vel.y += direction.y * physics.acceleration * opt.dt;
 
         //let player shoot projectiles
-        if (window_manager.isMousePressed(.right) and window_manager.getMouseOwner() == .level) {
-            //const fireball = try arch.createFireball(self, a);
-            const fireball = try arch.createPotion(self, a);
-            const pos = window_manager.getMouseTileCoordinates();
-            self.setComponent(a, fireball, Component.Physics{
-                .position = pos,
-                .velocity = .{
-                    .x = (ecs.randomFloat() - 0.5) * opt.dt,
-                    .y = (ecs.randomFloat() - 0.5) * opt.dt,
-                },
-            }) catch |err| std.debug.print("error adding component to entity when spawning fireball {!}", .{err});
-        }
+        //if (window_manager.isMousePressed(.right) and window_manager.getMouseOwner() == .level) {
+        //    //const fireball = try arch.createFireball(self, a);
+        //    const fireball = try arch.createPotion(self, a);
+        //    const pos = window_manager.getMouseTileCoordinates();
+        //    self.setComponent(a, fireball, Component.Physics{
+        //        .position = pos,
+        //        .velocity = .{
+        //            .x = (ecs.randomFloat() - 0.5) * opt.dt,
+        //            .y = (ecs.randomFloat() - 0.5) * opt.dt,
+        //        },
+        //    }) catch |err| std.debug.print("error adding component to entity when spawning fireball {!}", .{err});
+        //}
 
-        //spawnSlimes
-        if (window_manager.isMousePressed(.left) and window_manager.getMouseOwner() == .level) {
-            //const slime = try l.autoCall(?usize, "SpawnSlime", .{ self, &copy }) orelse break;
-            const slime = arch.createSlime(self, a) catch continue;
-            const pos = window_manager.getMouseTileCoordinates();
-            self.setComponent(a, slime, Component.Physics{
-                .position = pos,
-                .mass = 1,
-            }) catch continue;
-        }
+        ////spawnSlimes
+        //if (window_manager.isMousePressed(.left) and window_manager.getMouseOwner() == .level) {
+        //    //const slime = try l.autoCall(?usize, "SpawnSlime", .{ self, &copy }) orelse break;
+        //    const slime = arch.createSlime(self, a) catch continue;
+        //    const pos = window_manager.getMouseTileCoordinates();
+        //    self.setComponent(a, slime, Component.Physics{
+        //        .position = pos,
+        //        .mass = 1,
+        //    }) catch continue;
+        //}
     }
 }

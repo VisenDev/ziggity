@@ -278,16 +278,24 @@ pub const WindowManager = struct {
         max_y: usize,
     };
 
-    pub fn getVisibleBounds(self: *const @This(), a: std.mem.Allocator, ecs: *ECS, map: *const MapState) SubSection {
+    pub fn getPlayerId(_: *const @This(), a: std.mem.Allocator, ecs: *ECS) usize {
         const systems = [_]type{Component.IsPlayer};
         const set = ecs.getSystemDomain(a, &systems);
-        const player_position = ecs.get(Component.Physics, set[0]).position;
+        return set[0];
+    }
+
+    pub fn getPlayerHeldItem(self: *const @This(), a: std.mem.Allocator, ecs: *ECS) ?usize {
+        return ecs.get(Component.Inventory, self.getPlayerId(a, ecs)).getSelectedItemId();
+    }
+
+    pub fn getVisibleBounds(self: *const @This(), a: std.mem.Allocator, ecs: *ECS, map: *const MapState) SubSection {
+        const player_position = ecs.get(Component.Physics, self.getPlayerId(a, ecs)).position;
 
         return .{
-            .min_x = @intFromFloat(@floor(@max(player_position.x - (self.screenWidthInTiles() / 2) - 1, 0))),
-            .min_y = @intFromFloat(@floor(@max(player_position.y - (self.screenHeightInTiles() / 2) - 1, 0))),
-            .max_x = @intFromFloat(@floor(@min(player_position.x + (self.screenWidthInTiles() / 2) + 1, @as(f32, @floatFromInt(map.grid.width - 1))))),
-            .max_y = @intFromFloat(@floor(@min(player_position.y + (self.screenWidthInTiles() / 2) + 1, @as(f32, @floatFromInt(map.grid.height - 1))))),
+            .min_x = @intFromFloat(@floor(@max(player_position.x - (self.screenWidthInTiles()) - 1, 0))),
+            .min_y = @intFromFloat(@floor(@max(player_position.y - (self.screenHeightInTiles()) - 1, 0))),
+            .max_x = @intFromFloat(@floor(@min(player_position.x + (self.screenWidthInTiles()) + 1, @as(f32, @floatFromInt(map.grid.width - 1))))),
+            .max_y = @intFromFloat(@floor(@min(player_position.y + (self.screenWidthInTiles()) + 1, @as(f32, @floatFromInt(map.grid.height - 1))))),
         };
 
         //@max(@as(usize, @intFromFloat(@floor(player_position.x - self.screenWidthInTiles() / 2))), 0),

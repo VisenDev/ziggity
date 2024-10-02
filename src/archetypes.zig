@@ -58,14 +58,18 @@ pub fn createParticle(self: *ecs.ECS, a: std.mem.Allocator) !usize {
     try self.setComponent(a, id, Component.Lifetime{ .milliseconds_life_remaining = 2 * 1000 });
     return id;
 }
-
-pub fn createPotion(self: *ecs.ECS, a: std.mem.Allocator) !usize {
-    const id = self.newEntity(a) orelse return error.EntityCapReached;
-    try self.setComponent(a, id, Component.Physics{});
-    try self.setComponent(a, id, Component.Hitbox{});
-    try self.setComponent(a, id, Component.WallCollisions{});
-    try self.setComponent(a, id, Component.Item{ .animation_player = .{ .animation_name = "potion" }, .type_of_item = "healing_potion", .action = .fireball });
-    try self.setComponent(a, id, Component.Metadata{ .archetype = "item" });
-    //try self.setComponent(a, id, Component.Light{ .color = .{ .x = 0.5, .y = 0.1, .z = 0.1, .a = 0.9 }, .radius_in_tiles = 0.5 });
-    return id;
-}
+//
+//pub fn createPotion(self: *ecs.ECS, a: std.mem.Allocator) !usize {
+//    const id = self.newEntity(a) orelse return error.EntityCapReached;
+//    try self.setComponent(a, id, Component.Physics{});
+//    try self.setComponent(a, id, Component.Hitbox{});
+//    try self.setComponent(a, id, Component.WallCollisions{});
+//    try self.setComponent(a, id, Component.Item{
+//        .animation_player = .{ .animation_name = "potion" },
+//        .type_of_item = "healing_potion",
+//        .action = .spawn_slime,
+//    });
+//    try self.setComponent(a, id, Component.Metadata{ .archetype = "item" });
+//    //try self.setComponent(a, id, Component.Light{ .color = .{ .x = 0.5, .y = 0.1, .z = 0.1, .a = 0.9 }, .radius_in_tiles = 0.5 });
+//    return id;
+//}

@@ -1,4 +1,5 @@
 const std = @import("std");
+const item = @import("item_actions.zig");
 const arch = @import("archetypes.zig");
 const Lua = @import("ziglua").Lua;
 const anime = @import("animation.zig");
@@ -76,6 +77,15 @@ pub const Level = struct {
 
         const player_id = try arch.createPlayer(entities, a);
         try entities.setComponent(a, player_id, ecs.Component.Physics{ .position = .{ .x = 3, .y = 5 } });
+
+        var wand_id = try item.FireballWand.create(entities, a);
+        try entities.setComponent(a, wand_id, ecs.Component.Physics{ .position = .{ .x = 3, .y = 5 } });
+
+        wand_id = try item.SlimeWand.create(entities, a);
+        try entities.setComponent(a, wand_id, ecs.Component.Physics{ .position = .{ .x = 3, .y = 5 } });
+
+        wand_id = try item.ItemWand.create(entities, a);
+        try entities.setComponent(a, wand_id, ecs.Component.Physics{ .position = .{ .x = 3, .y = 5 } });
 
         return Level{
             .level_id = options.level_id,

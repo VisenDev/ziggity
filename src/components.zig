@@ -58,6 +58,7 @@ pub const Hitbox = struct {
 };
 pub const Damage = struct {
     type: []const u8 = "",
+    ignore_entities: []usize = &.{},
     amount: f32 = 10,
 };
 pub const Nametag = struct {

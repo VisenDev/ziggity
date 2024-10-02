@@ -9,7 +9,7 @@
         },
         .dvui = .{
             .url = "https://github.com/david-vanderson/dvui/archive/refs/heads/master.tar.gz",
-            .hash = "1220c7113d1937f66485b5b25bd238d367a0d704124c1680df7be2fdb224aeabf80a",
+            .hash = "12207d1fdb8a0761da95188ae46008e38a24ac2ece62736b447cbf43ac56033be493",
         },
         .@"profiler.zig" = .{
             .url = "https://github.com/VisenDev/profiler.zig/archive/refs/heads/package-manager-support.zip",

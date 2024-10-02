@@ -74,7 +74,7 @@ pub fn main() !void {
     defer dvui_backend.deinit();
     //dvui_backend.log_events = true;
 
-    var ui = try dvui.Window.init(@src(), a, dvui_backend.backend(), .{ .theme = &dvui.Theme.Jungle });
+    var ui = try dvui.Window.init(@src(), a, dvui_backend.backend(), .{});
     defer ui.deinit();
 
     var current_window = menu.NextWindow.main_menu;

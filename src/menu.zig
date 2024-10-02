@@ -31,6 +31,13 @@ pub fn drawMainMenu(a: std.mem.Allocator, ui: *dvui.Window, backend: *RaylibBack
             try ui.begin(std.time.nanoTimestamp());
             defer _ = ui.end(.{}) catch @panic("end failed");
 
+            const jungle = dvui.currentWindow().themes.get("Jungle") orelse dvui.currentWindow().themes.get("Adwaita Light").?;
+
+            //for (dvui.currentWindow().themes.keys()) |name| {
+            //    std.debug.print("name: {s}\n ", .{name});
+            //}
+
+            dvui.currentWindow().theme = jungle;
             //var scaler = try dvui.scale(@src(), 2, .{ .expand = .both });
             //defer scaler.deinit();
 
@@ -38,9 +45,9 @@ pub fn drawMainMenu(a: std.mem.Allocator, ui: *dvui.Window, backend: *RaylibBack
 
             _ = try backend.addAllEvents(ui);
 
-            if (dvui.themeGet() != &dvui.Theme.Jungle) {
-                dvui.themeSet(&dvui.Theme.Jungle);
-            }
+            //if (dvui.themeGet() != &dvui.Theme.Jungle) {
+            //    dvui.themeSet(&dvui.Theme.Jungle);
+            //}
 
             if (try dvui.button(@src(), "PLAY", .{}, button_opt)) {
                 return .save_menu;

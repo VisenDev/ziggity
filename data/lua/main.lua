@@ -25,6 +25,9 @@ Animations = {
 
       --items
       SubImage("potion", "entities.png", 0, 32, 16, 16),
+      SubImage("slime_wand", "entities.png", 16, 32, 16, 16),
+      SubImage("item_wand", "entities.png", 0, 48, 16, 16),
+      SubImage("fireball_wand", "entities.png", 16, 48, 16, 16),
 
 }
 

@@ -150,6 +150,7 @@ pub fn updateDamageSystem(
         const colliders = try coll.findCollidingEntities(self, a, m, member);
         for (colliders) |entity| {
             if (self.getMaybe(Component.Invulnerable, entity)) |_| continue;
+            if (std.mem.indexOf(usize, damage.ignore_entities, &.{entity})) |_| continue;
             var health = self.getMaybe(Component.Health, entity) orelse continue;
 
             if (health.cooldown_remaining <= 0) {

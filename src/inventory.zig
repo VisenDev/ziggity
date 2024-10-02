@@ -45,13 +45,13 @@ const eql = std.mem.eql;
 pub const ItemComponent = struct {
     pub const name = "item";
 
-    pub const ItemActionEnum = std.meta.DeclEnum(item_actions);
+    //pub const ItemActionEnum = std.meta.DeclEnum(item_actions);
     type_of_item: [:0]const u8 = "unknown",
     category_of_item: [:0]const u8 = "unknown",
     stack_size: usize = 1,
     max_stack_size: usize = 16,
     animation_player: anime.AnimationPlayer = .{ .animation_name = "potion" },
-    action: ?ItemActionEnum = null,
+    tick_fn: []const u8,
 
     pub fn runAction(
         self: *@This(),
@@ -471,14 +471,10 @@ pub fn updateItemSystem(
 
     for (set) |member| {
         const item = self.get(Component.Item, member);
-        if (item.action) |action| {
-            //std.meta.tags(Component.Item.ItemActionEnum)
-            //try @field(item_actions, @tagName(action)).do(member, self, window_manager, opt);
-            inline for (@typeInfo(item_actions).Struct.decls) |decl| {
-                if (std.mem.eql(u8, decl.name, @tagName(action))) {
-                    const chosen_action = @field(item_actions, decl.name);
-                    try chosen_action.run(a, member, self, window_manager, opt);
-                }
+        inline for (@typeInfo(item_actions).Struct.decls) |decl| {
+            if (std.mem.eql(u8, decl.name, item.tick_fn)) {
+                const chosen_action = @field(item_actions, decl.name);
+                try chosen_action.tick(a, member, self, window_manager, opt);
             }
         }
     }
