@@ -38,7 +38,7 @@ pub fn createPlayer(self: *ecs.ECS, a: std.mem.Allocator) !usize {
 pub fn createFireball(self: *ecs.ECS, a: std.mem.Allocator) !usize {
     const id = self.newEntity(a) orelse return error.EntityCapReached;
     try self.setComponent(a, id, Component.Physics{});
-    try self.setComponent(a, id, Component.Hitbox{ .bottom = 0.2, .left = 0.2 });
+    try self.setComponent(a, id, Component.Hitbox{ .bottom = 0.02, .left = 0.02 });
     try self.setComponent(a, id, Component.WallCollisions{});
     try self.setComponent(a, id, Component.Metadata{ .archetype = "projectile" });
     try self.setComponent(a, id, Component.Sprite{ .animation_player = .{ .animation_name = "fireball" } });

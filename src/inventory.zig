@@ -335,6 +335,8 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
             entity_component_system: *ECS,
             opt: options.Update,
         ) !void {
+            _ = a; // autofix
+            _ = opt; // autofix
             if (window_manager.getMouseOwner() == .inventory) {
                 if (self.hovered_index != null and window_manager.isMousePressed(.left)) {
                     self.selected_index = self.hovered_index.?;
@@ -343,14 +345,14 @@ pub fn Inventory(comptime width: usize, comptime height: usize, comptime interna
             }
             self.audit(entity_component_system);
 
-            if (window_manager.isMousePressed(.left)) {
-                const maybe_item_id = self.getSelectedItemId();
-                if (maybe_item_id) |item_id| {
-                    const item_data = entity_component_system.get(Component.Item, item_id);
-                    item_data.runAction(a, item_id, entity_component_system, window_manager, opt);
-                }
-                //item_data.action =
-            }
+            //if (window_manager.isMousePressed(.left)) {
+            //    const maybe_item_id = self.getSelectedItemId();
+            //    if (maybe_item_id) |item_id| {
+            //        const item_data = entity_component_system.get(Component.Item, item_id);
+            //        item_data.runAction(a, item_id, entity_component_system, window_manager, opt);
+            //    }
+            //    //item_data.action =
+            //}
         }
 
         pub fn render(self: *@This(), window_manager: *const anime.WindowManager, entity_component_system: *const ECS, render_opt: InventoryRenderOptions) void {
@@ -474,7 +476,8 @@ pub fn updateItemSystem(
             //try @field(item_actions, @tagName(action)).do(member, self, window_manager, opt);
             inline for (@typeInfo(item_actions).Struct.decls) |decl| {
                 if (std.mem.eql(u8, decl.name, @tagName(action))) {
-                    try @field(item_actions, decl.name).do(member, self, window_manager, opt);
+                    const chosen_action = @field(item_actions, decl.name);
+                    try chosen_action.run(a, member, self, window_manager, opt);
                 }
             }
         }
