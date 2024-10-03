@@ -4,5 +4,6 @@ zig-out/
 ./zig-out/*
 src/depreciated
 data/images/src/*
+data/lua/definitions.lua
 .zig-cache
 **~
