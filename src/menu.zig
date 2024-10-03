@@ -235,7 +235,7 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, ui: *dvui.Window, backend: *Rayl
 
 pub fn drawNewSaveMenu(a: std.mem.Allocator, lua: *Lua, ui: *dvui.Window, backend: *RaylibBackend) !NextWindow {
     var save_name: [64]u8 = .{0} ** 64;
-    var seed: usize = 123321;
+    var seed: usize = 0;
 
     while (!ray.WindowShouldClose()) {
         ray.BeginDrawing();
@@ -261,8 +261,11 @@ pub fn drawNewSaveMenu(a: std.mem.Allocator, lua: *Lua, ui: *dvui.Window, backen
 
             try dvui.label(@src(), "Enter Seed", .{}, .{});
             const result = try dvui.textEntryNumber(@src(), usize, .{}, .{});
-            if (result == .Valid) {
-                seed = result.Valid;
+            switch (result.value) {
+                .Valid => |val| {
+                    seed = val;
+                },
+                else => {},
             }
         }
         if (try dvui.button(@src(), "Generate", .{}, .{ .border = dvui.Rect.all(1), .background = true })) {
