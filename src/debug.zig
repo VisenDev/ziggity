@@ -16,6 +16,9 @@ const sys = @import("systems.zig");
 
 const dvui = @import("dvui");
 const ray = dvui.backend.c;
+//const ray = @cImport({
+//    @cInclude("raylib.h");
+//});
 
 pub const DebugEntry = struct {
     pub const max_string_length = 256;
@@ -142,6 +145,45 @@ pub const DebugRenderer = struct {
     //    const font_size: f32 = 8;
     //    self.addTextAtScreenPosition(screen_position, font_size * self.camera.zoom, fmt, args);
     //}
+};
+
+pub const DeltaTimeLog = struct {
+    const num_logs = 2048;
+    dt: [num_logs]f32 = .{0} ** num_logs,
+    index: usize = 0,
+
+    pub fn record(self: *@This(), dt: f32) void {
+        self.dt[self.index] = dt;
+        self.index += 1;
+        if (self.index >= num_logs) {
+            self.index = 0;
+        }
+    }
+
+    pub fn render(self: *@This()) void {
+        const pos: ray.Vector2 = .{ .x = anime.screenWidth() - num_logs - 5, .y = anime.screenHeight() - 5 };
+        var x_shift: f32 = 0;
+
+        //loop thru first half
+        for (self.dt[self.index..]) |dt| {
+            ray.DrawLineV(
+                .{ .x = pos.x + x_shift, .y = pos.y },
+                .{ .x = pos.x + x_shift, .y = pos.y - dt * 1000 },
+                ray.RED,
+            );
+            x_shift += 1;
+        }
+
+        //loop thru second half
+        for (self.dt[0..self.index]) |dt| {
+            ray.DrawLineV(
+                .{ .x = pos.x + x_shift, .y = pos.y },
+                .{ .x = pos.x + x_shift, .y = pos.y - dt * 1000 },
+                ray.RED,
+            );
+            x_shift += 1;
+        }
+    }
 };
 
 //

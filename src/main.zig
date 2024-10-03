@@ -32,7 +32,7 @@ const gl = @cImport({
     @cInclude("glad.h");
 });
 
-const profiler = @import("profiler");
+const profiler = @import("profiler_mock.zig");
 
 const dvui = @import("dvui");
 const RaylibBackend = dvui.backend;
@@ -60,8 +60,9 @@ pub fn main() !void {
     const a = my_arena.allocator();
 
     ray.SetConfigFlags(ray.FLAG_WINDOW_RESIZABLE);
-    ray.SetConfigFlags(ray.FLAG_VSYNC_HINT); //disable this flag to test max fps
+    //    ray.SetConfigFlags(ray.FLAG_VSYNC_HINT); //disable this flag to test max fps
     ray.InitWindow(800, 450, "ziggity");
+    //ray.SetTargetFPS(60);
     defer ray.CloseWindow();
 
     //const music_player = try std.Thread.spawn(.{}, playSound, .{});
@@ -143,6 +144,8 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Next
     var debugger = try debug.DebugRenderer.init(a);
     defer debugger.deinit();
 
+    var dtlog = debug.DeltaTimeLog{};
+
     var update_options = options.Update{ .debugger = &debugger };
 
     //temporary variable, TODO add this functionality to window manager
@@ -166,6 +169,9 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Next
         //configure update options
         window_manager.updateCameraPosition(a, lvl);
         update_options.update();
+
+        //log delta time
+        dtlog.record(update_options.dt);
 
         //reset mouse layers
         window_manager.resetMouseOwner();
@@ -259,7 +265,7 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Next
             ray.BeginMode2D(window_manager.camera);
             //light_texture.beginTextureMode();
             //defer light_texture.endTextureMode();
-            ray.ClearBackground(ray.GRAY);
+            //ray.ClearBackground(ray.GRAY);
 
             //lvl.map.renderMain(a, &window_manager, lvl.ecs);
             //lvl.map.renderBorders(a, &window_manager, lvl.ecs);
@@ -320,7 +326,7 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Next
             //ray.BeginMode2D(camera);
             //ray.ClearBackground(ray.RAYWHITE); // Clear screen background
 
-            //        Enable shader using the custom uniform
+            ////        Enable shader using the custom uniform
             //if (light_shaders) {
             //    light_shader.shader.beginShaderMode();
             //}
@@ -355,11 +361,12 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Next
 
             //    bloom_shader.endShaderMode();
             //}
-            if (show_light_rendertexture) {
-                light_texture.render(null);
-            }
+            //if (show_light_rendertexture) {
+            //    light_texture.render(null);
+            //}
 
             debugger.render(&window_manager);
+            dtlog.render();
             inv.renderPlayerInventory(lvl.ecs, a, &window_manager);
         }
 

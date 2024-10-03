@@ -45,18 +45,15 @@ pub const FireballWand = struct {
                 .position = .{ .x = physics.position.x, .y = physics.position.y },
                 .mass = 0.001,
             };
-            const base_force: ray.Vector2 = .{ .x = 10, .y = 0 };
+            const base_force: ray.Vector2 = .{ .x = 20, .y = 0 };
             fireball_physics.applyForce(move.rotateVector2(base_force, angle, .{ .x = 0, .y = 0 }));
 
             const fireball_id = try arch.createFireball(ecs, a);
             try ecs.setComponent(a, fireball_id, fireball_physics);
             try ecs.setComponent(a, fireball_id, Component.Damage{
                 .type = "fire",
-                .amount = 1,
-                .ignore_entities = try a.dupe(
-                    usize,
-                    &.{player},
-                ),
+                .amount = 10,
+                .ignore_entities = try a.dupe(usize, &.{player}),
             });
         }
 
