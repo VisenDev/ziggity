@@ -29,7 +29,11 @@ pub fn build(b: *std.Build) !void {
     });
 
     //================ADD PROFILER=====================
-    const profiler = b.dependency("profiler", .{ .target = target, .optimize = optimize });
+    const profiler = b.dependency("profiler", .{
+        .target = target,
+        .optimize = optimize,
+        .enable_profiling = b.option(bool, "enable_profiling", "enable the profiler") orelse false,
+    });
 
     exe.root_module.addImport("profiler", profiler.module("profiler"));
     exe_check.root_module.addImport("profiler", profiler.module("profiler"));

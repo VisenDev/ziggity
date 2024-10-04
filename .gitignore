@@ -7,3 +7,4 @@ data/images/src/*
 data/lua/definitions.lua
 .zig-cache
 **~
+profile.json
