@@ -32,7 +32,7 @@ const gl = @cImport({
     @cInclude("glad.h");
 });
 
-const profiler = @import("profiler_mock.zig");
+const profiler = @import("profiler");
 
 const dvui = @import("dvui");
 const RaylibBackend = dvui.backend;
