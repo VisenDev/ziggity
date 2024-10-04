@@ -18,7 +18,7 @@ pub const Component = @import("components.zig");
 const intersection = @import("sparse_set.zig").intersection;
 
 const dvui = @import("dvui");
-const ray = dvui.backend.c;
+const ray = @import("raylib-import.zig").ray;
 pub fn updatePlayerSystem(
     self: *ecs.ECS,
     a: std.mem.Allocator,

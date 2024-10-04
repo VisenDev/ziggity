@@ -5,8 +5,8 @@ const options = @import("options.zig");
 const ecs = @import("ecs.zig");
 
 const dvui = @import("dvui");
-const ray = dvui.backend.c;
 
+const ray = @import("raylib-import.zig").ray;
 pub const Controller = struct {
     pub const name = "controller";
 

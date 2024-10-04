@@ -6,8 +6,8 @@ const control = @import("controller.zig");
 const sys = @import("systems.zig");
 
 const dvui = @import("dvui");
-const ray = dvui.backend.c;
 
+const ray = @import("raylib-import.zig").ray;
 pub const Physics = @import("movement.zig").Physics;
 pub const Health = struct {
     hp: f32 = 10,

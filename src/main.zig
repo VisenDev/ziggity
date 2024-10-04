@@ -26,13 +26,20 @@ const Lua = @import("ziglua").Lua;
 const api = @import("api.zig");
 const play = @import("player.zig");
 
-const ray = dvui.backend.c;
+//const ray = dvui.backend.c;
+//const ray = @cImport({
+//    @cInclude("raylib.h");
+//    @cInclude("raymath.h");
+//    @cInclude("rlgl.h");
+//    @cInclude("raygui.h");
+//});
+const ray = @import("raylib-import.zig").ray;
 
 const gl = @cImport({
     @cInclude("glad.h");
 });
 
-const profiler = @import("profiler_mock.zig");
+const profiler = @import("profiler");
 
 const dvui = @import("dvui");
 const RaylibBackend = dvui.backend;
@@ -53,16 +60,20 @@ fn playSound() void {
 }
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{ .retain_metadata = true, .enable_memory_limit = true }){};
+    var gpa = std.heap.GeneralPurposeAllocator(.{
+        .retain_metadata = true,
+        .enable_memory_limit = true,
+        .verbose_log = true,
+    }){};
     defer _ = gpa.detectLeaks();
     var my_arena = Arena.init(gpa.allocator());
     defer my_arena.deinit();
     const a = my_arena.allocator();
 
     ray.SetConfigFlags(ray.FLAG_WINDOW_RESIZABLE);
-    //    ray.SetConfigFlags(ray.FLAG_VSYNC_HINT); //disable this flag to test max fps
+    ray.SetConfigFlags(ray.FLAG_VSYNC_HINT); //disable this flag to test max fps
     ray.InitWindow(800, 450, "ziggity");
-    //ray.SetTargetFPS(60);
+    ray.SetTargetFPS(60);
     defer ray.CloseWindow();
 
     //const music_player = try std.Thread.spawn(.{}, playSound, .{});
@@ -244,10 +255,17 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Next
             inv.renderItems(lvl.ecs, a, &window_manager);
             render_item_zone.end();
 
+            const item_batch_zone = profiler.begin(@src(), "render_batched");
+            ray.rlDrawRenderBatchActive();
+            item_batch_zone.end();
+
             const render_sprite_zone = profiler.begin(@src(), "render_sprite_zone");
             anime.renderSprites(lvl.ecs, a, &window_manager, update_options);
             render_sprite_zone.end();
 
+            const sprite_batch_zone = profiler.begin(@src(), "render_batched");
+            ray.rlDrawRenderBatchActive();
+            sprite_batch_zone.end();
             //try light_shader.render(&window_manager);
 
             //gl.glEnable(gl.GL_STENCIL_TEST);
@@ -317,11 +335,11 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Next
             const texture0: c_int = 0;
             gl.glActiveTexture(gl.GL_TEXTURE0);
             gl.glBindTexture(gl.GL_TEXTURE_2D, target.texture().id);
-            const texture1: c_int = 1;
-            gl.glActiveTexture(gl.GL_TEXTURE1);
-            gl.glBindTexture(gl.GL_TEXTURE_2D, light_texture.texture().id);
+            //const texture1: c_int = 1;
+            //gl.glActiveTexture(gl.GL_TEXTURE1);
+            //gl.glBindTexture(gl.GL_TEXTURE_2D, light_texture.texture().id);
             try light_shader.shader.setShaderValue("texture0", i32, &texture0);
-            try light_shader.shader.setShaderValue("texture1", i32, &texture1);
+            //try light_shader.shader.setShaderValue("texture1", i32, &texture1);
             target.render(light_shader.shader);
             //ray.BeginMode2D(camera);
             //ray.ClearBackground(ray.RAYWHITE); // Clear screen background
@@ -364,6 +382,10 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Next
             //if (show_light_rendertexture) {
             //    light_texture.render(null);
             //}
+
+            const shader_batch_zone = profiler.begin(@src(), "render_batched");
+            ray.rlDrawRenderBatchActive();
+            shader_batch_zone.end();
 
             debugger.render(&window_manager);
             dtlog.render();

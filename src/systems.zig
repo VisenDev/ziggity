@@ -15,10 +15,8 @@ const cam = @import("camera.zig");
 const Lua = @import("ziglua").Lua;
 pub const Component = @import("components.zig");
 const intersection = @import("sparse_set.zig").intersection;
-const ray = @cImport({
-    @cInclude("raylib.h");
-});
 
+const ray = @import("raylib-import.zig").ray;
 //pub usingnamespace @import("movement.zig");
 const moveTowards = @This().moveTowards;
 

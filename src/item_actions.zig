@@ -12,7 +12,7 @@ const options = @import("options.zig");
 const ECS = @import("ecs.zig").ECS;
 
 const dvui = @import("dvui");
-const ray = dvui.backend.c;
+const ray = @import("raylib-import.zig").ray;
 
 pub const FireballWand = struct {
     pub fn create(self: *ECS, a: std.mem.Allocator) !usize {

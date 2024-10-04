@@ -14,8 +14,8 @@ const file = @import("file_utils.zig");
 const options = @import("options.zig");
 const SparseSet = @import("sparse_set.zig").SparseSet;
 const dvui = @import("dvui");
-const ray = dvui.backend.c;
 
+const ray = @import("raylib-import.zig").ray;
 fn tof32(input: anytype) f32 {
     return @floatFromInt(input);
 }

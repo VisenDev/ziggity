@@ -15,7 +15,7 @@ const intersection = @import("sparse_set.zig").intersection;
 const sys = @import("systems.zig");
 
 const dvui = @import("dvui");
-const ray = dvui.backend.c;
+const ray = @import("raylib-import.zig").ray;
 //const ray = @cImport({
 //    @cInclude("raylib.h");
 //});

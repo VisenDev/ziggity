@@ -3,10 +3,8 @@ const Lua = @import("ziglua").Lua;
 const file = @import("file_utils.zig");
 const save = @import("save.zig");
 const level = @import("level.zig");
-const ray = @cImport({
-    @cInclude("raylib.h");
-});
 
+const ray = @import("raylib-import.zig").ray;
 const dvui = @import("dvui");
 const RaylibBackend = dvui.backend;
 

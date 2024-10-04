@@ -11,5 +11,5 @@ void main() {
     vec4 lightColor = texture(texture1, fragTexCoord); // Sample the light color from lightTexture
 
     // Add lighting
-    finalColor = clamp(baseColor * lightColor, 0, 1);
+    finalColor = clamp(baseColor * lightColor , 0, 1);
 }

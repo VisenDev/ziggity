@@ -8,8 +8,8 @@
             .hash = "12202d776708f5c2f5b3cd809765d1a2d3d5586eea1c4955615c57a6d1efbd592aee",
         },
         .dvui = .{
-            .url = "https://github.com/david-vanderson/dvui/archive/refs/heads/main.zip",
-            .hash = "122030685c1a51bd5012059068a52477e55af582c9f928e20204673f3724305fd276",
+            .url = "https://github.com/david-vanderson/dvui/archive/refs/heads/master.tar.gz",
+            .hash = "1220a3dd91ac0c58c33f3f6a34d60697b65415b5d0319c6eea5f61a6273f3c5f5ec2",
         },
         .profiler = .{
             .url = "https://github.com/lassade/profiler.zig/archive/refs/heads/main.zip",

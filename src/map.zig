@@ -11,8 +11,8 @@ const Allocator = std.mem.Allocator;
 const Grid = @import("grid.zig").Grid;
 
 const dvui = @import("dvui");
-const ray = dvui.backend.c;
 
+const ray = @import("raylib-import.zig").ray;
 fn tof32(input: anytype) f32 {
     return @floatFromInt(input);
 }

@@ -9,9 +9,9 @@ pub const Component = @import("components.zig");
 const ziglua = @import("ziglua");
 const Lua = ziglua.Lua;
 const dvui = @import("dvui");
-const ray = dvui.backend.c;
 const api = @import("api.zig");
 
+const ray = @import("raylib-import.zig").ray;
 ///range 0.0 to 1.0
 pub fn randomFloat() f32 {
     const state = struct {

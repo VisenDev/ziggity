@@ -48,18 +48,18 @@ pub fn build(b: *std.Build) !void {
     exe_test.root_module.addImport("ziglua", ziglua.module("ziglua"));
 
     //===============DEFINE LUA TYPES=====================
-    const define_exe = b.addExecutable(.{
+    const exe_define = b.addExecutable(.{
         .name = "define",
         .root_source_file = b.path("src/define_exe.zig"),
         .target = target,
     });
-    define_exe.root_module.addImport("ziglua", ziglua.module("ziglua"));
+    exe_define.root_module.addImport("ziglua", ziglua.module("ziglua"));
 
-    var run_define_exe = b.addRunArtifact(define_exe);
-    run_define_exe.addFileArg(b.path("data/lua/definitions.lua"));
+    var run_exe_define = b.addRunArtifact(exe_define);
+    run_exe_define.addFileArg(b.path("data/lua/definitions.lua"));
 
     const define_step = b.step("define", "");
-    define_step.dependOn(&run_define_exe.step);
+    define_step.dependOn(&run_exe_define.step);
 
     //===============LINT LUA===========================
 
@@ -99,10 +99,28 @@ pub fn build(b: *std.Build) !void {
         exe.linkLibrary(ray.artifact("raylib"));
         exe_check.linkLibrary(ray.artifact("raylib"));
         exe_test.linkLibrary(ray.artifact("raylib"));
-        define_exe.linkLibrary(ray.artifact("raylib"));
+        exe_define.linkLibrary(ray.artifact("raylib"));
 
         const glad_path = ray.path("src/external");
         exe.addIncludePath(glad_path);
+        exe_test.addIncludePath(glad_path);
+        exe_check.addIncludePath(glad_path);
+        exe_define.addIncludePath(glad_path);
+
+        const ray_path = ray.path("src");
+        exe.addIncludePath(ray_path);
+        exe_test.addIncludePath(ray_path);
+        exe_check.addIncludePath(ray_path);
+        exe_define.addIncludePath(ray_path);
+    }
+
+    const maybe_raygui = dvui.builder.lazyDependency("raygui", .{ .target = target, .optimize = optimize });
+    if (maybe_raygui) |raygui| {
+        const raygui_path = raygui.path("src");
+        exe.addIncludePath(raygui_path);
+        exe_test.addIncludePath(raygui_path);
+        exe_check.addIncludePath(raygui_path);
+        exe_define.addIncludePath(raygui_path);
     }
 
     //================FIND GLAD.H===================

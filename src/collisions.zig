@@ -8,7 +8,7 @@ const Grid = @import("grid.zig").Grid;
 pub const Component = @import("components.zig");
 const ecs = @import("ecs.zig");
 const dvui = @import("dvui");
-const ray = dvui.backend.c;
+const ray = @import("raylib-import.zig").ray;
 
 pub fn checkCollision(
     physics_1: Component.Physics,

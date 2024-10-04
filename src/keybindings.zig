@@ -1,10 +1,8 @@
 const std = @import("std");
 const Lua = @import("ziglua").Lua;
 const file = @import("file_utils.zig");
-const ray = @cImport({
-    @cInclude("raylib.h");
-});
 
+const ray = @import("raylib-import.zig").ray;
 //================KeyBindings======================
 
 pub const KeyMode = enum { insert, normal };

@@ -3,7 +3,7 @@ const cam = @import("camera.zig");
 const std = @import("std");
 
 const dvui = @import("dvui");
-const ray = dvui.backend.c;
+const ray = @import("raylib-import.zig").ray;
 
 pub const Vec2 = ray.Vector2; //extern struct { x: f32 = 0, y: f32 = 0 };
 pub const Vec3 = extern struct { x: f32 = 0, y: f32 = 0, z: f32 = 0 };

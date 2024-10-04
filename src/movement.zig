@@ -17,8 +17,8 @@ pub const Component = @import("components.zig");
 const intersection = @import("sparse_set.zig").intersection;
 
 const dvui = @import("dvui");
-const ray = dvui.backend.c;
 
+const ray = @import("raylib-import.zig").ray;
 /// distance between two points
 pub fn distanceBetween(a: ray.Vector2, b: ray.Vector2) f32 {
     const dx = a.x - b.x;
