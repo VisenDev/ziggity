@@ -51,13 +51,13 @@ pub fn createFireball(self: *ecs.ECS, a: std.mem.Allocator) !usize {
 pub fn createParticle(self: *ecs.ECS, a: std.mem.Allocator) !usize {
     const id = self.newEntity(a) orelse return error.EntityCapReached;
     try self.setComponent(a, id, Component.Physics{});
-    //try self.setComponent(a, id, Component.Sprite{
-    //    .animation_player = .{ .animation_name = "particle" },
-    //    .z_level = .background,
-    //    .styling = .{
-    //        .scale = .{},
-    //    },
-    //});
+    try self.setComponent(a, id, Component.Sprite{
+        .animation_player = .{ .animation_name = "particle" },
+        .z_level = .background,
+        .styling = .{
+            .scale = .{},
+        },
+    });
     try self.setComponent(a, id, Component.Metadata{ .archetype = "particle" });
     try self.setComponent(a, id, Component.Lifetime{ .milliseconds_life_remaining = 2 * 1000 });
     return id;
