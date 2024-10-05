@@ -4,16 +4,20 @@
     .paths = .{""},
     .dependencies = .{
         .ziglua = .{
-            .url = "https://github.com/natecraddock/ziglua/archive/refs/heads/master.tar.gz",
-            .hash = "12202d776708f5c2f5b3cd809765d1a2d3d5586eea1c4955615c57a6d1efbd592aee",
+            .url = "https://github.com/VisenDev/ziglua/archive/refs/heads/fix-missing-path.zip",
+            .hash = "1220cc7329d4dfafb588438a1259c3f286780fc315fbc3d5ecac8fe32133a8862c45",
         },
         .dvui = .{
-            .url = "https://github.com/david-vanderson/dvui/archive/refs/heads/master.tar.gz",
-            .hash = "1220a3dd91ac0c58c33f3f6a34d60697b65415b5d0319c6eea5f61a6273f3c5f5ec2",
+            .url = "https://github.com/VisenDev/dvui/archive/refs/heads/project-integration.zip",
+            .hash = "1220312a29104330a73e62b46e76c1ebfadf7ebc339816ee26c410c757cbaccdcfcb",
         },
         .profiler = .{
             .url = "https://github.com/lassade/profiler.zig/archive/refs/heads/main.zip",
-            .hash = "12204d5dcd7384cdc363a5115cb16f174f55a895900f58398a7c9dfd7012497826d9",
+            .hash = "122091c5e8bd93b5311b9b80cc898b4399a9ccca7fe15d391a921219d48091477fc0",
+        },
+        .raylib = .{
+            .url = "https://github.com/VisenDev/raylib/archive/refs/heads/zig-config-h.zip",
+            .hash = "122057d69cfe3334c18cbeadcc5fb728fabd8b5e5b96f6928e84c39e57692d9f4ed8",
         },
     },
 }

@@ -8,6 +8,8 @@ const ray = @import("raylib-import.zig").ray;
 const dvui = @import("dvui");
 const RaylibBackend = dvui.backend;
 
+const main = @import("main.zig");
+
 pub const NextWindow = enum { main_menu, game, save_menu, config_menu, quit, new_save };
 
 const button_opt: dvui.Options = .{
@@ -59,7 +61,7 @@ pub fn drawMainMenu(a: std.mem.Allocator, ui: *dvui.Window, backend: *RaylibBack
                 return .quit;
             }
         }
-        ray.EndDrawing();
+        main.endDrawing();
     }
     return .quit;
 }
@@ -225,7 +227,7 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, ui: *dvui.Window, backend: *Rayl
             }
         }
 
-        ray.EndDrawing();
+        main.endDrawing();
     }
 
     return .quit;
@@ -277,7 +279,7 @@ pub fn drawNewSaveMenu(a: std.mem.Allocator, lua: *Lua, ui: *dvui.Window, backen
             return .save_menu;
         }
 
-        ray.EndDrawing();
+        main.endDrawing();
     }
 
     return .quit;

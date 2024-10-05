@@ -40,7 +40,11 @@ pub fn build(b: *std.Build) !void {
     exe_test.root_module.addImport("profiler", profiler.module("profiler"));
 
     //================ADD DVUI======================
-    const dvui = b.dependency("dvui", .{ .target = target, .optimize = optimize });
+    const dvui = b.dependency("dvui", .{
+        .target = target,
+        .optimize = optimize,
+        .link_backend = false,
+    });
     exe.root_module.addImport("dvui", dvui.module("dvui_raylib"));
     exe_check.root_module.addImport("dvui", dvui.module("dvui_raylib"));
     exe_test.root_module.addImport("dvui", dvui.module("dvui_raylib"));
@@ -79,43 +83,43 @@ pub fn build(b: *std.Build) !void {
         b.path(".zig-cache").getPath(b),
     };
     var lint = b.addSystemCommand(lint_commands);
-    _ = &lint; // autofix
 
-    // jq -r 'to_entries[] | .key as $file | .value[] | "\($file): \(.message) at line \(.range.start.line)"'
+    const log_commands: []const []const u8 = &.{
+        "cat",
+        b.path(".zig-cache/check.json").getPath(b),
+    };
+    var log = b.addSystemCommand(log_commands);
+    log.step.dependOn(&lint.step);
 
-    //const log_commands: []const []const u8 = &.{
-    //    "jq",
-    //    "-r",
-    //    //"\"to_entries[] | .key as $file | .value[] | \\\"\\($file): \\(.message) at line \\(.range.start.line)\\\"\"",
-    //    \\"to_entries[] | .key as $file | .value[] | \"\($file): \(.message) at line \(.range.start.line)\""
-    //    ,
-    //    b.path(".zig-cache/check.json").getPath(b),
-    //};
-    //var log = b.addSystemCommand(log_commands);
-    //log.step.dependOn(&lint.step);
-
-    //var lint_step = b.step("lint", "lint lua");
-    //lint_step.dependOn(&log.step);
+    var lint_step = b.step("lint", "lint lua");
+    lint_step.dependOn(&log.step);
 
     //================LINK RAYLIB===================
-    const maybe_ray = dvui.builder.lazyDependency("raylib", .{ .target = target, .optimize = optimize });
-    if (maybe_ray) |ray| {
-        exe.linkLibrary(ray.artifact("raylib"));
-        exe_check.linkLibrary(ray.artifact("raylib"));
-        exe_test.linkLibrary(ray.artifact("raylib"));
-        exe_define.linkLibrary(ray.artifact("raylib"));
+    const ray = b.dependency("raylib", .{
+        .target = target,
+        .optimize = optimize,
+        .config = @as([]const u8, "-DSUPPORT_CUSTOM_FRAME_CONTROL"),
+    });
+    exe.linkLibrary(ray.artifact("raylib"));
+    exe_check.linkLibrary(ray.artifact("raylib"));
+    exe_test.linkLibrary(ray.artifact("raylib"));
+    exe_define.linkLibrary(ray.artifact("raylib"));
 
-        const glad_path = ray.path("src/external");
-        exe.addIncludePath(glad_path);
-        exe_test.addIncludePath(glad_path);
-        exe_check.addIncludePath(glad_path);
-        exe_define.addIncludePath(glad_path);
+    const glad_path = ray.path("src/external");
+    exe.addIncludePath(glad_path);
+    exe_test.addIncludePath(glad_path);
+    exe_check.addIncludePath(glad_path);
+    exe_define.addIncludePath(glad_path);
 
-        const ray_path = ray.path("src");
-        exe.addIncludePath(ray_path);
-        exe_test.addIncludePath(ray_path);
-        exe_check.addIncludePath(ray_path);
-        exe_define.addIncludePath(ray_path);
+    const ray_path = ray.path("src");
+    exe.addIncludePath(ray_path);
+    exe_test.addIncludePath(ray_path);
+    exe_check.addIncludePath(ray_path);
+    exe_define.addIncludePath(ray_path);
+
+    dvui.module("backend_raylib").linkLibrary(ray.artifact("raylib"));
+    if (dvui.builder.lazyDependency("raygui", .{})) |raygui_dep| {
+        @import("raylib").addRaygui(b, ray.artifact("raylib"), raygui_dep);
     }
 
     const maybe_raygui = dvui.builder.lazyDependency("raygui", .{ .target = target, .optimize = optimize });
@@ -126,19 +130,6 @@ pub fn build(b: *std.Build) !void {
         exe_check.addIncludePath(raygui_path);
         exe_define.addIncludePath(raygui_path);
     }
-
-    //================FIND GLAD.H===================
-    // const glad_path = b.dependency("raylib", .{}).path("src/external");
-    // exe.addIncludePath(glad_path);
-    // exe.addIncludePath(glad_path);
-    // exe.addIncludePath(glad_path);
-
-    //================FIND STYLES===================
-    //const rguilayout = b.dependency("rguilayout", .{ .target = target, .optimize = optimize });
-    //const styles_folder = rguilayout.path("src/styles");
-    //exe.addIncludePath(styles_folder);
-    //exe_check.addIncludePath(styles_folder);
-    //exe_test.addIncludePath(styles_folder);
 
     //=============INSTALL TO OUTPUT DIR===========
     b.installArtifact(exe);
