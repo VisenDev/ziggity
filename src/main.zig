@@ -239,7 +239,7 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Next
             const render_zone = profiler.begin(@src(), "main_render_zone");
             defer render_zone.end();
 
-            //ray.BeginTextureMode(target.raw_render_texture);
+            ray.BeginTextureMode(target.raw_render_texture);
             ray.BeginMode2D(window_manager.camera);
             ray.ClearBackground(ray.BLACK);
 
@@ -263,7 +263,7 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Next
 
             //gl.glEnable(gl.GL_STENCIL_TEST);
             ray.EndMode2D();
-            //ray.EndTextureMode();
+            ray.EndTextureMode();
         }
 
         //std.debug.assert(target.texture_mode == false);
@@ -272,7 +272,7 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Next
             const render_zone = profiler.begin(@src(), "inventory_render_zone");
             defer render_zone.end();
 
-            //ray.BeginTextureMode(light_texture.raw_render_texture);
+            ray.BeginTextureMode(light_texture.raw_render_texture);
             ray.BeginMode2D(window_manager.camera);
             //light_texture.beginTextureMode();
             //defer light_texture.endTextureMode();
@@ -290,7 +290,7 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Next
 
             //gl.glEnable(gl.GL_STENCIL_TEST);
             ray.EndMode2D();
-            //ray.EndTextureMode();
+            ray.EndTextureMode();
         }
 
         //std.debug.assert(light_texture.texture_mode == false);
@@ -322,63 +322,63 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Next
         //try light_shader.shader.setShaderValue("lightRadius", f32, &value);
 
         {
-            //const render_zone = profiler.begin(@src(), "shader_render_zone");
-            //defer render_zone.end();
+            const render_zone = profiler.begin(@src(), "shader_render_zone");
+            defer render_zone.end();
 
-            //const texture0: c_int = 0;
-            //gl.glActiveTexture(gl.GL_TEXTURE0);
-            //gl.glBindTexture(gl.GL_TEXTURE_2D, target.texture().id);
-            ////const texture1: c_int = 1;
-            ////gl.glActiveTexture(gl.GL_TEXTURE1);
-            ////gl.glBindTexture(gl.GL_TEXTURE_2D, light_texture.texture().id);
-            //try light_shader.shader.setShaderValue("texture0", i32, &texture0);
-            ////try light_shader.shader.setShaderValue("texture1", i32, &texture1);
-            //target.render(light_shader.shader);
-            ////ray.BeginMode2D(camera);
-            ////ray.ClearBackground(ray.RAYWHITE); // Clear screen background
+            const texture0: c_int = 0;
+            gl.glActiveTexture(gl.GL_TEXTURE0);
+            gl.glBindTexture(gl.GL_TEXTURE_2D, target.texture().id);
+            //const texture1: c_int = 1;
+            //gl.glActiveTexture(gl.GL_TEXTURE1);
+            //gl.glBindTexture(gl.GL_TEXTURE_2D, light_texture.texture().id);
+            try light_shader.shader.setShaderValue("texture0", i32, &texture0);
+            //try light_shader.shader.setShaderValue("texture1", i32, &texture1);
+            target.render(light_shader.shader);
+            //ray.BeginMode2D(camera);
+            //ray.ClearBackground(ray.RAYWHITE); // Clear screen background
 
-            //////        Enable shader using the custom uniform
-            ////if (light_shaders) {
-            ////    light_shader.shader.beginShaderMode();
-            ////}
-            ////// NOTE: Render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
-            ////ray.DrawTextureRec(
-            ////    target.texture,
-            ////    .{
-            ////        .x = 0,
-            ////        .y = 0,
-            ////        .width = @floatFromInt(target.texture.width),
-            ////        .height = @floatFromInt(-target.texture.height),
-            ////    },
-            ////    .{ .x = 0, .y = 0 },
-            ////    ray.WHITE,
-            ////);
-            ////ray.EndShaderMode();
+            ////        Enable shader using the custom uniform
+            //if (light_shaders) {
+            //    light_shader.shader.beginShaderMode();
+            //}
+            //// NOTE: Render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
+            //ray.DrawTextureRec(
+            //    target.texture,
+            //    .{
+            //        .x = 0,
+            //        .y = 0,
+            //        .width = @floatFromInt(target.texture.width),
+            //        .height = @floatFromInt(-target.texture.height),
+            //    },
+            //    .{ .x = 0, .y = 0 },
+            //    ray.WHITE,
+            //);
+            //ray.EndShaderMode();
 
-            ////if (bloom_shaders) {
-            ////    bloom_shader.beginShaderMode();
+            //if (bloom_shaders) {
+            //    bloom_shader.beginShaderMode();
 
-            ////    ray.DrawTextureRec(
-            ////        bloom_layer.texture,
-            ////        .{
-            ////            .x = 0,
-            ////            .y = 0,
-            ////            .width = @floatFromInt(bloom_layer.texture.width),
-            ////            .height = @floatFromInt(-bloom_layer.texture.height),
-            ////        },
-            ////        .{ .x = 0, .y = 0 },
-            ////        ray.WHITE,
-            ////    );
+            //    ray.DrawTextureRec(
+            //        bloom_layer.texture,
+            //        .{
+            //            .x = 0,
+            //            .y = 0,
+            //            .width = @floatFromInt(bloom_layer.texture.width),
+            //            .height = @floatFromInt(-bloom_layer.texture.height),
+            //        },
+            //        .{ .x = 0, .y = 0 },
+            //        ray.WHITE,
+            //    );
 
-            ////    bloom_shader.endShaderMode();
-            ////}
-            ////if (show_light_rendertexture) {
-            ////    light_texture.render(null);
-            ////}
+            //    bloom_shader.endShaderMode();
+            //}
+            //if (show_light_rendertexture) {
+            //    light_texture.render(null);
+            //}
 
-            //const shader_batch_zone = profiler.begin(@src(), "render_batched");
-            //ray.rlDrawRenderBatchActive();
-            //shader_batch_zone.end();
+            const shader_batch_zone = profiler.begin(@src(), "render_batched");
+            ray.rlDrawRenderBatchActive();
+            shader_batch_zone.end();
 
             debugger.render(&window_manager);
             dtlog.render();

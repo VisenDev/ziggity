@@ -44,6 +44,7 @@ pub const FireballWand = struct {
             var fireball_physics: Component.Physics = .{
                 .position = .{ .x = physics.position.x, .y = physics.position.y },
                 .mass = 0.001,
+                .coefficient_of_friction = 0,
             };
             const base_force: ray.Vector2 = .{ .x = 20, .y = 0 };
             fireball_physics.applyForce(move.rotateVector2(base_force, angle, .{ .x = 0, .y = 0 }));
