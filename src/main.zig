@@ -35,9 +35,9 @@ const play = @import("player.zig");
 //});
 const ray = @import("raylib-import.zig").ray;
 
-const gl = @cImport({
-    @cInclude("glad.h");
-});
+//const gl = @cImport({
+    //@cInclude("glad.h");
+//});
 
 const profiler = @import("profiler");
 
@@ -79,16 +79,16 @@ pub fn main() !void {
     //const music_player = try std.Thread.spawn(.{}, playSound, .{});
     //defer music_player.detach();
 
-    profiler.init(.{});
+    try profiler.init(.{});
     defer {
         profiler.dump("profile.json") catch |e| std.log.err("profile dump failed: {}", .{e});
         profiler.deinit();
     }
 
-    var lua = try api.initLuaApi(&a);
+    var lua = try api.initLuaApi(a);
     defer lua.deinit();
 
-    var dvui_backend = RaylibBackend.init();
+    var dvui_backend = RaylibBackend.init(a);
     defer dvui_backend.deinit();
     //dvui_backend.log_events = true;
 
@@ -326,8 +326,8 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Next
             defer render_zone.end();
 
             const texture0: c_int = 0;
-            gl.glActiveTexture(gl.GL_TEXTURE0);
-            gl.glBindTexture(gl.GL_TEXTURE_2D, target.texture().id);
+            ray.rlActiveTextureSlot(0);
+            ray.rlEnableTexture(target.texture().id);
             //const texture1: c_int = 1;
             //gl.glActiveTexture(gl.GL_TEXTURE1);
             //gl.glBindTexture(gl.GL_TEXTURE_2D, light_texture.texture().id);

@@ -43,7 +43,7 @@ pub fn build(b: *std.Build) !void {
     const dvui = b.dependency("dvui", .{
         .target = target,
         .optimize = optimize,
-        .link_backend = false,
+        .link_backend = true,
     });
     exe.root_module.addImport("dvui", dvui.module("dvui_raylib"));
     exe_check.root_module.addImport("dvui", dvui.module("dvui_raylib"));
@@ -95,41 +95,41 @@ pub fn build(b: *std.Build) !void {
     lint_step.dependOn(&log.step);
 
     //================LINK RAYLIB===================
-    const ray = b.dependency("raylib", .{
-        .target = target,
-        .optimize = optimize,
-        .config = @as([]const u8, "-DSUPPORT_CUSTOM_FRAME_CONTROL"),
-    });
-    exe.linkLibrary(ray.artifact("raylib"));
-    exe_check.linkLibrary(ray.artifact("raylib"));
-    exe_test.linkLibrary(ray.artifact("raylib"));
-    exe_define.linkLibrary(ray.artifact("raylib"));
+    //const ray = b.dependency("raylib", .{
+    //    .target = target,
+    //    .optimize = optimize,
+    //    .config = @as([]const u8, "-DSUPPORT_CUSTOM_FRAME_CONTROL"),
+    //});
+    //exe.linkLibrary(ray.artifact("raylib"));
+    //exe_check.linkLibrary(ray.artifact("raylib"));
+    //exe_test.linkLibrary(ray.artifact("raylib"));
+    //exe_define.linkLibrary(ray.artifact("raylib"));
 
-    const glad_path = ray.path("src/external");
-    exe.addIncludePath(glad_path);
-    exe_test.addIncludePath(glad_path);
-    exe_check.addIncludePath(glad_path);
-    exe_define.addIncludePath(glad_path);
+    //const glad_path = ray.path("src/external");
+    //exe.addIncludePath(glad_path);
+    //exe_test.addIncludePath(glad_path);
+    //exe_check.addIncludePath(glad_path);
+    //exe_define.addIncludePath(glad_path);
 
-    const ray_path = ray.path("src");
-    exe.addIncludePath(ray_path);
-    exe_test.addIncludePath(ray_path);
-    exe_check.addIncludePath(ray_path);
-    exe_define.addIncludePath(ray_path);
+    //const ray_path = ray.path("src");
+    //exe.addIncludePath(ray_path);
+    //exe_test.addIncludePath(ray_path);
+    //exe_check.addIncludePath(ray_path);
+    //exe_define.addIncludePath(ray_path);
 
-    dvui.module("backend_raylib").linkLibrary(ray.artifact("raylib"));
-    if (dvui.builder.lazyDependency("raygui", .{})) |raygui_dep| {
-        @import("raylib").addRaygui(b, ray.artifact("raylib"), raygui_dep);
-    }
+    //dvui.module("backend_raylib").linkLibrary(ray.artifact("raylib"));
+    //if (dvui.builder.lazyDependency("raygui", .{})) |raygui_dep| {
+    //    @import("raylib").addRaygui(b, ray.artifact("raylib"), raygui_dep);
+    //}
 
-    const maybe_raygui = dvui.builder.lazyDependency("raygui", .{ .target = target, .optimize = optimize });
-    if (maybe_raygui) |raygui| {
-        const raygui_path = raygui.path("src");
-        exe.addIncludePath(raygui_path);
-        exe_test.addIncludePath(raygui_path);
-        exe_check.addIncludePath(raygui_path);
-        exe_define.addIncludePath(raygui_path);
-    }
+    //const maybe_raygui = dvui.builder.lazyDependency("raygui", .{ .target = target, .optimize = optimize });
+    //if (maybe_raygui) |raygui| {
+    //    const raygui_path = raygui.path("src");
+    //    exe.addIncludePath(raygui_path);
+    //    exe_test.addIncludePath(raygui_path);
+    //    exe_check.addIncludePath(raygui_path);
+    //    exe_define.addIncludePath(raygui_path);
+    //}
 
     //=============INSTALL TO OUTPUT DIR===========
     b.installArtifact(exe);

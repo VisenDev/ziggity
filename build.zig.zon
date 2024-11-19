@@ -4,8 +4,8 @@
     .paths = .{""},
     .dependencies = .{
         .ziglua = .{
-            .url = "https://github.com/natecraddock/ziglua/archive/267a6270dd31152fc46d66975b5636f03569fd43.tar.gz",
-            .hash = "122021270eeac0118974f76bdff133db66ecfcfc04c004f068b34e9a4c94afa2ae79",
+            .url = "https://github.com/natecraddock/ziglua/archive/bcbfe40acd7218430b5fb7a880615b2bf15c02ac.tar.gz",
+            .hash = "1220a7983916ac2bcba3ded67174ef354012da525c7f85b0e48a416368a637012d78",
         },
         .dvui = .{
             .url = "https://github.com/david-vanderson/dvui/archive/f26e680bfd7b458fc1ed42a38442f61f3920d07d.tar.gz",

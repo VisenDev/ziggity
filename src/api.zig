@@ -20,7 +20,7 @@ pub fn loadFile(l: *ziglua.Lua, path: []const u8) !void {
     try l.doFile(fullpath);
 }
 
-pub fn initLuaApi(a: *const std.mem.Allocator) !*ziglua.Lua {
+pub fn initLuaApi(a: std.mem.Allocator) !*ziglua.Lua {
     var l = try ziglua.Lua.init(a);
     l.openLibs();
 
@@ -28,7 +28,7 @@ pub fn initLuaApi(a: *const std.mem.Allocator) !*ziglua.Lua {
     try l.set("ZigLoadFile", loadFile);
 
     //load the entry
-    const entry = try file.getLuaEntryFile(a.*);
+    const entry = try file.getLuaEntryFile(a);
     defer a.free(entry);
 
     l.doFile(entry) catch |err| {
