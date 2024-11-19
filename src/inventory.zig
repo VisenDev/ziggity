@@ -51,7 +51,7 @@ pub const ItemComponent = struct {
     stack_size: usize = 1,
     max_stack_size: usize = 16,
     animation_player: anime.AnimationPlayer = .{ .animation_name = "potion" },
-    tick_fn: []const u8,
+    tick_fn: []const u8 = "",
 
     pub fn runAction(
         self: *@This(),

@@ -18,3 +18,5 @@
 [TODO] add basic hostile entity AI
 [TODO] add item script functionality
 [TODO] factor out all raylib rendering code to one file which manages the camera, animations, tile resolution, etc...
+[TODO] caching
+[TODO] use struct args

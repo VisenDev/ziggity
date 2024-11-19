@@ -28,7 +28,7 @@ inline fn getCorners(r: ray.Rectangle) [4]ray.Vector2 {
 
 const CellularAutomataOptions = struct {
     chance_to_start_as_wall: f32 = 0.15,
-    num_simulation_steps: usize = 5,
+    num_simulation_steps: usize = 6,
     birth_threshhold: usize = 5, //number of neighbors for a floor to become a wall
     death_threshhold: usize = 4,
 };

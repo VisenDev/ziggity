@@ -1,10 +1,7 @@
 const std = @import("std");
 
 const menu = @import("menu.zig");
-const ray = @cImport({
-    @cInclude("raylib.h");
-    //@cInclude("raygui.h");
-});
+const ray = @import("raylib-import.zig").ray;
 
 ///shows error message then returns
 pub fn crashToMainMenu(err: []const u8) menu.NextWindow {

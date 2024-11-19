@@ -8,8 +8,8 @@
             .hash = "1220a7983916ac2bcba3ded67174ef354012da525c7f85b0e48a416368a637012d78",
         },
         .dvui = .{
-            .url = "https://github.com/david-vanderson/dvui/archive/f26e680bfd7b458fc1ed42a38442f61f3920d07d.tar.gz",
-            .hash = "12202c8843b1345d91e84c71d3ba93ed93fc570c83ddd02993012cf4307fd2fe2391",
+            .url = "https://github.com/VisenDev/dvui/archive/refs/heads/fix-mac-compilation.zip",
+            .hash = "122084bb04dcce167babb30397c5bc40c4c689fa03769de24352499b5c234717eb19",
         },
         .raylib = .{
             .url = "https://github.com/raysan5/raylib/archive/26548c10620c4ae6937cf8b506c777a006b33c16.tar.gz",

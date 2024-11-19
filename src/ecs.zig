@@ -100,7 +100,7 @@ pub const ECS = struct {
         inline for (comptime sliceComponentNames()) |decl| {
             var sys = &@field(self.components, @typeName(@field(Component, decl.name)));
             sys.dense.capacity = 0;
-            sys.dense_ids.capacity = 0;
+            sys.dense_to_sparse_map.capacity = 0;
         }
         self.availible_ids.capacity = 0;
         self.bitflags.dense.capacity = 0;
@@ -140,7 +140,11 @@ pub const ECS = struct {
         const id = self.availible_ids.popOrNull();
         std.debug.assert(id != std.math.maxInt(usize));
         if (id) |real_id| {
-            self.bitflags.insert(a, real_id, std.bit_set.StaticBitSet(comptime sliceComponentNames().len).initEmpty()) catch return null;
+            self.bitflags.setNoClobber(
+                a,
+                real_id,
+                std.bit_set.StaticBitSet(comptime sliceComponentNames().len).initEmpty(),
+            ) catch return null;
         }
         return id;
     }
@@ -267,7 +271,7 @@ pub const ECS = struct {
         //std.debug.print("bit mask {b}\n", .{bit_mask.mask});
         for (self.bitflags.dense.items, 0..) |component_mask, i| {
             if (bit_mask.mask & component_mask.mask == bit_mask.mask) {
-                const id = (self.bitflags.dense_ids.items[i]);
+                const id = (self.bitflags.dense_to_sparse_map.items[i]);
 
                 inline for (components) |comp| {
                     std.debug.assert(self.getMaybe(comp, id) != null);
@@ -376,7 +380,7 @@ test "system domain" {
     for (0..50) |i| {
         const slime_id = ecs.newEntity(a).?;
         list[i] = slime_id;
-        try ecs.setComponent(a, slime_id, Component.Physics{ .pos = randomVector2(50, 50) });
+        try ecs.setComponent(a, slime_id, Component.Physics{ .position = randomVector2(50, 50) });
         try ecs.setComponent(a, slime_id, Component.Sprite{ .animation_player = .{ .animation_name = "slime" } });
         try ecs.setComponent(a, slime_id, Component.Wanderer{});
         try ecs.setComponent(a, slime_id, Component.Health{});
@@ -399,7 +403,7 @@ test "system domain" {
     for (0..50) |i| {
         const slime_id = ecs.newEntity(a).?;
         list[i] = slime_id;
-        try ecs.setComponent(a, slime_id, Component.Physics{ .pos = randomVector2(50, 50) });
+        try ecs.setComponent(a, slime_id, Component.Physics{ .position = randomVector2(50, 50) });
         try ecs.setComponent(a, slime_id, Component.Sprite{ .animation_player = .{ .animation_name = "slime" } });
         try ecs.setComponent(a, slime_id, Component.Wanderer{});
         try ecs.setComponent(a, slime_id, Component.Health{});
@@ -432,7 +436,7 @@ test "remove component" {
     const a = std.testing.allocator;
 
     const id = ecs.newEntity(a).?;
-    try ecs.setComponent(a, id, Component.Physics{ .pos = randomVector2(50, 50) });
+    try ecs.setComponent(a, id, Component.Physics{ .position = randomVector2(50, 50) });
     try ecs.setComponent(a, id, Component.Sprite{ .animation_player = .{ .animation_name = "slime" } });
     try ecs.setComponent(a, id, Component.Wanderer{});
     try ecs.setComponent(a, id, Component.Health{});
