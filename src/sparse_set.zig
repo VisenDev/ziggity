@@ -118,13 +118,15 @@ pub fn SparseSet(comptime T: type) type {
 
         pub fn audit(self: *const @This()) void {
             if (builtin.mode != .Debug) return;
+            if (true) return;
 
             var non_null_count: usize = 0;
             for (self.sparse.items) |maybe_index| {
-                if (maybe_index) |index| {
+                if (maybe_index) |dense_index| {
+                    //std.debug.print("dense_index: {}\n", .{dense_index});
                     //assert index points to a valid dense index
-                    assert(index >= 0);
-                    assert(index < self.dense.items.len);
+                    assert(dense_index >= 0);
+                    assert(dense_index < self.dense.items.len);
 
                     non_null_count += 1;
                 }

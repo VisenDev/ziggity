@@ -36,7 +36,7 @@ const play = @import("player.zig");
 const ray = @import("raylib-import.zig").ray;
 
 //const gl = @cImport({
-    //@cInclude("glad.h");
+//@cInclude("glad.h");
 //});
 
 const profiler = @import("profiler");
@@ -73,7 +73,7 @@ pub fn main() !void {
     ray.SetConfigFlags(ray.FLAG_WINDOW_RESIZABLE);
     ray.SetConfigFlags(ray.FLAG_VSYNC_HINT); //disable this flag to test max fps
     ray.InitWindow(800, 450, "ziggity");
-    //ray.SetTargetFPS(60);
+    ray.SetTargetFPS(60);
     defer ray.CloseWindow();
 
     //const music_player = try std.Thread.spawn(.{}, playSound, .{});
@@ -377,7 +377,7 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Next
             //}
 
             const shader_batch_zone = profiler.begin(@src(), "render_batched");
-            ray.rlDrawRenderBatchActive();
+            //ray.rlDrawRenderBatchActive();
             shader_batch_zone.end();
 
             debugger.render(&window_manager);
@@ -385,7 +385,8 @@ fn runGame(a: std.mem.Allocator, lua: *Lua, current_save: []const u8) !menu.Next
             inv.renderPlayerInventory(lvl.ecs, a, &window_manager);
         }
 
-        endDrawing();
+        ray.EndDrawing();
+        //endDrawing();
 
         if (ray.IsKeyPressed('Q')) {
             return .quit;

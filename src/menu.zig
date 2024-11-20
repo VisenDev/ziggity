@@ -61,7 +61,7 @@ pub fn drawMainMenu(a: std.mem.Allocator, ui: *dvui.Window, backend: *RaylibBack
                 return .quit;
             }
         }
-        main.endDrawing();
+        ray.EndDrawing();
     }
     return .quit;
 }
@@ -227,7 +227,7 @@ pub fn drawSaveSelectMenu(a: std.mem.Allocator, ui: *dvui.Window, backend: *Rayl
             }
         }
 
-        main.endDrawing();
+        ray.EndDrawing();
     }
 
     return .quit;
@@ -279,7 +279,7 @@ pub fn drawNewSaveMenu(a: std.mem.Allocator, lua: *Lua, ui: *dvui.Window, backen
             return .save_menu;
         }
 
-        main.endDrawing();
+        ray.EndDrawing();
     }
 
     return .quit;

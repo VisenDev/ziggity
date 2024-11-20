@@ -62,7 +62,7 @@ pub const Physics = struct {
     velocity: ray.Vector2 = vec_default,
     acceleration: ray.Vector2 = vec_default,
     mass: f32 = 10, //kg
-    coefficient_of_friction: f32 = 0.10,
+    coefficient_of_friction: f32 = 0.01,
 
     pub fn applyForce(self: *@This(), force: ray.Vector2) void {
         const acceleration = ray.Vector2{
@@ -208,8 +208,8 @@ pub fn updateMovementSystem(
         }
 
         //apply friction
-        const friction = physics.coefficient_of_friction * 100;
-        physics.applyFriction(friction * opt.dt);
+        const friction = physics.coefficient_of_friction;
+        physics.applyFriction(friction * opt.dtInMs());
 
         // Reset acceleration for the next frame (forces need to be reapplied)
         physics.acceleration.x = 0;
